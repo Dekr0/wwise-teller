@@ -51,8 +51,22 @@ func (h *HIRC) Encode() ([]byte, error) {
 	/* gap chunk size field, and come back later */
 	bw.AppendBytes([]byte{0, 0, 0, 0})
 	bw.Append(uint32(len(h.HircObjs)))
-	for _, hircObj := range h.HircObjs {
-		bw.AppendBytes(hircObj.Encode())
+
+	type encodeResult struct {
+		index int
+		blob  []byte
+	}
+	
+	cEncodeResult := make(chan *encodeResult, len(h.HircObjs))
+	sem := make(chan struct{} , 8)
+	uncollectedResult := len(h.HircObjs)
+
+	for i, hircObj := range h.HircObjs {
+		sem <- struct{}{}
+		go func() {
+			cEncodeResult <- &encodeResult{ i, hircObj.Encode() }
+			<- sem
+		}()
 	}
 
 	assert.AssertTrue(bw.Len() - CHUNK_HEADER_SIZE > 0, "HIRC chunk size is less than or equal 0!")
