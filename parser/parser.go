@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"os"
 	"sort"
-	"time"
 
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/reader"
@@ -96,6 +95,7 @@ func ParseBank(filename string, ctx context.Context) (*wwise.Bank, error) {
 	scheduledBKHD := false
 	scheduledDIDX := false
 	scheduledHIRC := false
+	uncollectedResult := 0
 
 	/*
 	Parallel parsing
@@ -149,6 +149,7 @@ func ParseBank(filename string, ctx context.Context) (*wwise.Bank, error) {
 					"consumeSize", bkhdReader.Tell(),
 				)
 			}()
+			uncollectedResult += 1
 			scheduledBKHD = true
 		} else if bytes.Compare(chunkTag, []byte{'D', 'A', 'T', 'A'}) == 0 {
 			blob, shallowReadErr := shallowReader.ReadFull(uint64(chunkSize), 0)
@@ -178,6 +179,7 @@ func ParseBank(filename string, ctx context.Context) (*wwise.Bank, error) {
 					"consumeSize", didxReader.Tell(),
 				)
 			}()
+			uncollectedResult += 1
 			scheduledDIDX = true
 		} else if bytes.Compare(chunkTag, []byte{'H', 'I', 'R', 'C'}) == 0 {
 			hircReader, shallowReadErr := shallowReader.NewSectionBankReader(uint64(chunkSize))
@@ -199,6 +201,7 @@ func ParseBank(filename string, ctx context.Context) (*wwise.Bank, error) {
 					"consumeSize", hircReader.Tell(),
 				)
 			}()
+			uncollectedResult += 1
 			scheduledHIRC = true
 		}
 	}
@@ -211,14 +214,14 @@ func ParseBank(filename string, ctx context.Context) (*wwise.Bank, error) {
 		return nil, MissingBKHDError
 	}
 	if !scheduledDIDX {
-		return nil, MissingDIDXError
+		slog.Warn("Sound bank is missing DIDX section. This might not be a " +
+			"problem as long as HIRC section exists.", "soundbank", filename)
 	}
 	if !scheduledHIRC {
 		return nil, MissingHIRCError
 	}
 
-	outer:
-	for {
+	for uncollectedResult > 0 {
 		select {
 		case <- ctx.Done():
 			return nil, ctx.Err()
@@ -226,23 +229,24 @@ func ParseBank(filename string, ctx context.Context) (*wwise.Bank, error) {
 			return nil, err
 		case bkhd := <- cBKHD:
 			bnk.BKHD = bkhd
+			uncollectedResult -= 1
 			slog.Info("Collect BKHD parsing result")
 		case didx := <- cDIDX:
 			bnk.DIDX = didx
+			uncollectedResult -= 1
 			slog.Info("Collect DIDX parsing result")
 		case hirc := <- cHIRC:
 			bnk.HIRC = hirc
+			uncollectedResult -= 1
 			slog.Info("Collect HIRC parsing result")
-		default:
-			if bnk.BKHD != nil && 
-			   bnk.DIDX != nil && 
-			   bnk.DATA != nil && 
-			   bnk.HIRC != nil {
-				slog.Info("BKHD, DIDX, DATA, and HIRC are parsed. Finished parsing")
-				break outer
-			}
-			time.Sleep(time.Microsecond * 100)
 		}
+	}
+
+	if bnk.BKHD == nil {
+		return nil, MissingBKHDError
+	}
+	if bnk.HIRC == nil {
+		return nil, MissingHIRCError
 	}
 
 	return bnk, nil
