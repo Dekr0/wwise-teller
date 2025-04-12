@@ -147,11 +147,11 @@ func parseHIRC(
 				}
 				hirc.ActorMixers[hircId] = parseResult.hircObj.(*wwise.ActorMixer)
 				slog.Info("Sorted parser result to actor mixer", "hircId", hircId)
-				activeParser 
+				activeParser -= 1
 			}
 		default: 
-			slog.Info("Sleep for 5 seconds")
-			time.Sleep(time.Second * 5) 
+			slog.Info("Sleep for 100 microseconds")
+			time.Sleep(time.Microsecond * 100) 
 		}
 	}
 
