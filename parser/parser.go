@@ -12,18 +12,18 @@ import (
 	"sort"
 
 	"github.com/Dekr0/wwise-teller/assert"
-	"github.com/Dekr0/wwise-teller/reader"
+	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-var MissingBKHDError error = errors.New("Sound bank is missing BKHD section")
-var MissingDIDXError error = errors.New("Sound bank is missing DIDX section")
-var MissingDATAError error = errors.New("Sound bank is missing DATA section")
-var MissingHIRCError error = errors.New("Sound bank is missing HIRC section")
+var NoBKHD error = errors.New("Sound bank is missing BKHD section")
+var NoDIDX error = errors.New("Sound bank is missing DIDX section")
+var NoDATA error = errors.New("Sound bank is missing DATA section")
+var NoHIRC error = errors.New("Sound bank is missing HIRC section")
 
 var (
-	bankCustomVersions []uint32 = []uint32{ 122, 126, 129, 135, 136 }
-	bankVersions []uint32 = []uint32 {
+	CustomVersions []uint32 = []uint32{ 122, 126, 129, 135, 136 }
+	Versions []uint32 = []uint32 {
 	//  --,  // 0x-- Wwise 2016.1~3
     //  14,  // 0x0E Wwise 2007.1/2?
     	26,  // 0x1A Wwise 2007.3?
@@ -68,34 +68,32 @@ var (
 	}
 )
 
-func ParseBank(filename string, ctx context.Context) (*wwise.Bank, error) {
-	f, openErr := os.Open(filename)
-	if openErr != nil {
-		return nil, openErr
+func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
 	}
 
-	shallowReader := reader.NewSoundbankReader(f, binary.LittleEndian)
+	bankReader := wio.NewReader(f, binary.LittleEndian)
 
-	bnkVersion, checkErr := checkHeader(shallowReader)
-	if checkErr != nil {
-		return nil, checkErr
+	version, err := checkHeader(bankReader)
+	if err != nil {
+		return nil, err
 	}
 
-	if bnkVersion != 141 {
+	if version != 141 {
 		return nil, errors.New("Wwise teller currently only targets version 141.")
 	}
 
-	/*
-	Each channel (except error channel) must be only written once
-	*/
-	cBKHD := make(chan *wwise.BKHD, 1)
-	cDIDX := make(chan *wwise.DIDX, 1)
-	cHIRC := make(chan *wwise.HIRC, 1)
-	cParserErr  := make(chan error, 4)
-	scheduledBKHD := false
-	scheduledDIDX := false
-	scheduledHIRC := false
-	uncollectedResult := 0
+	/* Each channel (except error channel) must be only written once */
+	bkhd := make(chan *wwise.BKHD, 1)
+	didx := make(chan *wwise.DIDX, 1)
+	hirc := make(chan *wwise.HIRC, 1)
+	e := make(chan error, 4)
+	hasBKHD := false
+	hasDIDX := false
+	hasHIRC := false
+	pending := 0
 
 	/*
 	Parallel parsing
@@ -115,145 +113,145 @@ func ParseBank(filename string, ctx context.Context) (*wwise.Bank, error) {
 	
 	*/
 	bnk := wwise.NewBank(nil, nil, nil, nil)
-	var topLevelShallowReadErr error
-	for topLevelShallowReadErr == nil {
-		chunkTag, shallowReadErr := shallowReader.FourCC()
-		if shallowReadErr != nil {
-			topLevelShallowReadErr = shallowReadErr
-			continue
-		}
+	err = nil
+	var tag []byte 
+	var size uint32 
+	for err == nil {
+		tag, err = bankReader.FourCC()
+		if err != nil { continue }
 
-		chunkSize, shallowReadErr := shallowReader.U32()
-		if shallowReadErr != nil {
-			topLevelShallowReadErr = shallowReadErr
-			continue
-		}
+		size, err = bankReader.U32()
+		if err != nil { continue }
 
-		if bytes.Compare(chunkTag, []byte{'B', 'K', 'H', 'D'}) == 0 {
-			bkhdReader, shallowReadErr := shallowReader.NewSectionBankReader(uint64(chunkSize))
-			if shallowReadErr != nil {
-				topLevelShallowReadErr = shallowReadErr
-				continue
-			}
-			slog.Info("Start parsing BKHD section...", "chunkSize", chunkSize)
-			go func() {
-				/* Should always return */
-				bkhd, parserErr := parseBKHD(chunkSize, bkhdReader)
-				if parserErr != nil {
-					cParserErr <- parserErr
-				} else {
-					cBKHD <- bkhd
-				}
-				slog.Info("Finished parsing BKHD", 
-					"chunkSize", chunkSize,
-					"consumeSize", bkhdReader.Tell(),
-				)
-			}()
-			uncollectedResult += 1
-			scheduledBKHD = true
-		} else if bytes.Compare(chunkTag, []byte{'D', 'A', 'T', 'A'}) == 0 {
-			blob, shallowReadErr := shallowReader.ReadFull(uint64(chunkSize), 0)
-			if shallowReadErr != nil {
-				topLevelShallowReadErr = shallowReadErr
-				continue
-			}
+		if bytes.Compare(tag, []byte{'B', 'K', 'H', 'D'}) == 0 {
+			var reader *wio.Reader
+			reader, err = bankReader.NewBufferReader(uint64(size))
+			if err != nil { continue }
+			slog.Debug("Start parsing BKHD section...", "size", size)
+			go BKHDRoutine(reader, bkhd, e, size)
+			pending += 1
+			hasBKHD = true
+		} else if bytes.Compare(tag, []byte{'D', 'A', 'T', 'A'}) == 0 {
+			var blob []byte
+			blob, err = bankReader.ReadFull(uint64(size), 0)
+			if err != nil { continue }
 			bnk.DATA = wwise.NewDATA(blob)
-			slog.Info("Read DATA section")
-		} else if bytes.Compare(chunkTag, []byte{'D', 'I', 'D', 'X'}) == 0 {
-			didxReader, shallowReadErr := shallowReader.NewSectionBankReader(uint64(chunkSize))
-			if shallowReadErr != nil {
-				topLevelShallowReadErr = shallowReadErr
-				continue
-			}
-			slog.Info("Start parsing DIDX section...")
-			go func() {
-				/* Should always return */
-				didx, parserErr := parseMediaIndex(chunkSize, didxReader)
-				if parserErr != nil {
-					cParserErr <- parserErr
-				} else {
-					cDIDX <- didx
-				}
-				slog.Info("Finished parsing DIDX", 
-					"chunkSize", chunkSize,
-					"consumeSize", didxReader.Tell(),
-				)
-			}()
-			uncollectedResult += 1
-			scheduledDIDX = true
-		} else if bytes.Compare(chunkTag, []byte{'H', 'I', 'R', 'C'}) == 0 {
-			hircReader, shallowReadErr := shallowReader.NewSectionBankReader(uint64(chunkSize))
-			if shallowReadErr != nil {
-				topLevelShallowReadErr = shallowReadErr
-				continue
-			}
-			slog.Info("Start parsing HIRC section...")
-			go func() {
-				/* Should always return */
-				hirc, parserErr := parseHIRC(ctx, chunkSize, hircReader)
-				if parserErr != nil {
-					cParserErr <- parserErr
-				} else {
-					cHIRC <- hirc
-				}
-				slog.Info("Finished parsing HIRC", 
-					"chunkSize", chunkSize,
-					"consumeSize", hircReader.Tell(),
-				)
-			}()
-			uncollectedResult += 1
-			scheduledHIRC = true
+			slog.Debug("Read DATA section", "size", size)
+		} else if bytes.Compare(tag, []byte{'D', 'I', 'D', 'X'}) == 0 {
+			var reader *wio.Reader
+			reader, err = bankReader.NewBufferReader(uint64(size))
+			if err != nil { continue }
+			slog.Debug("Start parsing DIDX section...", "chunkSize", size)
+			go DIDXRoutine(reader, didx, e, size)
+			pending += 1
+			hasDIDX = true
+		} else if bytes.Compare(tag, []byte{'H', 'I', 'R', 'C'}) == 0 {
+			var reader *wio.Reader
+			reader, err = bankReader.NewBufferReader(uint64(size))
+			if err != nil { continue }
+			slog.Debug("Start parsing HIRC section...", "chunkSize", size)
+			go HIRCRoutine(reader, ctx, hirc, e, size)
+			pending += 1
+			hasHIRC = true
 		}
 	}
 
-	if topLevelShallowReadErr != io.EOF {
-		return nil, topLevelShallowReadErr
+	if err != io.EOF {
+		return nil, err 
 	}
 
-	if !scheduledBKHD {
-		return nil, MissingBKHDError
+	if !hasBKHD {
+		return nil, NoBKHD
 	}
-	if !scheduledDIDX {
+	if !hasDIDX {
 		slog.Warn("Sound bank is missing DIDX section. This might not be a " +
-			"problem as long as HIRC section exists.", "soundbank", filename)
+			"problem as long as HIRC section exists.", "soundbank", path)
 	}
-	if !scheduledHIRC {
-		return nil, MissingHIRCError
+	if !hasHIRC {
+		return nil, NoHIRC
 	}
 
-	for uncollectedResult > 0 {
+	for pending > 0 {
 		select {
 		case <- ctx.Done():
 			return nil, ctx.Err()
-		case err := <- cParserErr:
+		case err := <- e:
 			return nil, err
-		case bkhd := <- cBKHD:
+		case bkhd := <- bkhd:
 			bnk.BKHD = bkhd
-			uncollectedResult -= 1
-			slog.Info("Collect BKHD parsing result")
-		case didx := <- cDIDX:
+			pending -= 1
+			slog.Info("Collected BKHD parsing result")
+		case didx := <- didx:
 			bnk.DIDX = didx
-			uncollectedResult -= 1
-			slog.Info("Collect DIDX parsing result")
-		case hirc := <- cHIRC:
+			pending -= 1
+			slog.Info("Collected DIDX parsing result")
+		case hirc := <- hirc:
 			bnk.HIRC = hirc
-			uncollectedResult -= 1
-			slog.Info("Collect HIRC parsing result")
+			pending -= 1
+			slog.Info("Collected HIRC parsing result",
+				"numHircObjs", len(bnk.HIRC.HircObjs),
+				"numSounds", len(bnk.HIRC.Sounds),
+				"numActorMixers", len(bnk.HIRC.ActorMixers),
+				"numLayerCntrs", len(bnk.HIRC.LayerCntrs),
+				"numRanSeqCntrs", len(bnk.HIRC.RanSeqCntrs),
+				"numSwitchCntrs", len(bnk.HIRC.SwitchCntrs),
+			)
 		}
 	}
 
 	if bnk.BKHD == nil {
-		return nil, MissingBKHDError
+		return nil, NoBKHD
 	}
 	if bnk.HIRC == nil {
-		return nil, MissingHIRCError
+		return nil, NoHIRC
 	}
 
 	return bnk, nil
 }
 
-func parseBKHD(chunkSize uint32, r *reader.BankReader) (*wwise.BKHD, error) {
-	assert.AssertEqual(0, r.Tell(), "Parser for BKHD does not start at byte 0.")
+func BKHDRoutine(
+	r *wio.Reader,
+	bkhd chan *wwise.BKHD,
+	e chan error,
+	size uint32,
+) {
+	res, err := parseBKHD(size, r)
+	if err != nil {
+		e <- err
+	} else {
+		bkhd <- res
+		slog.Debug("Finished parsing BKHD")
+	}
+}
+
+func DIDXRoutine(r *wio.Reader, didx chan *wwise.DIDX, e chan error, size uint32) {
+	res, err := parseDIDX(size, r)
+	if err != nil {
+		e <- err
+	} else {
+		didx <- res
+		slog.Debug("Finished parsing DIDX")
+	}
+}
+
+func HIRCRoutine(
+	r *wio.Reader,
+	ctx context.Context,
+	hirc chan *wwise.HIRC,
+	e chan error,
+	size uint32,
+) {
+	res, err := parseHIRC(ctx, size, r)
+	if err != nil {
+		e <- err
+	} else {
+		hirc <- res
+		slog.Debug("Finished parsing HIRC")
+	}
+}
+
+func parseBKHD(size uint32, r *wio.Reader) (*wwise.BKHD, error) {
+	assert.Equal(0, r.Pos(), "Parser for BKHD does not start at byte 0.")
 
 	bkhd := wwise.NewBKHD()
 
@@ -291,117 +289,117 @@ func parseBKHD(chunkSize uint32, r *reader.BankReader) (*wwise.BKHD, error) {
 		return nil, err
 	}
 
-	assert.AssertEqual(
-		chunkSize,
-		uint32(r.Tell()),
+	assert.Equal(
+		size,
+		uint32(r.Pos()),
 		"There are data that is not consumed after parsing all BKHD blob",
 	)
 
 	return bkhd, nil
 }
 
-func parseMediaIndex(chunkSize uint32, r *reader.BankReader) (*wwise.DIDX, error) {
-	assert.AssertEqual(0, r.Tell(), "Parser for DIDX does not start at byte 0.")
+func parseDIDX(size uint32, r *wio.Reader) (*wwise.DIDX, error) {
+	assert.Equal(0, r.Pos(), "Parser for DIDX does not start at byte 0.")
 
-	didx := wwise.NewDIDX(chunkSize / 0x0c)
-
-	for range didx.UniqueNumMedias {
-		audioSrcId, err := r.U32()
+	num := size / 0x0c
+	didx := wwise.NewDIDX(num)
+	for range num {
+		sid, err := r.U32()
 		if err != nil {
 			return nil, err
 		}
-		DATAOffset, err := r.U32()
+		offset, err := r.U32()
 		if err != nil {
 			return nil, err
 		}
-		DATABlobSize, err := r.U32()
+		size, err := r.U32()
 		if err != nil {
 			return nil, err
 		}
 		didx.MediaIndexs = append(didx.MediaIndexs, &wwise.MediaIndex{
-			AudioSrcId: audioSrcId,
-			DATAOffset: DATAOffset,
-			DATABlobSize: DATABlobSize,
+			Sid: sid,
+			Offset: offset,
+			Size: size,
 		})
 	}
 
-	assert.AssertEqual(
-		chunkSize,
-		uint32(r.Tell()),
+	assert.Equal(
+		size,
+		uint32(r.Pos()),
 		"There are data that is not consumed after parsing all media index blob",
 	)
 
 	return didx, nil
 }
 
-func checkHeader(r *reader.BankReader) (uint32, error) {
-	curr := r.Tell()
+func checkHeader(r *wio.Reader) (uint32, error) {
+	curr := r.Pos()
 
-	fourcc, err := r.FourCC()
+	tag, err := r.FourCC()
 	if err != nil {
 		return 0, err
 	}
-	if bytes.Compare(fourcc, []byte{'A', 'K', 'B', 'K'}) == 0 {
+	if bytes.Compare(tag, []byte{'A', 'K', 'B', 'K'}) == 0 {
 		return 0, fmt.Errorf("AKBK chunk indicate this Wwise sound bank is legacy. Legacy version Wwise bank is not supported.")
 	}
-	if bytes.Compare(fourcc, []byte{'B', 'K', 'H', 'D'}) != 0 {
+	if bytes.Compare(tag, []byte{'B', 'K', 'H', 'D'}) != 0 {
 		return 0, errors.New("This file is not a Wwise sound bank.")
 	}
 
 	_, err = r.U32() // size
 
-	bnkVersion, err := r.U32()
+	version, err := r.U32()
 	if err != nil {
 		return 0, err
 	}
-	if bnkVersion == 0 || bnkVersion == 1 {
+	if version == 0 || version == 1 {
 		_, err := r.U32()
 		if err != nil {
 			return 0, err
 		}
-		bnkVersion, err = r.U32()
+		version, err = r.U32()
 		if err != nil {
 			return 0, err
 		}
-		return 0, fmt.Errorf("Legacy version %d of Wwise sound bank is not supported.", bnkVersion)
+		return 0, fmt.Errorf("Legacy version %d of Wwise sound bank is not supported.", version)
 	}
 
-	_, in := sort.Find(len(bankCustomVersions), func(i int) int {
-		if bnkVersion < bankCustomVersions[i] {
+	_, in := sort.Find(len(CustomVersions), func(i int) int {
+		if version < CustomVersions[i] {
 			return -1
-		} else if bnkVersion == bankCustomVersions[i] {
+		} else if version == CustomVersions[i] {
 			return 0
 		} else {
 			return 1
 		}
 	})
 	if in {
-		return 0, fmt.Errorf("Custom version %d of Wwise sound bank is not supported yet.", bnkVersion)
+		return 0, fmt.Errorf("Custom version %d of Wwise sound bank is not supported yet.", version)
 	}
 
-	if bnkVersion & 0xFFFF0000 == 0x80000000 {
-		bnkVersion = bnkVersion & 0x0000FFFF
-		return 0, fmt.Errorf("Unknown custom version %d of Wwise sound bank is not supported yet.", bnkVersion)
+	if version & 0xFFFF0000 == 0x80000000 {
+		version = version & 0x0000FFFF
+		return 0, fmt.Errorf("Unknown custom version %d of Wwise sound bank is not supported yet.", version)
 	}
 
-	if bnkVersion & 0x0FFFF000 > 0 {
-		return 0, fmt.Errorf("Encrypted bank version %d Wwise sound bank. Decryption of Wwise sound bank version is not supported yet.", bnkVersion)
+	if version & 0x0FFFF000 > 0 {
+		return 0, fmt.Errorf("Encrypted bank version %d Wwise sound bank. Decryption of Wwise sound bank version is not supported yet.", version)
 	}
 
-	_, in = sort.Find(len(bankVersions), func(i int) int {
-		if bnkVersion < bankVersions[i] {
+	_, in = sort.Find(len(Versions), func(i int) int {
+		if version < Versions[i] {
 			return -1
-		} else if bnkVersion == bankVersions[i] {
+		} else if version == Versions[i] {
 			return 0
 		} else {
 			return 1
 		}
 	})
 	if !in {
-		return 0, fmt.Errorf("Unknown bank version %d Wwise sound bank is not supported yet.", bnkVersion)
+		return 0, fmt.Errorf("Unknown bank version %d Wwise sound bank is not supported yet.", version)
 	}
 
-	err = r.AbsSeek(curr)
+	err = r.SeekStart(curr)
 
-	return bnkVersion, err
+	return version, err
 }

@@ -10,9 +10,9 @@ import (
 	"github.com/Dekr0/wwise-teller/assert"
 )
 
-var BANK_VERSION = -1
+var BankVersion = -1
 
-const CHUNK_HEADER_SIZE = 4 + 4
+const chunkHeaderSize = 4 + 4
 
 type Bank struct {
 	BKHD *BKHD
@@ -29,84 +29,78 @@ func (b *Bank) Write(ctx context.Context, w io.Writer) error {
 	return nil
 }
 
-func (b *Bank) Encode(ctx context.Context) ([]byte, error) {
-	dataChunks := make([][]byte, 4, 4)
-	for i := range dataChunks {
-		dataChunks[i] = []byte{}
+func (bnk *Bank) Encode(ctx context.Context) ([]byte, error) {
+	chunks := make([][]byte, 4, 4)
+	for i := range chunks {
+		chunks[i] = []byte{}
 	}
 
-	cBKHDblob := make(chan []byte, 1)
-	cDIDXblob := make(chan []byte, 1)
-	cDATAblob := make(chan []byte, 1)
-	cHIRCblob := make(chan []byte, 1)
-	cErr := make(chan error)
-	uncollectedBlob := 0
+	bkhd := make(chan []byte, 1)
+	didx := make(chan []byte, 1)
+	data := make(chan []byte, 1)
+	hirc := make(chan []byte, 1)
+	e := make(chan error)
+	pending := 0
 
 	/* Header section */
-	go func() {
-		 cBKHDblob <- b.BKHD.Encode()
-	}()
-	uncollectedBlob += 1
+	go func() { bkhd <- bnk.BKHD.Encode() }()
+	pending += 1
 
 	/* DIDX section */
-	if b.DIDX != nil {
-		go func() {
-			cDIDXblob <- b.DIDX.Encode()
-		}()
-		uncollectedBlob += 1
+	if bnk.DIDX != nil {
+		go func() { didx <- bnk.DIDX.Encode() }()
+		pending += 1
 	}
 
 	/* DATA section */
-	if b.DATA != nil {
-		go func() {
-			cDATAblob <- b.DATA.Encode()
-		}()
-		uncollectedBlob += 1
+	if bnk.DATA != nil {
+		go func() { data <- bnk.DATA.Encode() }()
+		pending += 1
 	}
 
 	/* HIRC section */
 	go func() {
-		HIRCBlob, eErr := b.HIRC.Encode()
-		if eErr != nil {
-			cErr <- errors.Join(errors.New("Failed to encode HIRC"), eErr)
+		b, err := bnk.HIRC.Encode(ctx)
+		if err != nil {
+			e <- errors.Join(errors.New("Failed to encode HIRC"), err)
 		} else {
-			cHIRCblob <- HIRCBlob
+			hirc <- b
 		}
 	}()
-	uncollectedBlob += 1
+	pending += 1
 
-	for uncollectedBlob > 0 {
+	for pending > 0 {
 		select {
 		case <- ctx.Done():
 			return nil, ctx.Err()
-		case err := <- cErr:
+		case err := <- e:
 			return nil, err
-		case bkhdBlob := <- cBKHDblob:
-			assert.AssertNotNil(bkhdBlob, "bkhdData")
-			dataChunks[0] = bkhdBlob
-			uncollectedBlob -= 1
+		case b := <- bkhd:
+			assert.NotNil(b, "BKHD")
+			chunks[0] = b
+			pending -= 1
 			slog.Info("Encoded BKHD section")
-		case didxBlob := <- cDIDXblob:
-			assert.AssertNotNil(didxBlob, "didxData")
-			dataChunks[1] = didxBlob
-			uncollectedBlob -= 1
+		case b := <- didx:
+			assert.NotNil(b, "DIDX")
+			chunks[1] = b
+			pending -= 1
 			slog.Info("Encoded DIDX section")
-		case dataBlob := <- cDATAblob:
-			assert.AssertNotNil(dataBlob, "dataBlob")
-			dataChunks[2] = dataBlob
-			uncollectedBlob -= 1
+		case b := <- data:
+			assert.NotNil(b, "DATA")
+			chunks[2] = b
+			pending -= 1
 			slog.Info("Encoded DATA section")
-		case hircBlob := <- cHIRCblob:
-			assert.AssertNotNil(hircBlob, "hircBlob")
-			dataChunks[3] = hircBlob
-			uncollectedBlob -= 1
+		case b := <- hirc:
+			assert.NotNil(b, "HIRC")
+			chunks[3] = b
+			pending -= 1
 			slog.Info("Encoded HIRC section")
 		}
 	}
 
-	for _, dataChunk := range dataChunks {
-		slog.Info("Chunk size", "index", len(dataChunk))
+	for _, chunk := range chunks {
+		slog.Info("Chunk size", "index", len(chunk))
 	}
-	bankData := bytes.Join(dataChunks, []byte{})
-	return bankData, nil
+
+	return bytes.Join(chunks, []byte{}), nil
 }

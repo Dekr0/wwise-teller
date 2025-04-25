@@ -12,7 +12,7 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f, err := newFileExplorer(home)
+	f, err := newOpenFile(home)
 	if err != nil {
 		t.Fatal(err)
 	}

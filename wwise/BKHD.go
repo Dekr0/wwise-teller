@@ -2,10 +2,10 @@ package wwise
 
 import (
 	"github.com/Dekr0/wwise-teller/assert"
-	"github.com/Dekr0/wwise-teller/reader"
+	"github.com/Dekr0/wwise-teller/wio"
 )
 
-const BKHD_FIELD_SIZE = 4 * 5
+const bkhdFieldSize = 4 * 5
 
 type BKHD struct {
 	BankGenerationVersion uint32 // u32
@@ -19,30 +19,29 @@ type BKHD struct {
 	ProjectID uint32 // u32
 	Undefined []byte
 	
-	originalData []byte /* for testing */
+	oldData []byte /* for testing */
 }
 
 func NewBKHD() *BKHD {
 	return &BKHD{}
 }
 
-func (d *BKHD) Encode() []byte {
-	chunkSize := uint32(BKHD_FIELD_SIZE + len(d.Undefined))
-	bw := reader.NewFixedSizeBlobWriter(uint64(CHUNK_HEADER_SIZE + chunkSize))
-	bw.AppendBytes([]byte{'B', 'K', 'H', 'D'})
-	bw.Append(chunkSize);
-	bw.Append(d.BankGenerationVersion); 
-	bw.Append(d.SoundbankID)
-	bw.Append(d.LanguageID)
-	altValues := (uint32(d.DeviceAllocated) << 16) | (uint32(d.Alignment))
-	bw.Append(altValues)
-	bw.Append(d.ProjectID)
-	bw.AppendBytes(d.Undefined)
-	assert.AssertEqual(
-		int(chunkSize),
-		bw.Len() - 4 - 4,
+func (b *BKHD) Encode() []byte {
+	size := uint32(bkhdFieldSize + len(b.Undefined))
+	w := wio.NewWriter(uint64(chunkHeaderSize + size))
+	w.AppendBytes([]byte{'B', 'K', 'H', 'D'})
+	w.Append(size);
+	w.Append(b.BankGenerationVersion); 
+	w.Append(b.SoundbankID)
+	w.Append(b.LanguageID)
+	altValues := (uint32(b.DeviceAllocated) << 16) | (uint32(b.Alignment))
+	w.Append(altValues)
+	w.Append(b.ProjectID)
+	w.AppendBytes(b.Undefined)
+	assert.Equal(
+		int(size),
+		w.Len() - 4 - 4,
 		"(BKHD) The size of encoded data does not equal to calculated size.",
 	)
-
-	return bw.GetBlob()
+	return w.Bytes()
 }

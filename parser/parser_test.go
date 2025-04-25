@@ -3,6 +3,7 @@ package parser
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -51,7 +52,7 @@ func TestParseBank(t *testing.T) {
 
 		bnk, err := ParseBank(bnkPath, context.Background())
 		if err != nil {
-			if err == MissingBKHDError || err == MissingDATAError || err == MissingDIDXError || err == MissingHIRCError {
+			if err == NoBKHD || err == NoDATA || err == NoDIDX || err == NoHIRC {
 				excludes = append(excludes, &malformedSoundbank{bank.Name(), err})
 				continue
 			} else {
@@ -73,12 +74,16 @@ func TestParseBank(t *testing.T) {
 			if len(blob) > len(orig) {
 				for i := range orig {
 					if blob[i] != orig[i] {
+						l, _ := bnk.HIRC.Encode(context.Background())
+						fmt.Println(len(l))
 						t.Fatalf("%s: Byte difference at %d. Original: %d, Received: %d\n", bank.Name(), i, orig[i], blob[i])
 					}
 				}
 			} else {
 				for i := range blob {
 					if blob[i] != orig[i] {
+						l, _ := bnk.HIRC.Encode(context.Background())
+						fmt.Println(len(l))
 						t.Fatalf("%s: Byte difference at %d. Original: %d, Received: %d\n", bank.Name(), i, orig[i], blob[i])
 					}
 				}

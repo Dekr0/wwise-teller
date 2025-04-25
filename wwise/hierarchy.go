@@ -1,28 +1,80 @@
 package wwise
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+
 	"github.com/Dekr0/wwise-teller/assert"
-	"github.com/Dekr0/wwise-teller/reader"
+	"github.com/Dekr0/wwise-teller/wio"
 )
 
+const maxEncodeRoutine = 8
+
+// # of hierarchy object (uint32)
+const sizeOfHIRCHeader = 4
+
+type HircType uint8
+
+const (
+	HircTypeSound HircType = 0x02
+	HircRanSeqCntr HircType = 0x05
+	HircSwitchCntr HircType = 0x06
+	HircTypeActorMixer HircType = 0x07
+	HircTypeLayerCntr HircType = 0x09
+)
+
+var KnownHircType []HircType = []HircType{
+	HircTypeSound,
+	HircRanSeqCntr,
+	HircSwitchCntr,
+	HircTypeActorMixer,
+	HircTypeLayerCntr,
+}
+
+var HircTypeName []string = []string{
+	"",
+	"State",
+	"Sound",
+	"Action",
+	"Event",
+	"Random / Sequence Container",
+	"Switch Container",
+	"Actor Mixer",
+	"Bus",
+	"Layer Container",
+	"Music Segment",
+	"Music Track",
+	"Music Switch Container",
+	"Music Random / Sequence Container",
+	"Attenuation",
+	"Dialogue Event",
+    "FX Share Set",
+    "FX Custom",
+    "Aux Bus",
+    "LFO Modulator",
+    "Envelope Modulator",
+    "Audio Device",
+    "Time Modulator",
+}
+
 type HIRC struct {
- 	/* Used for memory allocation upfront during encoding */
-	/*
-	Future notes: Should I track individual byte change whenever a hierarchy obj
- 	 changes?
-	*/
+ 	// Used for memory allocation upfront during encoding 
+	// Future notes: Should I track individual byte change whenever a hierarchy 
+	// obj changes?
 	oldChunkSize uint32
 
-	/*
-	Currently, I don't know the algorithm of how Wwise encode its hierarchy tree.
-	It's probably some sort of modified DFS since there are lot of places where 
-    child nodes come first, and then the parent node of those child nodes come 
-	right after it. So far now, I will book keep the linear order of hierarchy 
-	tree as I parse them linearly through.
-	*/
+	// Currently, I don't know the algorithm of how Wwise encode its hierarchy 
+	// tree. 
+	// It's probably some sort of modified DFS since there are lot of places 
+	// where child nodes come first, and then the parent node of those child 
+	// nodes come right after it. 
+	// So far now, I will book keep the linear order of hierarchy tree as I 
+	// parse them linearly through.
 	HircObjs    []HircObj
 	
+	// Map for different types of hierarchy objects. Each object is a pointer 
+	// to a specific hierarchy object, which is also in `HircObjs`.
 	ActorMixers map[uint32]*ActorMixer
 	LayerCntrs  map[uint32]*LayerCntr
 	SwitchCntrs map[uint32]*SwitchCntr
@@ -30,12 +82,9 @@ type HIRC struct {
 	Sounds      map[uint32]*Sound
 }
 
-func NewHIRC(
-	chunkSize uint32,
-	numHircItem uint32,
-) *HIRC {
+func NewHIRC(size uint32, numHircItem uint32) *HIRC {
 	return &HIRC{
-		oldChunkSize: chunkSize,
+		oldChunkSize: size,
 		HircObjs: make([]HircObj, numHircItem),
 		ActorMixers: make(map[uint32]*ActorMixer),
 		LayerCntrs: make(map[uint32]*LayerCntr),
@@ -45,174 +94,312 @@ func NewHIRC(
 	}
 }
 
-func (h *HIRC) Encode() ([]byte, error) {
-	bw := reader.NewFixedSizeBlobWriter(uint64(CHUNK_HEADER_SIZE + h.oldChunkSize))
-	bw.AppendBytes([]byte{'H', 'I', 'R', 'C'})
-	/* gap chunk size field, and come back later */
-	bw.AppendBytes([]byte{0, 0, 0, 0})
-	bw.Append(uint32(len(h.HircObjs)))
+func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
+	type result struct {
+		i int
+		b []byte
+	}
 
-	type encodeResult struct {
-		index int
-		blob  []byte
+	// No initialization since I want it to crash and catch encoding bugs
+	results := make([][]byte, len(h.HircObjs))
+
+	// sync signal
+	c := make(chan *result, maxEncodeRoutine)
+
+	// limit # of go routines running at the same time
+	sem := make(chan struct{} , maxEncodeRoutine)
+
+	done := 0
+	i := 0
+	for done < len(h.HircObjs) {
+		select {
+		case <- ctx.Done():
+			return nil, ctx.Err()
+		case r := <- c:
+			results[r.i] = r.b
+			done += 1
+		case sem <- struct{}{}:
+			if i < len(h.HircObjs) {
+				j := i
+				go func() {
+					c <- &result{j, h.HircObjs[j].Encode()}
+					<- sem
+				}()	
+				i += 1
+			}
+		default:
+			if i < len(h.HircObjs) {
+				results[i] = h.HircObjs[i].Encode()
+				done += 1
+				i += 1
+			}
+		}
 	}
 	
-	cEncodeResult := make(chan *encodeResult, len(h.HircObjs))
-	sem := make(chan struct{} , 8)
-	uncollectedResult := len(h.HircObjs)
+	return bytes.Join(results, []byte{}), nil
+}
 
-	for i, hircObj := range h.HircObjs {
-		sem <- struct{}{}
-		go func() {
-			cEncodeResult <- &encodeResult{ i, hircObj.Encode() }
-			<- sem
-		}()
+func (h *HIRC) Encode(ctx context.Context) ([]byte, error) {
+	b, err := h.encode(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	assert.AssertTrue(bw.Len() - CHUNK_HEADER_SIZE > 0, "HIRC chunk size is less than or equal 0!")
-	chunkSize := uint32(bw.Len() - CHUNK_HEADER_SIZE)
-	hircBlob := bw.GetBlob()
-
-	bw = reader.NewFixedSizeBlobWriter(4)
-	bw.Append(chunkSize)
-	chunkSizeBlob := bw.GetBlob()
-
-	for i, _byte := range chunkSizeBlob {
-		hircBlob[4 + i] = _byte
-	}
-
-	return hircBlob, nil
+	dataSize := uint32(sizeOfHIRCHeader + len(b))
+	size := chunkHeaderSize + dataSize
+	w := wio.NewWriter(uint64(chunkHeaderSize + dataSize))
+	w.AppendBytes([]byte{'H', 'I', 'R', 'C'})
+	w.Append(dataSize)
+	w.Append(uint32(len(h.HircObjs)))
+	w.AppendBytes(b)
+	return w.BytesAssert(int(size)), nil 
 }
 
 type HircObj interface {
 	Encode() []byte
-	GetHircID() (uint32, error)
-	GetHircType() uint8 
+	HircID() (uint32, error)
+	HircType() HircType 
 }
 
-const HIRC_OBJ_HEADER_SIZE = 1 + 4
+const sizeOfHircObjHeader = 1 + 4
 
 type HircObjHeader struct {
-	HircType uint8  // U8x
-	HircSize uint32 // U32
+	Type HircType // U8x
+	Size uint32 // U32
 }
 
 type ActorMixer struct {
-	HircId uint32
+	Id uint32
 	BaseParam *BaseParameter
-	Children *CntrChildren
+	Container *Container
 }
 
-func (s *ActorMixer) Encode() []byte {
-	blob := s.BaseParam.Encode()
-	blob = append(blob, s.Children.Encode()...)
-	dataSize := uint32(4 + len(blob))
-	blobSize := 1 + 4 + dataSize
-	bw := reader.NewFixedSizeBlobWriter(uint64(blobSize))
-	bw.AppendByte(s.GetHircType())
-	bw.Append(dataSize)
-	bw.Append(s.HircId)
-	bw.AppendBytes(blob)
-	return bw.Flush(int(blobSize))
+func (a *ActorMixer) Encode() []byte {
+	dataSize := a.DataSize()
+	size := sizeOfHircObjHeader + dataSize
+	w := wio.NewWriter(uint64(size))
+	w.AppendByte(uint8(HircTypeActorMixer))
+	w.Append(dataSize)
+	w.Append(a.Id)
+	w.AppendBytes(a.BaseParam.Encode())
+	w.AppendBytes(a.Container.Encode())
+	return w.BytesAssert(int(size))
 }
 
-func (s *ActorMixer) GetHircID() (uint32, error) {
-	return s.HircId, nil
+func (a *ActorMixer) DataSize() uint32 {
+	return uint32(4 + a.BaseParam.Size() + a.Container.Size())
 }
 
-func (s *ActorMixer) GetHircType() uint8 {
-	return 0x07
+func (a *ActorMixer) HircID() (uint32, error) {
+	return a.Id, nil
+}
+
+func (a *ActorMixer) HircType() HircType {
+	return HircTypeActorMixer 
 }
 
 type LayerCntr struct {
+	Id uint32
+	BaseParam *BaseParameter
+	Container *Container
 
+	// NumLayers uint32 // u32
+	
+	Layers []*Layer
+	IsContinuousValidation uint8 // U8x
 }
 
-func (s *LayerCntr) Encode() []byte {
-	return []byte{}
+func (l *LayerCntr) Encode() []byte {
+	dataSize := l.DataSize()
+	size := sizeOfHircObjHeader + dataSize
+	w := wio.NewWriter(uint64(size))
+	w.AppendByte(uint8(HircTypeLayerCntr))
+	w.Append(dataSize)
+	w.Append(l.Id)
+	w.AppendBytes(l.BaseParam.Encode())
+	w.AppendBytes(l.Container.Encode())
+	w.Append(uint32(len(l.Layers)))
+	for _, i := range l.Layers {
+		w.AppendBytes(i.Encode())
+	}
+	w.AppendByte(l.IsContinuousValidation)
+	return w.BytesAssert(int(size))
 }
 
-func (s *LayerCntr) GetHircID() (uint32, error) {
-	return 1, nil
+func (l *LayerCntr) DataSize() uint32 {
+	size := 4 + l.BaseParam.Size() + l.Container.Size() + 4
+	for _, i := range l.Layers {
+		size += i.Size()
+	}
+	return size + 1
 }
 
-func (s *LayerCntr) GetHircType() uint8 {
-	return 0x09
+
+func (l *LayerCntr) HircID() (uint32, error) {
+	return l.Id, nil
+}
+
+func (l *LayerCntr) HircType() HircType {
+	return HircTypeLayerCntr
 }
 
 type RanSeqCntr struct {
+	Id uint32
+	BaseParam *BaseParameter
+	Container *Container
+	PlayListSetting *PlayListSetting
 
+	// NumPlayListItem u16
+
+	PlayListItems []*PlayListItem 
 }
 
-func (s *RanSeqCntr) Encode() []byte {
-	return []byte{}
+func (r *RanSeqCntr) Encode() []byte {
+	dataSize := r.DataSize()
+	size := sizeOfHircObjHeader + dataSize
+	w := wio.NewWriter(uint64(size))
+	w.AppendByte(uint8(HircRanSeqCntr))
+	w.Append(dataSize)
+	w.Append(r.Id)
+	w.AppendBytes(r.BaseParam.Encode())
+	w.Append(r.PlayListSetting)
+	w.AppendBytes(r.Container.Encode())
+	w.Append(uint16(len(r.PlayListItems)))
+	for _, i := range r.PlayListItems {
+		w.Append(i)
+	}
+	return w.BytesAssert(int(size))
 }
 
-func (s *RanSeqCntr) GetHircID() (uint32, error) {
-	return 1, nil
+func (r *RanSeqCntr) DataSize() uint32 {
+	return uint32(4 + r.BaseParam.Size() + r.Container.Size() + sizeOfPlayListSetting + 2 + uint32(len(r.PlayListItems)) * sizeOfPlayListItem)
 }
 
-func (s *RanSeqCntr) GetHircType() uint8 {
-	return 0x05
+func (r *RanSeqCntr) HircID() (uint32, error) {
+	return r.Id, nil
+}
+
+func (r *RanSeqCntr) HircType() HircType {
+	return HircRanSeqCntr
 }
 
 type SwitchCntr struct {
+	Id uint32
+	BaseParam *BaseParameter
+	GroupType uint8 // U8x
+	GroupID uint32 // tid
+	DefaultSwitch uint32 // tid
+	IsContinuousValidation uint8 // U8x
+	Container *Container
 
+	// NumSwitchGroups uint32 // u32
+
+	SwitchGroups []*SwitchGroupItem
+
+	// NumSwitchParams uint32 // u32
+
+	SwitchParams []*SwitchParam
 }
 
 func (s *SwitchCntr) Encode() []byte {
-	return []byte{}
+	baseParamData := s.BaseParam.Encode()
+	cntrData := s.Container.Encode()
+	switchGroupDataSize := uint32(4)
+	for _, i := range s.SwitchGroups {
+		switchGroupDataSize += i.Size()
+	}
+	dataSize := 4 + uint32(len(baseParamData)) + 1 + 4 + 4 + 1 + 
+				uint32(len(cntrData)) + switchGroupDataSize + 4 + 
+				uint32(len(s.SwitchParams)) * sizeOfSwitchParam
+	size := sizeOfHircObjHeader + dataSize
+	w := wio.NewWriter(uint64(size))
+	w.AppendByte(uint8(HircSwitchCntr))
+	w.Append(dataSize)
+	w.Append(s.Id)
+	w.AppendBytes(baseParamData)
+	w.AppendByte(s.GroupType)
+	w.Append(s.GroupID)
+	w.Append(s.DefaultSwitch)
+	w.AppendByte(s.IsContinuousValidation)
+	w.AppendBytes(cntrData)
+	w.Append(uint32(len(s.SwitchGroups)))
+	for _, i := range s.SwitchGroups {
+		w.AppendBytes(i.Encode())
+	}
+	w.Append(uint32(len(s.SwitchParams)))
+	for _, i := range s.SwitchParams {
+		w.Append(i)
+	}
+	return w.BytesAssert(int(size))
 }
 
-func (s *SwitchCntr) GetHircID() (uint32, error) {
-	return 1, nil
+func (s *SwitchCntr) HircID() (uint32, error) {
+	return s.Id, nil
 }
 
-func (s *SwitchCntr) GetHircType() uint8 {
-	return 0x07
+func (s *SwitchCntr) HircType() HircType {
+	return HircSwitchCntr
 }
 
 type Sound struct {
-
+	Id uint32
+	BankSourceData *BankSourceData
+	BaseParam *BaseParameter
 }
 
 func (s *Sound) Encode() []byte {
-	return []byte{}
+	b := s.BankSourceData.Encode()
+	b = append(b, s.BaseParam.Encode()...)
+	dataSize := uint32(4 + len(b))
+	size := sizeOfHircObjHeader + dataSize
+	w := wio.NewWriter(uint64(size))
+	w.AppendByte(uint8(HircTypeSound))
+	w.Append(dataSize)
+	w.Append(s.Id)
+	w.AppendBytes(b)
+	return w.BytesAssert(int(size))
 }
 
-func (s *Sound) GetHircID() (uint32, error) {
-	return 1, nil
+func (s *Sound) HircID() (uint32, error) {
+	return s.Id, nil
 }
 
-func (s *Sound) GetHircType() uint8 {
-	return 0x02
+func (s *Sound) HircType() HircType {
+	return HircTypeSound
 }
 
 type Unknown struct {
 	Header *HircObjHeader
-	Blob   []byte
+	b []byte
+}
+
+func NewUnknown(t HircType, s uint32, b []byte) *Unknown {
+	return &Unknown{
+		Header: &HircObjHeader{Type: t, Size: s},
+		b: b,
+	}
 }
 
 func (u *Unknown) Encode() []byte {
-	assert.AssertEqual(
-		u.Header.HircSize,
-		uint32(len(u.Blob)),
+	assert.Equal(
+		u.Header.Size,
+		uint32(len(u.b)),
 		"Header size does not equal to actual data size",
 	)
 
-	bw := reader.NewFixedSizeBlobWriter(uint64(HIRC_OBJ_HEADER_SIZE + len(u.Blob)))
+	bw := wio.NewWriter(uint64(sizeOfHircObjHeader + len(u.b)))
 	
 	/* Header */
 	bw.Append(u.Header)
-	bw.AppendBytes(u.Blob)
+	bw.AppendBytes(u.b)
 
-	return bw.GetBlob() 
+	return bw.Bytes() 
 }
 
-func (u *Unknown) GetHircID() (uint32, error) {
-	return 0, fmt.Errorf("Hierarchy object type %d has yet implement GetHircID.", u.Header.HircType)
+func (u *Unknown) HircID() (uint32, error) {
+	return 0, fmt.Errorf("Hierarchy object type %d has yet implement GetHircID.", u.Header.Type)
 }
 
-func (u *Unknown) GetHircType() uint8 {
-	return u.Header.HircType
+func (u *Unknown) HircType() HircType {
+	return u.Header.Type
 }

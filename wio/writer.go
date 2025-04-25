@@ -1,0 +1,66 @@
+package wio
+
+import (
+	"fmt"
+	"encoding/binary"
+)
+
+type FixedWriter struct { b []byte }
+
+func NewWriter(cap uint64) *FixedWriter {
+	return &FixedWriter{make([]byte, 0, cap)}
+}
+
+// Panic upon exceeding maximum capacity given the assumption of which capacity 
+// is fixed.
+func (w *FixedWriter) AppendByte(b byte) {
+	if cap(w.b) < len(w.b) + 1 {
+		panic(fmt.Sprintf("Exceed maximum capacity"))
+	}
+	w.b = append(w.b, b)
+}
+
+// Panic upon exceeding maximum capacity given the assumption of which capacity 
+// is fixed.
+func (w *FixedWriter) AppendBytes(b []byte) {
+	if cap(w.b) < len(w.b) + len(b) {
+		panic(fmt.Sprintf("Exceed maximum capacity"))
+	}
+	w.b = append(w.b, b...)
+}
+
+// Panic upon exceeding maximum capacity given the assumption of which capacity 
+// is fixed.
+func (w *FixedWriter) Append(v any) {
+	var err error
+	w.b, err = binary.Append(w.b, ByteOrder, v)
+	if err != nil { panic(err) }
+}
+
+func (w *FixedWriter) Bytes() []byte {
+	return w.b
+}
+
+// Perform assertion to make sure that a buffer is completely used before 
+// returning the result.
+func (w *FixedWriter) BytesAssert(expect int) []byte {
+	if len(w.b) != expect {
+		panic("The buffer size mismatch with expected size.")
+	}
+	return w.b
+}
+
+func (w *FixedWriter) Len() int {
+	return len(w.b)
+}
+
+func GetBit(v uint8, pos int) bool {
+	return (v >> pos) & 1 > 0
+}
+
+func SetBit(v uint8, pos int, set bool) uint8 {
+	if !set {
+		return v & (^(1 << pos))
+	}
+	return v | (1 << pos)
+}
