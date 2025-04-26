@@ -63,7 +63,7 @@ func parseHIRC(ctx context.Context, size uint32, r *wio.Reader) (*wwise.HIRC, er
 			unknown := wwise.NewUnknown(
 				wwise.HircType(eHircType),
 				dwSectionSize,
-				r.ReadFullUnsafe(uint64(dwSectionSize), 4),
+				r.ReadNUnsafe(uint64(dwSectionSize), 4),
 			)
 			hirc.HircObjs[i] = unknown
 			i += 1
@@ -385,7 +385,7 @@ func parseBankSourceData(r *wio.Reader) *wwise.BankSourceData {
 		return b
 	}
 	begin := r.Pos() 
-	b.PluginParam.PluginParamData = r.ReadFullUnsafe(
+	b.PluginParam.PluginParamData = r.ReadNUnsafe(
 		uint64(b.PluginParam.PluginParamSize), 0,
 	)
 	end := r.Pos()
@@ -507,7 +507,7 @@ func parsePropBundle(r *wio.Reader) *wwise.PropBundle {
 		p.PropValues[i] = &wwise.PropValue{P:r.U8Unsafe()}
 	}
 	for i := range CProps {
-		p.PropValues[i].V = r.ReadFullUnsafe(4, 0)
+		p.PropValues[i].V = r.ReadNUnsafe(4, 0)
 	}
 	return p
 }
@@ -520,8 +520,8 @@ func parseRangePropBundle(r *wio.Reader) *wwise.RangePropBundle {
 		p.RangeValues[i] = &wwise.RangeValue{PId:r.U8Unsafe()}
 	}
 	for i := range p.RangeValues {
-		p.RangeValues[i].Min = r.ReadFullUnsafe(4, 0)
-		p.RangeValues[i].Max = r.ReadFullUnsafe(4, 0)
+		p.RangeValues[i].Min = r.ReadNUnsafe(4, 0)
+		p.RangeValues[i].Max = r.ReadNUnsafe(4, 0)
 	}
 	return p
 }

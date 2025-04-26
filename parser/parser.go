@@ -133,7 +133,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			hasBKHD = true
 		} else if bytes.Compare(tag, []byte{'D', 'A', 'T', 'A'}) == 0 {
 			var blob []byte
-			blob, err = bankReader.ReadFull(uint64(size), 0)
+			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil { continue }
 			bnk.DATA = wwise.NewDATA(blob)
 			slog.Debug("Read DATA section", "size", size)
