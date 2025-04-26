@@ -1,5 +1,8 @@
 wwiser.pyz
 imgui.ini
 tests
-**/*.st_bnk
 **/*.bnk
+**/*.log
+**/*.st_bnk
+**/config.json
+**/wwiser.ini
