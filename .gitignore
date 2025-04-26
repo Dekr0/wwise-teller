@@ -1,3 +1,5 @@
 wwiser.pyz
 imgui.ini
 tests
+**/*.st_bnk
+**/*.bnk
