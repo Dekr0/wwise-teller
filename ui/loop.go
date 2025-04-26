@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/AllenDang/cimgui-go/backend"
@@ -46,7 +47,8 @@ func Run() error {
 	loop := async.NewEventLoop()
 	slog.Info("Created event loop")
 
-	bnkMngr := &bankManager{writeLock: false}
+	bnkMngr := &bankManager{writeLock: &atomic.Bool{}}
+	bnkMngr.writeLock.Store(false)
 	slog.Info("Created bank manager")
 
 	openFile, err := newOpenFile(conf.Home, createOnOpenCallback(loop, bnkMngr))
@@ -185,9 +187,7 @@ func createLoop(
 		
 		activeTab, closeTab, saveTab, saveName := showBankExplorer(bnkMngr)
 		if saveTab != nil {
-			saveFile.onSave = createOnSaveCallback(
-				loop, bnkMngr, saveTab, saveName,
-			)
+			saveFile.onSave = createOnSaveCallback(loop, bnkMngr, saveTab)
 			saveFile.dest = filepath.Base(saveName) 
 		}
 		showSaveFileModal(saveFile, saveTab != nil)
@@ -246,7 +246,7 @@ func showTasks(asyncTasks []*async.AsyncTask) {
 	for i, a := range asyncTasks {
 		if a == nil { continue }
 
-		imgui.PushIDStr(fmt.Sprintf("XTask_%", i))
+		imgui.PushIDStr(fmt.Sprintf("XTask_%d", i))
 		imgui.PushStyleColorVec4(
 			imgui.ColButton,
 			imgui.Vec4{X: 0.0, Y: 0.0, Z: 0.0, W: 0.0},
@@ -303,7 +303,7 @@ func showNotify(nQ *notifyQ) {
 		case <- nQ.queue[i].timer.C:
 			nQ.queue = slices.Delete(nQ.queue, i, i + 1) 
 		default:
-			imgui.PushIDStr(fmt.Sprintf("RemoveNotfiy", i))
+			imgui.PushIDStr(fmt.Sprintf("RemoveNotfiy_%d", i))
 			if imgui.Button("X") {
 				nQ.queue = slices.Delete(nQ.queue, i, i + 1)
 				imgui.PopID()

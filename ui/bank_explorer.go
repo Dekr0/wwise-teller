@@ -56,8 +56,7 @@ func showBankExplorerMenu(bnkMngr *bankManager) (*bankTab, string) {
 	}
 
 	if imgui.BeginMenu("File") {
-		writeLock := bnkMngr.writeLock
-		if imgui.BeginMenuV("Save", !writeLock) {
+		if imgui.BeginMenuV("Save", !bnkMngr.writeLock.Load()) {
 			bnkMngr.banks.Range(func(key, value any) bool {
 				if imgui.MenuItemBool(key.(string)) {
 					saveTab = value.(*bankTab)

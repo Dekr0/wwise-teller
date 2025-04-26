@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -55,7 +56,6 @@ func createOnSaveCallback(
 	loop *async.EventLoop,
 	bnkMngr *bankManager,
 	saveTab *bankTab,
-	saveName string,
 ) func(string) {
 	return func(path string) {
 		timeout, cancel := context.WithTimeout(
@@ -70,9 +70,7 @@ func createOnSaveCallback(
 			func (ctx context.Context) {
 				slog.Info(onProc)
 
-				bnkMngr.mu.Lock()
-				bnkMngr.writeLock = true
-				bnkMngr.mu.Unlock()
+				bnkMngr.writeLock.Store(true)
 
 				if data, err := saveTab.encode(ctx); err != nil {
 					slog.Error(
@@ -90,9 +88,7 @@ func createOnSaveCallback(
 					}
 				}
 
-				bnkMngr.mu.Lock()
-				bnkMngr.writeLock = false
-				bnkMngr.mu.Unlock()
+				bnkMngr.writeLock.Store(false)
 			},
 		); err != nil {
 			slog.Error(fmt.Sprintf("Failed to save sound bank to %s", path),
@@ -104,8 +100,7 @@ func createOnSaveCallback(
 
 type bankManager struct {
 	banks sync.Map
-	writeLock bool
-	mu sync.Mutex
+	writeLock *atomic.Bool
 }
 
 type bankTab struct {
@@ -116,8 +111,7 @@ type bankTab struct {
 	lSelStorage imgui.SelectionBasicStorage
 
 	// Sync
-	writeLock bool
-	mu sync.Mutex
+	writeLock *atomic.Bool
 }
 
 func (b *bankTab) filter() {
@@ -156,15 +150,9 @@ func (b *bankTab) filter() {
 }
 
 func (b *bankTab) encode(ctx context.Context) ([]byte, error) {
-	b.mu.Lock()
-	b.writeLock = true
-	b.mu.Unlock()
+	b.writeLock.Store(true)
 
-	defer func() {
-		b.mu.Lock()
-		b.writeLock = false
-		b.mu.Unlock()
-	}()
+	defer b.writeLock.Store(false)
 
 	type result struct {
 		data []byte
@@ -225,14 +213,17 @@ func (b *bankManager) openBank(ctx context.Context, path string) error {
 		filtered[i] = o
 	}
 
-	b.banks.Store(path, &bankTab{
-		writeLock: false,
+	t := &bankTab{
+		writeLock: &atomic.Bool{},
 		bank: bank,
 		idQuery: "",
 		typeQuery: 0,
 		filtered: filtered,
 		lSelStorage: *imgui.NewSelectionBasicStorage(),
-	})
+	}
+	t.writeLock.Store(false)
+
+	b.banks.Store(path, t)
 
 	return nil
 }

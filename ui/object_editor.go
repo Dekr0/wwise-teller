@@ -21,13 +21,10 @@ func showObjectEditor(activeTab *bankTab) {
 		return
 	}
 
-	activeTab.mu.Lock()
-	if activeTab.writeLock {
-		activeTab.mu.Unlock()
+	if activeTab.writeLock.Load() {
 		imgui.End()
 		return
 	}
-	activeTab.mu.Unlock()
 
 	if !imgui.BeginTabBarV("ObjectEditorTabBar",
 		imgui.TabBarFlagsReorderable |
