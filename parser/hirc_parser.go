@@ -28,12 +28,14 @@ type parserResult struct {
 
 type parser func(uint32, *wio.Reader) wwise.HircObj
 
-func parseHIRC(ctx context.Context, size uint32, r *wio.Reader) (*wwise.HIRC, error) {
+func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint32) (
+	*wwise.HIRC, error,
+) {
 	assert.Equal(0, r.Pos(), "Parser for HIRC does not start at byte 0.")
 
 	numHircItem := r.U32Unsafe()
 
-	hirc := wwise.NewHIRC(size, numHircItem)
+	hirc := wwise.NewHIRC(I, T, size, numHircItem)
 
 	/* sync signal */
 	sem := make(chan struct{}, maxNumParseRoutine)

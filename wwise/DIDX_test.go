@@ -5,7 +5,7 @@ import (
 )
 
 func TestMediaIndexEncode(t *testing.T) {
-	d := DIDX{make([]*MediaIndex, 0, 2)}
+	d := DIDX{0, []byte{'D', 'I', 'D', 'X'}, make([]*MediaIndex, 0, 2)}
 
 	d.MediaIndexs = append(d.MediaIndexs, &MediaIndex{
 		Sid: 1,
@@ -19,7 +19,7 @@ func TestMediaIndexEncode(t *testing.T) {
 		Size: 4,
 	})
 
-	b := d.Encode()
+	b, _ := d.Encode(nil)
 	if len(b) != 4 + 4 + len(d.MediaIndexs) * mediaIndexFieldSize {
 		t.Fail()
 	}

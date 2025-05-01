@@ -2,14 +2,17 @@ package helldivers
 
 import (
 	"bytes"
-	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
+	"context"
+	"encoding/binary"
+	"path/filepath"
+	"sync"
 	"slices"
 
 	"github.com/Dekr0/wwise-teller/wio"
+	"github.com/Dekr0/wwise-teller/wwise"
 )
 
 var NotHelldiversGameArchive error = errors.New(
@@ -22,11 +25,18 @@ const (
 	AssetTypeWwiseStream     = 5785811756662211598
 )
 
+type IntegrationType uint8
+
+const (
+	IntegrationTypeHelldivers2 IntegrationType = 0
+)
+
 type Asset struct {
 	Header      *AssetHeader
 	Data        []byte
 	StreamData  []byte
 	GPURsrcData []byte
+	META        []byte
 }
 
 type AssetHeader struct {
@@ -46,7 +56,7 @@ type AssetHeader struct {
 }
 
 // TODO: concurrency
-func ExtractSoundBank(ctx context.Context, path string) error {
+func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -67,11 +77,8 @@ func ExtractSoundBank(ctx context.Context, path string) error {
 
 	soundBanks := make(map[uint64]*Asset)
 	wwiseDependencies := make(map[uint64]*Asset)
-
-	// var w sync.WaitGroup
-
-	// e := make(chan error)
-
+	var w sync.WaitGroup
+	e := make(chan error)
 	for range numFiles {
 		a := &Asset{
 			&AssetHeader{
@@ -89,7 +96,7 @@ func ExtractSoundBank(ctx context.Context, path string) error {
 				r.U32Unsafe(),
 				r.U32Unsafe(),
 			},
-			nil, nil, nil,
+			nil, nil, nil, nil,
 		}
 		h := a.Header
 		switch a.Header.TypeID {
@@ -99,70 +106,69 @@ func ExtractSoundBank(ctx context.Context, path string) error {
 					"Two sound bank headers use the same of ID of %d", h.FileID,
 				)
 			}
+			offset := h.DataOffset + 16
 			// Sound Bank Data (without first 16 bytes and XOR encryption)
-			a.Data = r.Buff[h.DataOffset + 16:h.DataOffset + uint64(h.DataSize) - 16]
-
+			a.Data = r.Buff[offset:offset + uint64(h.DataSize - 16)]
+			// Backup XOR data
 			XOR := slices.Clone(a.Data[0x08:0x0B])
-
 			a.Data[0x08] = 0x8D
 			a.Data[0x09] = 0x00
 			a.Data[0x0A] = 0x00
 			a.Data[0x0B] = 0x00
-
-			// Backing up data for resurrection
-			// Asset header
-			// Padding
-			a.Data = append(a.Data, make([]byte, 32)...)
-			
-			a.Data, err = binary.Append(a.Data, wio.ByteOrder, h)
+			// Header: 4 bytes header tag + 4 bytes header size + 1 byte 
+			// integration type
+			// Data: 80 bytes asset information + 16 bytes unused + 4 bytes XOR
+			a.META = make([]byte, 0, 105)
+			a.META = append(a.META, 'M', 'E', 'T', 'A')
+			a.META = append(a.META, 0, 0, 0, 0)
+			a.META = append(a.META, byte(IntegrationTypeHelldivers2))
+			a.META, err = binary.Append(a.META, wio.ByteOrder, h)
 			if err != nil {
 				return err
 			}
-			// first 16 bytes unused data and XOR encryption
-			a.Data = append(a.Data, r.Buff[h.DataOffset:h.DataOffset+16]...)
-			a.Data = append(a.Data, XOR...)
-
-			// Sound bank come first, then Wwise dependency
+			a.META = append(a.META, r.Buff[h.DataOffset:h.DataOffset+16]...)
+			a.META = append(a.META, XOR...)
 			if dep, in := wwiseDependencies[h.FileID]; in {
-				a.Data = append(a.Data, dep.Data...)
+				w.Add(1)
+				go func() {
+					defer w.Done()
+					a.META = append(a.META, dep.Data...)
+					metaSize := uint32(len(a.META) - 4 - 4)
+					encodedMetaSize, err := binary.Append(
+						[]byte{}, wio.ByteOrder, metaSize,
+					)
+					if err != nil {
+						e <- err
+					}
+					a.META[4] = encodedMetaSize[0]
+					a.META[5] = encodedMetaSize[1]
+					a.META[6] = encodedMetaSize[2]
+					a.META[7] = encodedMetaSize[3]
 
-				st_path := bytes.ReplaceAll(
-					bytes.ReplaceAll(dep.Data[5:], []byte{'\u0000'}, []byte{}),
-					[]byte{'/'}, []byte{'_'},
-				)
-
-				if bytes.Compare(st_path, []byte{}) == 0 {
-					return fmt.Errorf("Sound bank %d name is empty", h.FileID)
-				}
-
-				path := fmt.Sprintf("%s.st_bnk", st_path)
-
-				if err := os.WriteFile(path, a.Data, 0666); err != nil {
-					return err
-				}
-
-				// w.Add(1)
-				// go func() {
-				// 	defer w.Wait()
-				// 	// Append encoded Wwise dependency data
-				// 	a.Data = append(a.Data, dep.Data...)
-
-				// 	st_path := bytes.ReplaceAll(
-				// 		bytes.ReplaceAll(dep.Data[4:], []byte{'\u0000'}, []byte{}),
-				// 		[]byte{'/'}, []byte{'_'},
-				// 	)
-
-				// 	if bytes.Compare(st_path, []byte{}) == 0 {
-				// 		e <- fmt.Errorf("Sound bank %d name is empty", h.FileID)
-				// 		return
-				// 	}
-
-				// 	path := fmt.Sprintf("%s.st_bnk", st_path)
-
-				// 	if err := os.WriteFile(path, a.Data, 0666); err != nil {
-				// 		e <- err
-				// 	}
-				// }()
+					st_path := bytes.ReplaceAll(
+						bytes.ReplaceAll(dep.Data[5:], []byte{'\u0000'}, []byte{}),
+						[]byte{'/'}, []byte{'_'},
+					)
+					if bytes.Compare(st_path, []byte{}) == 0 {
+						e <- fmt.Errorf("Sound bank %d name is empty", h.FileID)
+					}
+					path := fmt.Sprintf("%s.st_bnk", st_path)
+					wf, err := os.OpenFile(
+						filepath.Join(dest, path), os.O_WRONLY, 0666,
+					)
+					if err != nil {
+						e <- err
+					}
+					if _, err := wf.Write(a.Data); err != nil {
+						e <- err
+					}
+					if _, err := wf.Write(a.META); err != nil {
+						e <- err
+					}
+					if err := wf.Close(); err != nil {
+						e <- err
+					}
+				}()
 			} else {
 				soundBanks[h.FileID] = a
 			}
@@ -174,59 +180,63 @@ func ExtractSoundBank(ctx context.Context, path string) error {
 				)
 			}
 			a.Data = r.Buff[h.DataOffset:h.DataOffset + uint64(h.DataSize)]
-
-			// Wwise dependency comes first, then sound bank
 			if bnk, in := soundBanks[h.FileID]; in {
-				// Compute name first before position get lost after attach
-				// sound bank data
-				st_path := bytes.ReplaceAll(
-					bytes.ReplaceAll(a.Data[5:], []byte{'\u0000'}, []byte{}),
-					[]byte{'/'}, []byte{'_'},
-				)
+				w.Add(1)
+				go func() {
+					defer w.Done()
+					st_path := bytes.ReplaceAll(
+						bytes.ReplaceAll(a.Data[5:], []byte{'\u0000'}, []byte{}),
+						[]byte{'/'}, []byte{'_'},
+					)
+					if bytes.Compare(st_path, []byte{}) == 0 {
+						e <- fmt.Errorf("Sound bank %d name is empty", h.FileID)
+					}
+					path := fmt.Sprintf("%s.st_bnk", st_path)
 
-				if bytes.Compare(st_path, []byte{}) == 0 {
-					return fmt.Errorf("Sound bank %d name is empty", h.FileID)
-				}
+					bnk.META = append(bnk.META, a.Data...)
+					metaSize := uint32(len(bnk.META) - 4 - 4)
+					encodedMetaSize, err := binary.Append(
+						[]byte{}, wio.ByteOrder, metaSize,
+					)
+					if err != nil {
+						e <- err
+					}
+					bnk.META[4] = encodedMetaSize[0]
+					bnk.META[5] = encodedMetaSize[1]
+					bnk.META[6] = encodedMetaSize[2]
+					bnk.META[7] = encodedMetaSize[3]
 
-				path := fmt.Sprintf("%s.st_bnk", st_path)
-
-				// Attach sound bank in the front
-				a.Data = append(bnk.Data, a.Data...)
-
-				if err := os.WriteFile(path, a.Data, 0666); err != nil {
-					return err
-				}
-
-				// w.Add(1)
-				// go func() {
-				// 	defer w.Wait()
-
-				// 	// Compute name first before position get lost after attach
-				// 	// sound bank data
-				// 	st_path := bytes.ReplaceAll(
-				// 		bytes.ReplaceAll(a.Data[4:], []byte{'\u0000'}, []byte{}),
-				// 		[]byte{'/'}, []byte{'_'},
-				// 	)
-
-				// 	if bytes.Compare(st_path, []byte{}) == 0 {
-				// 		e <- fmt.Errorf("Sound bank %d name is empty", h.FileID)
-				// 		return
-				// 	}
-
-				// 	path := fmt.Sprintf("%s.st_bnk", st_path)
-
-				// 	// Attach sound bank in the front
-				// 	a.Data = append(bnk.Data, a.Data...)
-
-				// 	if err := os.WriteFile(path, a.Data, 0666); err != nil {
-				// 		e <- err
-				// 	}
-				// }()
+					wf, err := os.OpenFile(
+						filepath.Join(dest, path), os.O_CREATE | os.O_WRONLY, 0666,
+					)
+					if err != nil {
+						e <- err
+					}
+					if _, err := wf.Write(bnk.Data); err != nil {
+						e <- err
+					}
+					if _, err := wf.Write(bnk.META); err != nil {
+						e <- err
+					}
+					if err := wf.Close(); err != nil {
+						e <- err
+					}
+				}()
 			} else {
 				wwiseDependencies[h.FileID] = a
 			}
 		}
 	}
+	w.Wait()
+	for len(e) > 0 {
+		select {
+		case err := <- e:
+			return err
+		}
+	}
+	return nil
+}
 
+func GenHelldiversPatch(ctx context.Context, bank *wwise.Bank) error {
 	return nil
 }

@@ -1,6 +1,8 @@
 package wwise
 
 import (
+	"context"
+
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
 )
@@ -8,6 +10,8 @@ import (
 const bkhdFieldSize = 4 * 5
 
 type BKHD struct {
+	I uint8
+	T []byte
 	BankGenerationVersion uint32 // u32
 	SoundbankID uint32 // sid
 	LanguageID uint32 // sid
@@ -22,14 +26,14 @@ type BKHD struct {
 	oldData []byte /* for testing */
 }
 
-func NewBKHD() *BKHD {
-	return &BKHD{}
+func NewBKHD(I uint8, T []byte) *BKHD {
+	return &BKHD{I: I, T: T}
 }
 
-func (b *BKHD) Encode() []byte {
+func (b *BKHD) Encode(ctx context.Context) ([]byte, error) {
 	size := uint32(bkhdFieldSize + len(b.Undefined))
 	w := wio.NewWriter(uint64(chunkHeaderSize + size))
-	w.AppendBytes([]byte{'B', 'K', 'H', 'D'})
+	w.AppendBytes(b.T)
 	w.Append(size);
 	w.Append(b.BankGenerationVersion); 
 	w.Append(b.SoundbankID)
@@ -43,5 +47,13 @@ func (b *BKHD) Encode() []byte {
 		w.Len() - 4 - 4,
 		"(BKHD) The size of encoded data does not equal to calculated size.",
 	)
-	return w.Bytes()
+	return w.Bytes(), nil
+}
+
+func (b *BKHD) Tag() []byte {
+	return b.T
+}
+
+func (b *BKHD) Idx() uint8 {
+	return b.I
 }

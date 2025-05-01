@@ -12,5 +12,7 @@ func TestExtractSoundBank(t *testing.T) {
 
 	target := "/mnt/Program Files/Steam/steamapps/common/Helldivers 2/data/e75f556a740e00c9"
 
-	ExtractSoundBank(nil, target)
+	if err := ExtractSoundBank(nil, target, "."); err != nil {
+		t.Fatal(err)
+	}
 }

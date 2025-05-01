@@ -6,8 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
-	"slices"
 	"sync/atomic"
 	"time"
 
@@ -20,9 +18,23 @@ import (
 	"github.com/Dekr0/wwise-teller/ui/async"
 )
 
+const MainDockFlags imgui.WindowFlags = 
+	imgui.WindowFlagsNoDocking |
+	imgui.WindowFlagsNoTitleBar | 
+	imgui.WindowFlagsNoCollapse |
+	imgui.WindowFlagsNoResize |
+	imgui.WindowFlagsNoMove |
+	imgui.WindowFlagsNoBringToFrontOnFocus |
+	imgui.WindowFlagsNoNavFocus |
+	imgui.WindowFlagsMenuBar
+
+const DockSpaceFlags imgui.DockNodeFlags = 
+	imgui.DockNodeFlagsNone |
+	imgui.DockNodeFlags(imgui.DockNodeFlagsNoWindowMenuButton)
+
 func Run() error {
 	// Begin of app state
-	gLog := &guiLog{
+	gLog := &GuiLog{
 		log: &log.InMemoryLog{Logs: ring.New(log.DefaultSize)},
 		debug: true,
 		info: true,
@@ -46,26 +58,25 @@ func Run() error {
 
 	loop := async.NewEventLoop()
 	slog.Info("Created event loop")
+	modalQ := NewModalQ()
 
-	bnkMngr := &bankManager{writeLock: &atomic.Bool{}}
+	bnkMngr := &BankManager{writeLock: &atomic.Bool{}}
 	bnkMngr.writeLock.Store(false)
 	slog.Info("Created bank manager")
 
-	openFile, err := newOpenFile(conf.Home, createOnOpenCallback(loop, bnkMngr))
+	dockMngr := NewDockManager()
+
+	fileExplorer, err := NewFileExplorer(
+		openSoundBankFunc(loop, bnkMngr), conf.Home,
+	)
 	if err != nil {
 		return err
 	}
 	slog.Info("Created file explorer backend for file exploring")
 
-	saveFile, err := newSaveFile(conf.DefaultSave, nil)
-	if err != nil {
-		return err
-	}
-	slog.Info("Created file explorer backend for sound bank export")
-
 	reBuildDockSpace := true
 
-	nQ := &notifyQ{make([]*notfiy, 0, 16)}
+	nQ := &NotifyQ{make([]*notfiy, 0, 16)}
 	// End of app state
 
 	backend, err := setupBackend()
@@ -89,8 +100,10 @@ func Run() error {
 	backend.Run(createLoop(
 		conf,
 		loop,
-		openFile,
-		saveFile,
+		modalQ,
+		dockMngr,
+		fileExplorer,
+		NewCmdPaletteMngr(&reBuildDockSpace, conf, loop, modalQ),
 		bnkMngr, 
 		nQ,
 		gLog,
@@ -114,11 +127,14 @@ func setupBackend() (backend.Backend[sdlbackend.SDLWindowFlags], error) {
 
 func setupImGUI() error {
 	imgui.CreateContext()
-	imgui.CurrentIO().SetConfigFlags(imgui.ConfigFlagsDockingEnable)
+	imgui.CurrentIO().SetConfigFlags(
+		imgui.ConfigFlagsDockingEnable |
+		imgui.ConfigFlagsNavEnableKeyboard,
+	)
 	return nil
 }
 
-func createAfterRenderHook(loop *async.EventLoop, nQ *notifyQ) func() {
+func createAfterRenderHook(loop *async.EventLoop, nQ *NotifyQ) func() {
 	return func() {
 		for _, onDone := range loop.Update() {
 			nQ.queue = append(nQ.queue, &notfiy{
@@ -128,72 +144,80 @@ func createAfterRenderHook(loop *async.EventLoop, nQ *notifyQ) func() {
 	}
 }
 
+// The loop try to follow the following rule:
+// 1. Prioritize return computed state over persistence state with computation
+// 2. If point 1 cannot be done, a render function only accept the state it needs 
+// to use
 func createLoop(
 	conf *config.Config,
 	loop *async.EventLoop,
-	openFile *openFile,
-	saveFile *saveFile,
-	bnkMngr *bankManager,
-	nQ *notifyQ,
-	gLog *guiLog,
+	modalQ *ModalQ,
+	dockMngr *DockManager,
+	fileExplorer *FileExplorer,
+	cmdPaletteMngr *CmdPaletteMngr,
+	bnkMngr *BankManager,
+	nQ *NotifyQ,
+	gLog *GuiLog,
 	reBuildDockSpace *bool,
 ) func() {
 	return func() {
 		imgui.ClearSizeCallbackPool()
 		imguizmo.BeginFrame()
 
-		showStatusBar(loop.AsyncTasks)
+		saveActive := false
 		viewport := imgui.MainViewport()
+
+		if imgui.ShortcutNilV(DefaultSaveAsSC, imgui.InputFlagsRouteGlobal) {
+			saveActive = true
+		}
+		if imgui.ShortcutNilV(DefaultNavPrevSC, imgui.InputFlagsRouteGlobal) {
+			dockMngr.FocusPrev()
+			imgui.SetWindowFocusStr(dockMngr.Focus())
+		}
+		if imgui.ShortcutNilV(DefaultNavNextSC, imgui.InputFlagsRouteGlobal) {
+			dockMngr.FocusNext()
+			imgui.SetWindowFocusStr(dockMngr.Focus())
+		}
+
+		showStatusBar(loop.AsyncTasks)
+
 		imgui.SetNextWindowPos(viewport.WorkPos())
 		imgui.SetNextWindowSize(viewport.WorkSize())
 		imgui.SetNextWindowViewport(viewport.ID())
 
-		windowFlags := imgui.WindowFlagsNoDocking
-		windowFlags |= imgui.WindowFlagsNoTitleBar | imgui.WindowFlagsNoCollapse
-		windowFlags |= imgui.WindowFlagsNoResize | imgui.WindowFlagsNoMove
-		windowFlags |= imgui.WindowFlagsNoBringToFrontOnFocus 
-		windowFlags |= imgui.WindowFlagsNoNavFocus | imgui.WindowFlagsMenuBar
-
-		imgui.BeginV("MainDock", nil, windowFlags)
-		dockSpaceFlags := imgui.DockNodeFlagsNone 
-		dockSpaceFlags |= imgui.DockNodeFlags(imgui.DockNodeFlagsNoWindowMenuButton)
-
-		if imgui.BeginMenuBar() {
-			if imgui.BeginMenu("Layout") {
-				if imgui.MenuItemBool("Reset") {
-					*reBuildDockSpace = true
-				}
-				imgui.EndMenu()
-			}
-
-			imgui.EndMenuBar()
-		}
+		imgui.BeginV("MainDock", nil, MainDockFlags)
 
 		dockSpaceID := imgui.IDStr("MainDock")
 		if *reBuildDockSpace {
-			buildDockSpace(dockSpaceID, dockSpaceFlags)
+			buildDockSpace(dockSpaceID, DockSpaceFlags)
 			*reBuildDockSpace = false
 		}
 		imgui.DockSpaceV(
 			dockSpaceID,
 			imgui.NewVec2(0, 0),
-			dockSpaceFlags,
+			DockSpaceFlags,
 			imgui.NewEmptyWindowClass(),
 		)
 
-		showLog(gLog)
+		showMainMenuBar(reBuildDockSpace, conf, cmdPaletteMngr, modalQ, loop)
 
-		showFileExplorer(openFile)
-		
-		activeTab, closeTab, saveTab, saveName := showBankExplorer(bnkMngr)
+		modalQ.ShowModal()
+
+		showFileExplorerWindow(fileExplorer)
+
+		activeTab, closeTab, saveTab, saveName := showBankExplorer(
+			bnkMngr, saveActive,
+		)
 		if saveTab != nil {
-			saveFile.onSave = createOnSaveCallback(loop, bnkMngr, saveTab)
-			saveFile.dest = filepath.Base(saveName) 
+			pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
 		}
-		showSaveFileModal(saveFile, saveTab != nil)
 
 		showObjectEditor(activeTab)
+
 		showNotify(nQ)
+
+		showLog(gLog)
+		// showDevDebug(loop, modalQ)
 
 		imgui.End()
 
@@ -203,46 +227,10 @@ func createLoop(
 	}
 }
 
-func showStatusBar(asyncTasks []*async.AsyncTask) {
-	showTaskPopup := false
-
-	viewport := imgui.MainViewport()
-
-	statusBarFlags := imgui.WindowFlagsMenuBar | imgui.WindowFlagsNoScrollbar
-	statusBarFlags |= imgui.WindowFlagsNoSavedSettings
-
-	if imgui.InternalBeginViewportSideBar("StatusBar", 
-		viewport, imgui.DirDown, imgui.FrameHeight(), statusBarFlags,
-	) {
-		if imgui.BeginMenuBar() {
-			imgui.PushStyleColorVec4(
-				imgui.ColButton,
-				imgui.Vec4{X: 0.0, Y: 0.0, Z: 0.0, W: 0.0},
-			)
-			if imgui.Button("Task status") {
-				showTaskPopup = true
-			}
-			imgui.PopStyleColor()
-
-			if showTaskPopup {
-				if !imgui.IsPopupOpenStr("Tasks") {
-					imgui.OpenPopupStr("Tasks")
-				}
-			}
-
-			showTasks(asyncTasks)
-
-			imgui.EndMenuBar()
-		}
-		imgui.End()
-	}
-}
-
-func showTasks(asyncTasks []*async.AsyncTask) {
+func showTasks(asyncTasks []*async.Task) {
 	if !imgui.BeginPopupV("Tasks", imgui.WindowFlagsAlwaysAutoResize) {
 		return
 	}
-
 	for i, a := range asyncTasks {
 		if a == nil { continue }
 
@@ -259,7 +247,7 @@ func showTasks(asyncTasks []*async.AsyncTask) {
 
 		imgui.Text(fmt.Sprintf("Task %d", i))
 		if imgui.IsItemHoveredV(imgui.HoveredFlagsDelayNone) {
-			imgui.SetTooltip(a.OnProc)
+			imgui.SetTooltip(a.OnProcMsg)
 		}
 
 		imgui.SameLine()
@@ -270,55 +258,10 @@ func showTasks(asyncTasks []*async.AsyncTask) {
 			"Processing",
 		)
 	}
-
 	imgui.EndPopup()
 }
 
-func showNotify(nQ *notifyQ) {
-	if len(nQ.queue) <= 0 {
-		return
-	}
-
-	size := imgui.MainViewport().Size()
-	y := imgui.CalcTextSize(nQ.queue[0].message).Y * float32(len(nQ.queue))
-	x := float32(0.0)
-	for _, n := range nQ.queue {
-		x = max(imgui.CalcTextSize(n.message).X, x)
-	}
-	size.X -= size.X * 0.01 + x + 32.0
-	size.Y -= size.Y * 0.03 + y + float32(len(nQ.queue)) * size.Y * 0.01
-	imgui.SetNextWindowPos(size)
-
-	imgui.BeginV("Notify", 
-		nil,
-		imgui.WindowFlagsNoDecoration |
-		imgui.WindowFlagsNoTitleBar |
-		imgui.WindowFlagsNoMove |
-		imgui.WindowFlagsNoResize |
-		imgui.WindowFlagsAlwaysAutoResize,
-	)
-	i := 0
-	for i < len(nQ.queue) {
-		select {
-		case <- nQ.queue[i].timer.C:
-			nQ.queue = slices.Delete(nQ.queue, i, i + 1) 
-		default:
-			imgui.PushIDStr(fmt.Sprintf("RemoveNotfiy_%d", i))
-			if imgui.Button("X") {
-				nQ.queue = slices.Delete(nQ.queue, i, i + 1)
-				imgui.PopID()
-				break
-			}
-			imgui.PopID()
-			imgui.SameLine()
-			imgui.Text(nQ.queue[i].message)
-		}
-		i += 1
-	}
-	imgui.End()
-}
-
-func showLog(gLog *guiLog) {
+func showLog(gLog *GuiLog) {
 	imgui.Begin("Log")
 	gLog.log.Logs.Do(func(a any) {
 		if a == nil {
@@ -329,27 +272,13 @@ func showLog(gLog *guiLog) {
 	imgui.End()
 }
 
-func buildDockSpace(dockSpaceID imgui.ID, dockSpaceFlags imgui.DockNodeFlags) {
-	imgui.InternalDockBuilderRemoveNode(dockSpaceID)
-	imgui.InternalDockBuilderAddNodeV(dockSpaceID, dockSpaceFlags)
-	
-	mainDock := dockSpaceID
-	
-	dock1 := imgui.InternalDockBuilderSplitNode(
-		mainDock, imgui.DirLeft, 0.25, nil, &mainDock,
-	)
-	
-	dock2 := imgui.InternalDockBuilderSplitNode(
-		mainDock, imgui.DirRight, 0.75, nil, &mainDock,
-	)
-	
-	dock3 := imgui.InternalDockBuilderSplitNode(
-		mainDock, imgui.DirDown, 0.35, nil, &dock2,
-	)
-	
-	imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
-	imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
-	imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
-	
-	imgui.InternalDockBuilderFinish(mainDock)
+func showDevDebug(
+	loop *async.EventLoop,
+	modalQ *ModalQ,
+) {
+	imgui.Begin("Dev. Debug")
+	imgui.Text(fmt.Sprintf("Number of modals: %d", len(modalQ.modals)))
+	imgui.Text(fmt.Sprintf("Number of asynchronous tasks: %d", loop.NumTasks()))
+	imgui.End()
 }
+

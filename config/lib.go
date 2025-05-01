@@ -2,6 +2,8 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -12,8 +14,9 @@ import (
 const path = "config.json"
 
 type Config struct {
-	Home string `json:"home"`
 	DefaultSave string `json:"defaultSave"`
+	HelldiversData string `json:"helldiversData"`
+	Home string `json:"home"`
 	Bookmark []string `json:"bookmark"`
 }
 
@@ -35,7 +38,7 @@ func New() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
-		Home: home, DefaultSave: home, Bookmark: []string{},
+		HelldiversData: home, Home: home, DefaultSave: home, Bookmark: []string{},
 	}, nil
 }
 
@@ -82,15 +85,34 @@ func (c *Config) Save() error {
 func (c *Config) Check() error {
 	_, err := os.Lstat(c.Home)
 	if err != nil {
+		slog.Error(
+			fmt.Sprintf("Invalid home directory: %s", c.Home),
+			"error", err,
+		)
+		slog.Warn("Attempt to fix home directory in config.json")
 		c.Home, err = initHome()
 		if err != nil {
 			return err
 		}
 	}
-
 	_, err = os.Lstat(c.DefaultSave)
 	if err != nil {
 		c.DefaultSave = c.Home
+		slog.Error(fmt.Sprintf(
+			"Invalid default directory for save file dialog : %s", c.Home),
+			"error", err,
+		)
+		slog.Warn(fmt.Sprintf("Setting default directory for save file dialog to %s", c.Home))
+	}
+	_, err = os.Lstat(c.HelldiversData)
+	if err != nil {
+		slog.Error(fmt.Sprintf(
+				"Invalid Helldivers 2 data directory: %s", c.HelldiversData,
+			),
+			"error", err,
+		)
+		slog.Warn(fmt.Sprintf("Setting Helldivers 2 data directory to %s", c.Home))
+		c.HelldiversData = c.Home
 	}
 
 	clean := []string{}
@@ -107,4 +129,20 @@ func (c *Config) Check() error {
 	c.Bookmark = clean
 
 	return nil
+}
+
+func (c *Config) SetHome(home string) error {
+	_, err := os.Lstat(home)
+	if err == nil {
+		c.Home = home
+	}
+	return err
+}
+
+func (c *Config) SetHelldiversData(data string) error {
+	_, err := os.Lstat(data)
+	if err == nil {
+		c.HelldiversData = data 
+	}
+	return err
 }

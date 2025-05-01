@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 func GetHome() (string, error) {
@@ -59,13 +60,20 @@ func SaveFileWithRetry(b []byte, path string) error {
 	return errors.New("Maximum save file retry exceeds")
 }
 
-func GetDirAndBank(p string, dirOnly bool) ([]os.DirEntry, error) {
+// Expect a pre-allocated buffer slice for memory reused. Panic if buffer is nil
+func GetDirAndFiles(p string, buffer []os.DirEntry) (
+	[]os.DirEntry, error,
+) {
+	if buffer == nil {
+		panic("GetDirAndFiles expect a pre-allocated buffer slice")
+	}
+
 	fd, err := os.Open(p)
 	if err != nil {
 		return nil, err
 	}
 
-	newEntries := make([]os.DirEntry, 0, 1024)
+	buffer = slices.Delete(buffer, 0, len(buffer))
 	bound := 128
 	for bound > 0 {
 		entries, err := fd.ReadDir(1024)
@@ -77,14 +85,8 @@ func GetDirAndBank(p string, dirOnly bool) ([]os.DirEntry, error) {
 		}
 
 		for _, entry := range entries {
-			if entry.IsDir() {
-				newEntries = append(newEntries, entry)
-				continue
-			}
-			if filepath.Ext(entry.Name()) == ".bnk" && !dirOnly {
-				newEntries = append(newEntries, entry)
-				continue
-			}
+			buffer = append(buffer, entry)
+			continue
 		}
 
 		bound -= 1
@@ -96,6 +98,14 @@ func GetDirAndBank(p string, dirOnly bool) ([]os.DirEntry, error) {
 		)
 	}
 	
-	return newEntries, nil
+	return buffer, nil
 }
 
+func IsDigit(s string) bool {
+	for _, c := range s {
+		if c < '0' && c > '9' {
+			return false
+		}
+	}
+	return true
+}

@@ -12,12 +12,12 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f, err := newOpenFile(home)
+	f, err := newFileSystem(home, false, []string{".bnk", ".st_bnk"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.pwd)
+	t.Log(f.Pwd)
 	for _, e := range f.entries {
 		t.Log(e)
 	}
@@ -27,7 +27,7 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.pwd)
+	t.Log(f.Pwd)
 	for _, e := range f.entries {
 		t.Log(e)
 	}
@@ -37,7 +37,7 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.pwd)
+	t.Log(f.Pwd)
 	for _, e := range f.entries {
 		t.Log(e)
 	}
@@ -47,7 +47,7 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.pwd)
+	t.Log(f.Pwd)
 	for _, e := range f.entries {
 		t.Log(e)
 	}

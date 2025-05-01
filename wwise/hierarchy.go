@@ -64,6 +64,10 @@ type HIRC struct {
 	// obj changes?
 	oldChunkSize uint32
 
+	I uint8
+
+	T []byte
+
 	// Currently, I don't know the algorithm of how Wwise encode its hierarchy 
 	// tree. 
 	// It's probably some sort of modified DFS since there are lot of places 
@@ -82,9 +86,11 @@ type HIRC struct {
 	Sounds      map[uint32]*Sound
 }
 
-func NewHIRC(size uint32, numHircItem uint32) *HIRC {
+func NewHIRC(I uint8, T []byte, size uint32, numHircItem uint32) *HIRC {
 	return &HIRC{
 		oldChunkSize: size,
+		I: I,
+		T: T,
 		HircObjs: make([]HircObj, numHircItem),
 		ActorMixers: make(map[uint32]*ActorMixer),
 		LayerCntrs: make(map[uint32]*LayerCntr),
@@ -148,11 +154,19 @@ func (h *HIRC) Encode(ctx context.Context) ([]byte, error) {
 	dataSize := uint32(sizeOfHIRCHeader + len(b))
 	size := chunkHeaderSize + dataSize
 	w := wio.NewWriter(uint64(chunkHeaderSize + dataSize))
-	w.AppendBytes([]byte{'H', 'I', 'R', 'C'})
+	w.AppendBytes(h.T)
 	w.Append(dataSize)
 	w.Append(uint32(len(h.HircObjs)))
 	w.AppendBytes(b)
 	return w.BytesAssert(int(size)), nil 
+}
+
+func (h *HIRC) Tag() []byte {
+	return h.T
+}
+
+func (h *HIRC) Idx() uint8 {
+	return h.I
 }
 
 type HircObj interface {

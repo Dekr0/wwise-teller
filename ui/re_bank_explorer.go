@@ -9,11 +9,15 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func showBankExplorer(bnkMngr *bankManager) (*bankTab, string, *bankTab, string) {
-	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
-
+func showBankExplorer(
+	bnkMngr *BankManager,
+	saveActive bool,
+) (*bankTab, string, *bankTab, string) {
 	var activeTab *bankTab = nil
 	var closeTab string = "" 
+
+	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
+
 	saveTab, saveName := showBankExplorerMenu(bnkMngr)
 
 	if imgui.BeginTabBarV(
@@ -24,14 +28,12 @@ func showBankExplorer(bnkMngr *bankManager) (*bankTab, string, *bankTab, string)
 		bnkMngr.banks.Range(func(key any, value any) bool {
 			base := filepath.Base(key.(string))
 			open := true
-
 			if imgui.BeginTabItemV(base, &open, 0) {
 				showHierarchy(key.(string), value.(*bankTab))
 				activeTab = value.(*bankTab)
 				imgui.EndTabItem()
 			}
 
-			// Active tab can be closed
 			if !open {
 				activeTab = nil
 				closeTab = key.(string)
@@ -39,18 +41,21 @@ func showBankExplorer(bnkMngr *bankManager) (*bankTab, string, *bankTab, string)
 
 			return true
 		})
-
 		imgui.EndTabBar()
 	}
-
 	imgui.End()
+
+	if saveActive {
+		saveTab = activeTab
+	}
 
 	return activeTab, closeTab, saveTab, saveName
 }
 
-func showBankExplorerMenu(bnkMngr *bankManager) (*bankTab, string) {
+func showBankExplorerMenu(bnkMngr *BankManager) (*bankTab, string) {
 	var saveTab *bankTab = nil
 	saveName := ""
+
 	if !imgui.BeginMenuBar() {
 		return saveTab, saveName
 	}
@@ -68,29 +73,28 @@ func showBankExplorerMenu(bnkMngr *bankManager) (*bankTab, string) {
 		}
 		imgui.EndMenu()
 	}
-
 	imgui.EndMenuBar()
 
 	return saveTab, saveName
 }
 
-// Display hierarchy objects in either linear fashion or a tree fashion.
-// Return a list of hierarchy object being selected in this **active bank tab**
 func showHierarchy(path string, t *bankTab) {
-	// if imgui.Button("Undo") {
-	// 	t.undoList.Undo()
-	// }
-	// imgui.SameLine()
-	// if imgui.Button("Redo") {
-	// 	t.undoList.Redo()
-	// }
+	focusTable := false
+
+	useViUp()
+	useViShiftUp()
+	useViDown()
+	useViShiftDown()
 
 	imgui.SeparatorText("Filter")
+
+	imgui.SetNextItemShortcut(DefaultSearchSC)
 	if imgui.InputTextWithHint(
 		"Filter by hierarchy object ID", "", &t.idQuery, 0, nil,
 	) {
 		t.filter()
 	}
+
 	if imgui.ComboStrarr(
 		"Filter by hierarchy object type",
 		&t.typeQuery,
@@ -100,6 +104,10 @@ func showHierarchy(path string, t *bankTab) {
 		t.filter()
 	}
 
+	if imgui.Shortcut(UnFocusQuerySC) {
+		focusTable = true
+		imgui.SetKeyboardFocusHere()
+	}
 	if !imgui.BeginTableV(path, 2, 
 		imgui.TableFlagsResizable | imgui.TableFlagsReorderable | 
 		imgui.TableFlagsRowBg | 
@@ -109,17 +117,18 @@ func showHierarchy(path string, t *bankTab) {
 	) {
 		return
 	}
-
 	imgui.TableSetupColumn("Hierarchy ID")
 	imgui.TableSetupColumn("Hierarchy Type")
 	imgui.TableSetupScrollFreeze(0, 1)
 	imgui.TableHeadersRow()
+	if focusTable {
+		imgui.SetKeyboardFocusHere()
+	}
 
 	lSelStorage := t.lSelStorage
 	hircObjs := t.filtered
 
-	// BoxSelect1d ensure a whole row is selected in the table
-	flags := imgui.MultiSelectFlagsClearOnEscape | imgui.MultiSelectFlagsBoxSelect1d
+	flags := imgui.MultiSelectFlagsClearOnEscape | imgui.MultiSelectFlagsBoxSelect2d
 	msIO := imgui.BeginMultiSelectV(flags, lSelStorage.Size(), int32(len(hircObjs)))
 	lSelStorage.ApplyRequests(msIO)
 
@@ -129,14 +138,13 @@ func showHierarchy(path string, t *bankTab) {
 		// Ensure RangeSrc item is not clipped
 		clipper.IncludeItemByIndex(int32(msIO.RangeSrcItem()))
 	}
-
 	for clipper.Step() {
 		for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
 			o := hircObjs[n]
 
 			imgui.TableNextRow()
-
 			imgui.TableSetColumnIndex(0)
+
 			var idS string
 			id, err := o.HircID()
 			if err != nil {
@@ -144,7 +152,7 @@ func showHierarchy(path string, t *bankTab) {
 			} else {
 				idS = strconv.FormatUint(uint64(id), 10)
 			}
-			
+
 			selected := lSelStorage.Contains(imgui.ID(n))
 			imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(n))
 			if err != nil {

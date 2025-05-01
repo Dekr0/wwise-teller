@@ -3,41 +3,43 @@ package async
 import (
 	"context"
 	"errors"
+	"slices"
 )
 
-// Can be fine tuned 
-const InitialEvents = 32
+const InitialSycnTasks = 32
 const MaxAsyncTasks = 8
 
 var ExceedMaxAsyncTask = errors.New("Exceeded maximum background tasks.")
 
 type EventLoop struct {
-	AsyncTaskCounter uint64 // Monotonic ID generator for async tasks
-	AsyncTasks []*AsyncTask
-	idle chan struct{}
+	SyncTaskCounter  uint64
+	// For handling some user interactions that need to be run after rendering 
+	// phase
+	SyncTasks        []*Task 
+	AsyncTaskCounter uint64
+	AsyncTasks       []*Task
+	idle             chan struct{}
 }
 
-// AsyncTask does not provide callback when an asynchronous task finishes. It 
-// expects the received asynchronous task to modify shared resource with mutex, 
-// and it should handle error on its own.
-type AsyncTask struct {
+// Asynchronous task should use synchronous primitives to modify share resources
+type Task struct {
+	// loop *EventLoop (chaining)
 	Id uint64
-	OnProc string
-	OnDone string
+	OnProcMsg string
+	OnDoneMsg string
 	Pending bool
 	TaskFuncWithCancel func()
 	Ctx context.Context
-
-	// Event loop will create a closure that defers the cancellation function.
-	// Do not defer cancellation upon creation
 	Cancel context.CancelFunc
 }
 
 func NewEventLoop() *EventLoop {
 	return &EventLoop{
+		SyncTaskCounter : 0,
+		SyncTasks       : make([]*Task, 0, InitialSycnTasks),
 		AsyncTaskCounter: 0,
-		AsyncTasks: make([]*AsyncTask, MaxAsyncTasks),
-		idle: make(chan struct{}, MaxAsyncTasks),
+		AsyncTasks      : make([]*Task, MaxAsyncTasks),
+		idle            : make(chan struct{}, MaxAsyncTasks),
 	}
 }
 
@@ -55,28 +57,41 @@ func (e *EventLoop) taskFuncWithCancel(
 	}
 }
 
-// Queue in a asynchronous task in the form of a function. DO NOT CALL CANCEL 
-// FUNCTION UPON CREATION! QTask will handle it.
+// Delay execution at the end of render phase
+func (e *EventLoop) MustRun(taskFunc func(context.Context)) {
+	e.SyncTasks = append(e.SyncTasks, &Task{
+		Id: e.SyncTaskCounter,
+		OnProcMsg         : "",
+		OnDoneMsg         : "",
+		Pending           : false,
+		TaskFuncWithCancel: e.taskFuncWithCancel(nil, nil, taskFunc),
+		Ctx               : nil,
+		Cancel            : nil,
+	})
+	e.SyncTaskCounter += 1
+}
+
+// Event loop will call cancel function
 func (e *EventLoop) QTask(
-	ctx context.Context,
-	cancel context.CancelFunc,
-	onProc string,
-	onDone string,
-	taskFunc func(context.Context),
+	ctx       context.Context,
+	cancel    context.CancelFunc,
+	onProcMsg string,
+	onDoneMsg string,
+	taskFunc  func(context.Context),
 ) error {
 	if ctx != nil && ctx.Err() != nil {
 		panic("Asynchronous task is canceled before queuing.")
 	}
 	for i := range e.AsyncTasks {
 		if e.AsyncTasks[i] == nil {
-			e.AsyncTasks[i] = &AsyncTask{
-				Id: e.AsyncTaskCounter,
-				OnProc: onProc,
-				OnDone: onDone,
-				Pending: true,
+			e.AsyncTasks[i] = &Task{
+				Id                : e.AsyncTaskCounter,
+				OnProcMsg         : onProcMsg,
+				OnDoneMsg         : onDoneMsg,
+				Pending           : true,
 				TaskFuncWithCancel: e.taskFuncWithCancel(ctx, cancel, taskFunc),
-				Ctx: ctx,
-				Cancel: cancel,
+				Ctx               : ctx,
+				Cancel            : cancel,
 			}
 			e.AsyncTaskCounter += 1
 			return nil
@@ -85,12 +100,13 @@ func (e *EventLoop) QTask(
 	return ExceedMaxAsyncTask
 }
 
-// Check status of each asynchronous task. If it's finished, mark its occupied 
-// slot as nil. Otherwise, try to schedule its execution if there are more spare 
-// workers.
 func (e *EventLoop) Update() []string {
-	onDones := []string{}
+	for _, t := range e.SyncTasks {
+		t.TaskFuncWithCancel()
+	}
+	e.SyncTasks = slices.Delete(e.SyncTasks, 0, len(e.SyncTasks))
 
+	onDones := []string{}
 	for i := range e.AsyncTasks {
 		if e.AsyncTasks[i] == nil {
 			continue
@@ -99,7 +115,7 @@ func (e *EventLoop) Update() []string {
 		if !a.Pending {
 			// Task is either canceled or finished.
 			if a.Ctx != nil && a.Ctx.Err() != nil {
-				onDones = append(onDones, e.AsyncTasks[i].OnDone)
+				onDones = append(onDones, e.AsyncTasks[i].OnDoneMsg)
 				e.AsyncTasks[i] = nil
 			}
 			continue
@@ -111,6 +127,15 @@ func (e *EventLoop) Update() []string {
 		default:
 		}
 	}
-	
 	return onDones
+}
+
+func (e *EventLoop) NumTasks() uint8 {
+	asyncTaskCount := 0
+	for i := range e.AsyncTasks {
+		if e.AsyncTasks[i] != nil {
+			asyncTaskCount += 1
+		}
+	}
+	return uint8(asyncTaskCount)
 }
