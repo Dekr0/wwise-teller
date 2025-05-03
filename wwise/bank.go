@@ -66,6 +66,15 @@ func (b *Bank) HIRC() *HIRC {
 	return nil
 }
 
+func (b *Bank) META() *META {
+	for _, chunk := range b.Chunks {
+		if bytes.Compare(chunk.Tag(), []byte{'M', 'E', 'T', 'A'}) == 0 {
+			return chunk.(*META)
+		}
+	}
+	return nil
+}
+
 type EncodedChunk struct {
 	i uint8
 	b []byte
@@ -90,6 +99,9 @@ func (bnk *Bank) Encode(ctx context.Context) ([]byte, error) {
 
 	i := 0
 	for _, cu := range bnk.Chunks {
+		if bytes.Compare(cu.Tag(), []byte{'M', 'E', 'T', 'A'}) == 0 {
+			continue
+		}
 		go createEncodeClosure(ctx, c, cu)()
 		i += 1
 	}
