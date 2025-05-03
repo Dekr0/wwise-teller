@@ -2,14 +2,14 @@ package helldivers
 
 import (
 	"bytes"
+	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
-	"context"
-	"encoding/binary"
 	"path/filepath"
-	"sync"
 	"slices"
+	"sync"
 
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
@@ -18,12 +18,17 @@ import (
 var NotHelldiversGameArchive error = errors.New(
 	"Not a game archive used by Helldivers 2",
 )
+var NotMETA error = errors.New(
+	"Not META data section",
+)
 
 const (
 	AssetTypeSoundBank       = 6006249203084351385
 	AssetTypeWwiseDependency = 12624162998411505776
 	AssetTypeWwiseStream     = 5785811756662211598
 )
+
+const MagicValue uint32 = 0xF0000011
 
 type IntegrationType uint8
 
@@ -55,6 +60,19 @@ type AssetHeader struct {
 	Idx           uint32 `json:"idx"`
 }
 
+type META struct {
+	T                     [4]byte
+	Size                  uint32
+	IntegrationType       uint8
+	Unknown               [4]byte
+	Unk4Data              [56]byte
+	SoundBankAssetHeader  *AssetHeader
+	UnusedSoundBank16Data [16]byte
+	XOR                   [4]byte
+	WwiseDependencyHeader *AssetHeader
+	WwiseDependencyData   []byte
+}
+
 // TODO: concurrency
 func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 	data, err := os.ReadFile(path)
@@ -71,9 +89,14 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 
 	numTypes := r.U32Unsafe()
 	numFiles := r.U32Unsafe()
-	r.RelSeekUnsafe(4)  // unknown
-	r.RelSeekUnsafe(56) // unk4Data
+
+	unknown := r.FourCCNoCopyUnsafe()
+	unk4Data := r.ReadNoCopyUnsafe(56)
 	r.RelSeekUnsafe(int(32 * numTypes))
+
+	// r.RelSeekUnsafe(4)  // unknown
+	// r.RelSeekUnsafe(56) // unk4Data
+	// r.RelSeekUnsafe(int(32 * numTypes))
 
 	soundBanks := make(map[uint64]*Asset)
 	wwiseDependencies := make(map[uint64]*Asset)
@@ -108,20 +131,23 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 			}
 			offset := h.DataOffset + 16
 			// Sound Bank Data (without first 16 bytes and XOR encryption)
-			a.Data = r.Buff[offset:offset + uint64(h.DataSize - 16)]
+			a.Data = r.Buff[offset : offset+uint64(h.DataSize-16)]
 			// Backup XOR data
-			XOR := slices.Clone(a.Data[0x08:0x0B])
+			XOR := slices.Clone(a.Data[0x08:0x0C])
 			a.Data[0x08] = 0x8D
 			a.Data[0x09] = 0x00
 			a.Data[0x0A] = 0x00
 			a.Data[0x0B] = 0x00
-			// Header: 4 bytes header tag + 4 bytes header size + 1 byte 
+			// Header: 4 bytes header tag + 4 bytes header size + 1 byte
 			// integration type
-			// Data: 80 bytes asset information + 16 bytes unused + 4 bytes XOR
+			// Data: 4 bytes unknown + 56 bytes unknown data + 80 bytes asset
+			// information + 16 bytes unused + 4 bytes XOR
 			a.META = make([]byte, 0, 105)
 			a.META = append(a.META, 'M', 'E', 'T', 'A')
 			a.META = append(a.META, 0, 0, 0, 0)
 			a.META = append(a.META, byte(IntegrationTypeHelldivers2))
+			a.META = append(a.META, unknown...)
+			a.META = append(a.META, unk4Data...)
 			a.META, err = binary.Append(a.META, wio.ByteOrder, h)
 			if err != nil {
 				return err
@@ -132,6 +158,7 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 				w.Add(1)
 				go func() {
 					defer w.Done()
+					a.META = append(a.META, dep.META...)
 					a.META = append(a.META, dep.Data...)
 					metaSize := uint32(len(a.META) - 4 - 4)
 					encodedMetaSize, err := binary.Append(
@@ -179,8 +206,50 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 					h.FileID,
 				)
 			}
-			a.Data = r.Buff[h.DataOffset:h.DataOffset + uint64(h.DataSize)]
+			a.META = make([]byte, 0, 80)
+			a.META, err = binary.Append(a.META, wio.ByteOrder, h)
+			a.Data = r.Buff[h.DataOffset : h.DataOffset+uint64(h.DataSize)]
+			if err != nil {
+				return err
+			}
 			if bnk, in := soundBanks[h.FileID]; in {
+				/*st_path := bytes.ReplaceAll(
+					bytes.ReplaceAll(a.Data[5:], []byte{'\u0000'}, []byte{}),
+					[]byte{'/'}, []byte{'_'},
+				)
+				if bytes.Compare(st_path, []byte{}) == 0 {
+					e <- fmt.Errorf("Sound bank %d name is empty", h.FileID)
+				}
+				path := fmt.Sprintf("%s.st_bnk", st_path)
+				bnk.META = append(bnk.META, a.META...)
+				bnk.META = append(bnk.META, a.Data...)
+				metaSize := uint32(len(bnk.META) - 4 - 4)
+				encodedMetaSize, err := binary.Append(
+					[]byte{}, wio.ByteOrder, metaSize,
+				)
+				if err != nil {
+					e <- err
+				}
+				bnk.META[4] = encodedMetaSize[0]
+				bnk.META[5] = encodedMetaSize[1]
+				bnk.META[6] = encodedMetaSize[2]
+				bnk.META[7] = encodedMetaSize[3]
+
+				wf, err := os.OpenFile(
+					filepath.Join(dest, path), os.O_CREATE|os.O_WRONLY, 0666,
+				)
+				if err != nil {
+					e <- err
+				}
+				if _, err := wf.Write(bnk.Data); err != nil {
+					e <- err
+				}
+				if _, err := wf.Write(bnk.META); err != nil {
+					e <- err
+				}
+				if err := wf.Close(); err != nil {
+					e <- err
+				}*/
 				w.Add(1)
 				go func() {
 					defer w.Done()
@@ -192,7 +261,7 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 						e <- fmt.Errorf("Sound bank %d name is empty", h.FileID)
 					}
 					path := fmt.Sprintf("%s.st_bnk", st_path)
-
+					bnk.META = append(bnk.META, a.META...)
 					bnk.META = append(bnk.META, a.Data...)
 					metaSize := uint32(len(bnk.META) - 4 - 4)
 					encodedMetaSize, err := binary.Append(
@@ -230,13 +299,246 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 	w.Wait()
 	for len(e) > 0 {
 		select {
-		case err := <- e:
+		case err := <-e:
 			return err
 		}
 	}
 	return nil
 }
 
+func ParseMETA(_ context.Context, r *wio.InPlaceReader) (*META, error) {
+	itype, err := r.U8()
+	if err != nil {
+		return nil, err
+	}
+	if itype != uint8(IntegrationTypeHelldivers2) {
+		return nil, NotHelldiversGameArchive
+	}
+
+	unknown, err := r.FourCC()
+	if err != nil {
+		return nil, err
+	}
+
+	unk4Data, err := r.ReadNoCopy(56)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := r.ReadNoCopy(80)
+	if err != nil {
+		return nil, err
+	}
+
+	var soundBnk AssetHeader
+	_, err = binary.Decode(data, wio.ByteOrder, &soundBnk)
+	if err != nil {
+		return nil, err
+	}
+
+	unusedSoundBnk16Data, err := r.ReadNoCopy(16)
+	if err != nil {
+		return nil, err
+	}
+
+	xor, err := r.ReadNoCopy(4)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err = r.ReadNoCopy(80)
+	if err != nil {
+		return nil, err
+	}
+
+	var wwiseDep AssetHeader
+	_, err = binary.Decode(data, wio.ByteOrder, &wwiseDep)
+	if err != nil {
+		return nil, err
+	}
+
+	wwiseDepData, err := r.ReadNoCopy(uint(wwiseDep.DataSize))
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Len() != 0 {
+		return nil, fmt.Errorf(
+			"Data size of Wwise dependency is incorrect. There are more bytes" +
+				" to consume.",
+		)
+	}
+
+	return &META{
+		IntegrationType:       itype,
+		Unknown:               [4]byte(unknown),
+		Unk4Data:              [56]byte(unk4Data),
+		SoundBankAssetHeader:  &soundBnk,
+		UnusedSoundBank16Data: [16]byte(unusedSoundBnk16Data),
+		XOR:                   [4]byte(xor),
+		WwiseDependencyHeader: &wwiseDep,
+		WwiseDependencyData:   wwiseDepData,
+	}, nil
+}
+
 func GenHelldiversPatch(ctx context.Context, bank *wwise.Bank) error {
+	bnkData, err := bank.Encode(ctx)
+	if err != nil {
+		return err
+	}
+
+	metaCu := bank.META()
+	if metaCu == nil {
+		return NotHelldiversGameArchive
+	}
+	meta, err := ParseMETA(ctx, wio.NewInPlaceReader(metaCu.Data, wio.ByteOrder))
+	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(
+		"9ba626afa44a3aa3.patch_0",
+		os.O_CREATE|os.O_WRONLY,
+		0666,
+	)
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+
+	w := wio.NewBinaryWriteHelper(f)
+	if err := writeGameArchiveHeader(ctx, w, meta); err != nil {
+		return err
+	}
+	if err := writeGameArchiveTypeHeader(ctx, w); err != nil {
+		return err
+	}
+
+	// one sound bank asset header + one Wwise dependency asset header +
+	// 8 bytes padding
+	dataOffset := uint32(160 + w.Tell() + 8)
+
+	meta.SoundBankAssetHeader.Idx = 0
+	meta.SoundBankAssetHeader.DataSize = uint32(len(bnkData)) + 16
+	meta.SoundBankAssetHeader.StreamSize = 0
+	meta.SoundBankAssetHeader.GPURsrcSize = 0
+	meta.SoundBankAssetHeader.DataOffset = uint64(dataOffset)
+	dataOffset += meta.SoundBankAssetHeader.DataSize
+	meta.SoundBankAssetHeader.StreamOffset = 0
+	meta.SoundBankAssetHeader.GPURsrcOffset = 0
+	data, err := binary.Append(nil, wio.ByteOrder, meta.SoundBankAssetHeader)
+	if err != nil {
+		return err
+	}
+	if err := w.Bytes(data); err != nil {
+		return err
+	}
+
+	meta.WwiseDependencyHeader.Idx = 1
+	meta.WwiseDependencyHeader.DataOffset = uint64(dataOffset)
+	meta.WwiseDependencyHeader.StreamSize = 0
+	meta.WwiseDependencyHeader.GPURsrcSize = 0
+	dataOffset += meta.WwiseDependencyHeader.DataSize
+	meta.WwiseDependencyHeader.StreamOffset = 0
+	meta.WwiseDependencyHeader.GPURsrcOffset = 0
+	data, err = binary.Append(nil, wio.ByteOrder, meta.WwiseDependencyHeader)
+	if err != nil {
+		return err
+	}
+	if err := w.Bytes(data); err != nil {
+		return err
+	}
+
+	pad := make([]byte, 8, 8)
+	if err := w.Bytes(pad); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(meta.UnusedSoundBank16Data[:]); err != nil {
+		return err
+	}
+	bnkData[0x08] = meta.XOR[0]
+	bnkData[0x09] = meta.XOR[1]
+	bnkData[0x0A] = meta.XOR[2]
+	bnkData[0x0B] = meta.XOR[3]
+	if err := w.Bytes(bnkData); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(meta.WwiseDependencyData); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeGameArchiveHeader(
+	_ context.Context,
+	w *wio.BinaryWriteHelper,
+	meta *META,
+) error {
+	if err := w.U32(MagicValue); err != nil {
+		return err
+	}
+
+	// Number of file types = 2 (Sound bank and dependency)
+	if err := w.U32(2); err != nil {
+		return err
+	}
+
+	// Number of files = 2 x number of sound banks
+	if err := w.U32(2); err != nil {
+		return err
+	}
+
+	if err := w.Bytes(meta.Unknown[:]); err != nil {
+		return err
+	}
+	if err := w.Bytes(meta.Unk4Data[:]); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeGameArchiveTypeHeader(_ context.Context, w *wio.BinaryWriteHelper) error {
+	// Sound bank type header
+	if err := w.U64(0); err != nil {
+		return err
+	}
+	if err := w.U64(AssetTypeSoundBank); err != nil {
+		return err
+	}
+	// Number of sound banks
+	if err := w.U64(1); err != nil {
+		return err
+	}
+	// Alignment? 8 x 3 + 2 x 4 = 24 + 8 = 32
+	if err := w.U32(16); err != nil {
+		return err
+	}
+	if err := w.U32(64); err != nil {
+		return err
+	}
+
+	// Wwise dependency type header
+	if err := w.U64(0); err != nil {
+		return err
+	}
+	if err := w.U64(AssetTypeWwiseDependency); err != nil {
+		return err
+	}
+	// Number of wwise dependencies
+	if err := w.U64(1); err != nil {
+		return err
+	}
+	// Alignment? 8 x 3 + 2 x 4 = 24 + 8 = 32
+	if err := w.U32(16); err != nil {
+		return err
+	}
+	if err := w.U32(64); err != nil {
+		return err
+	}
+
 	return nil
 }
