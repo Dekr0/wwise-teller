@@ -141,12 +141,11 @@ func pushSaveSoundBankModal(
 	saveTab *bankTab,
 	saveName string,
 ) {
-	onSave := saveSoundBankFunc(loop, bnkMngr, saveTab)
+	onSave := saveSoundBankFunc(loop, bnkMngr, saveTab, saveName)
 	renderF, done, err := saveFileDialogFunc(onSave, conf.DefaultSave)
 	if err != nil {
 		slog.Error(
-			fmt.Sprintf(
-				"Failed create save file dialog for saving sound bank %s",
+			fmt.Sprintf("Failed create save file dialog for saving sound bank %s",
 				saveName,
 			),
 			"error", err,
@@ -156,6 +155,33 @@ func pushSaveSoundBankModal(
 			done,
 			0,
 			fmt.Sprintf("Save sound bank %s to ...", saveName),
+			renderF, nil,
+		)
+	}
+}
+
+func pushHD2PatchModal(
+	modalQ *ModalQ,
+	loop *async.EventLoop,
+	conf *config.Config,
+	bnkMngr *BankManager,
+	saveTab *bankTab,
+	saveName string,
+) {
+	onSave := HD2PatchFunc(loop, bnkMngr, saveTab, saveName)
+	if renderF, done, err := saveFileDialogFunc(onSave, conf.DefaultSave);
+	   err != nil {
+		slog.Error(
+			fmt.Sprintf("Failed create save file dialog for saving sound " +
+				"bank %s to HD2 patch", saveName,
+			),
+			"error", err,
+		)
+	} else {
+		modalQ.QModal(
+			done,
+			0,
+			fmt.Sprintf("Save sound bank %s to HD2 patch ...", saveName),
 			renderF, nil,
 		)
 	}
