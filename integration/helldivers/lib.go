@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/Dekr0/wwise-teller/wio"
-	"github.com/Dekr0/wwise-teller/wwise"
 )
 
 var NotHelldiversGameArchive error = errors.New(
@@ -381,23 +380,19 @@ func ParseMETA(_ context.Context, r *wio.InPlaceReader) (*META, error) {
 	}, nil
 }
 
-func GenHelldiversPatch(ctx context.Context, bank *wwise.Bank) error {
-	bnkData, err := bank.Encode(ctx)
-	if err != nil {
-		return err
-	}
-
-	metaCu := bank.META()
-	if metaCu == nil {
-		return NotHelldiversGameArchive
-	}
-	meta, err := ParseMETA(ctx, wio.NewInPlaceReader(metaCu.Data, wio.ByteOrder))
+func GenHelldiversPatch(
+	ctx context.Context,
+	bnkData []byte,
+	metaCu []byte,
+	path string,
+) error {
+	meta, err := ParseMETA(ctx, wio.NewInPlaceReader(metaCu, wio.ByteOrder))
 	if err != nil {
 		return err
 	}
 
 	f, err := os.OpenFile(
-		"9ba626afa44a3aa3.patch_0",
+		filepath.Join(path, "9ba626afa44a3aa3.patch_0"),
 		os.O_CREATE|os.O_WRONLY,
 		0666,
 	)

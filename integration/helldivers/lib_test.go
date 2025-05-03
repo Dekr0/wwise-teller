@@ -52,8 +52,11 @@ func TestGenHelldiversPatch(t *testing.T) {
 
 	bnk, err := parser.ParseBank(target, timeout)
 	if err != nil { t.Fatal(err) }
+	
+	bnkData, err := bnk.Encode(timeout)
+	if err != nil { t.Fatal(err) }
 
-	if err := GenHelldiversPatch(timeout, bnk); err != nil {
+	if err := GenHelldiversPatch(timeout, bnkData, bnk.META().Data, "."); err != nil {
 		t.Fatal(err)
 	}
 }
