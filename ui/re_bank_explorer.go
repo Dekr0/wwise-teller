@@ -6,19 +6,20 @@ import (
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func showBankExplorer(
-	bnkMngr *BankManager,
-	saveActive bool,
-) (*bankTab, string, *bankTab, string) {
+func showBankExplorer(bnkMngr *BankManager, saveActive bool, itype int) (
+	*bankTab, string, *bankTab, string, int,
+) {
 	var activeTab *bankTab = nil
-	var closeTab string = "" 
+	activeName := ""
+	closeTab := "" 
 
 	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
 
-	saveTab, saveName := showBankExplorerMenu(bnkMngr)
+	saveTab, saveName, itype := showBankExplorerMenu(bnkMngr, itype)
 
 	if imgui.BeginTabBarV(
 		"BankExplorerTabBar",
@@ -31,6 +32,7 @@ func showBankExplorer(
 			if imgui.BeginTabItemV(base, &open, 0) {
 				showHierarchy(key.(string), value.(*bankTab))
 				activeTab = value.(*bankTab)
+				activeName = key.(string)
 				imgui.EndTabItem()
 			}
 
@@ -47,17 +49,18 @@ func showBankExplorer(
 
 	if saveActive {
 		saveTab = activeTab
+		saveName = activeName
 	}
 
-	return activeTab, closeTab, saveTab, saveName
+	return activeTab, closeTab, saveTab, saveName, itype
 }
 
-func showBankExplorerMenu(bnkMngr *BankManager) (*bankTab, string) {
+func showBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, int) {
 	var saveTab *bankTab = nil
 	saveName := ""
 
 	if !imgui.BeginMenuBar() {
-		return saveTab, saveName
+		return saveTab, saveName, itype
 	}
 
 	if imgui.BeginMenu("File") {
@@ -66,16 +69,31 @@ func showBankExplorerMenu(bnkMngr *BankManager) (*bankTab, string) {
 				if imgui.MenuItemBool(key.(string)) {
 					saveTab = value.(*bankTab)
 					saveName = key.(string)
+					itype = -1
 				}
 				return true
 			})
+			imgui.EndMenu()
+		}
+		if imgui.BeginMenu("Integration") {
+			if imgui.BeginMenuV("Helldivers 2", !bnkMngr.writeLock.Load()) {
+				bnkMngr.banks.Range(func(key, value any) bool {
+					if imgui.MenuItemBool(key.(string)) {
+						saveTab = value.(*bankTab)
+						saveName = key.(string)
+						itype = int(helldivers.IntegrationTypeHelldivers2)
+					}
+					return true
+				})
+				imgui.EndMenu()
+			}
 			imgui.EndMenu()
 		}
 		imgui.EndMenu()
 	}
 	imgui.EndMenuBar()
 
-	return saveTab, saveName
+	return saveTab, saveName, itype
 }
 
 func showHierarchy(path string, t *bankTab) {

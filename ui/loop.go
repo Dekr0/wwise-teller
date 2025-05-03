@@ -14,6 +14,7 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/imguizmo"
 	"github.com/Dekr0/wwise-teller/config"
+	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	"github.com/Dekr0/wwise-teller/log"
 	"github.com/Dekr0/wwise-teller/ui/async"
 )
@@ -165,10 +166,16 @@ func createLoop(
 		imguizmo.BeginFrame()
 
 		saveActive := false
+		itype := -1
 		viewport := imgui.MainViewport()
 
 		if imgui.ShortcutNilV(DefaultSaveAsSC, imgui.InputFlagsRouteGlobal) {
 			saveActive = true
+			itype = -1
+		}
+		if imgui.ShortcutNilV(ModCtrlShift | imgui.KeyChord(imgui.KeyI), imgui.InputFlagsRouteGlobal) {
+			saveActive = true
+			itype = int(helldivers.IntegrationTypeHelldivers2)
 		}
 		if imgui.ShortcutNilV(DefaultNavPrevSC, imgui.InputFlagsRouteGlobal) {
 			dockMngr.FocusPrev()
@@ -205,11 +212,16 @@ func createLoop(
 
 		showFileExplorerWindow(fileExplorer)
 
-		activeTab, closeTab, saveTab, saveName := showBankExplorer(
-			bnkMngr, saveActive,
+		activeTab, closeTab, saveTab, saveName, itype := showBankExplorer(
+			bnkMngr, saveActive, itype,
 		)
 		if saveTab != nil {
-			pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
+			switch itype {
+			case -1:
+				pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
+			case int(helldivers.IntegrationTypeHelldivers2):
+				pushHD2PatchModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
+			}
 		}
 
 		showObjectEditor(activeTab)
