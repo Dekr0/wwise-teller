@@ -1,8 +1,9 @@
 package wio
 
 import (
-	"fmt"
 	"encoding/binary"
+	"fmt"
+	"io"
 )
 
 type FixedWriter struct { b []byte }
@@ -64,3 +65,65 @@ func SetBit(v uint8, pos int, set bool) uint8 {
 	}
 	return v | (1 << pos)
 }
+
+type BinaryWriteHelper struct {
+	nwrite uint
+	w      io.Writer
+}
+
+func NewBinaryWriteHelper(w io.Writer) *BinaryWriteHelper {
+	return &BinaryWriteHelper{0, w}
+}
+
+func (w *BinaryWriteHelper) U8(v uint8) error {
+	w.nwrite += 1
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) I8(v int8) error {
+	w.nwrite += 1
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) U16(v uint16) error {
+	w.nwrite += 2
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) I16(v int16) error {
+	w.nwrite += 2
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) U32(v uint32) error {
+	w.nwrite += 4
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) I32(v int32) error {
+	w.nwrite += 4
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) F32(v float32) error {
+	w.nwrite += 4
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) U64(v uint64) error {
+	w.nwrite += 8
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) I64(v int64) error {
+	w.nwrite += 8
+	return binary.Write(w.w, ByteOrder, v)
+}
+
+func (w *BinaryWriteHelper) Bytes(p []byte) error {
+	w.nwrite += uint(len(p))
+	_, err := w.w.Write(p)
+	return err
+}
+
+func (w *BinaryWriteHelper) Tell() uint { return w.nwrite }
