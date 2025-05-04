@@ -6,7 +6,7 @@
 from Wwise Authoring Tool. 
 - Wwise teller makes an attempt to replicate common features sound designer can 
 do in Wwise Authoring Tool
-- A quick [sneak peek](https://youtu.be/6QUBaiXEyTw) on the current state of 
+- A quick [sneak peek](https://youtu.be/36MphHqG2ks](https://youtu.be/36MphHqG2ks)) on the current state of 
 Wwise Teller
 
 ## Limitation
