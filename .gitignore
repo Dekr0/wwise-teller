@@ -1,4 +1,5 @@
 wwiser.pyz
+wwise-teller
 imgui.ini
 tests
 **/*.bnk
@@ -6,3 +7,5 @@ tests
 **/*.st_bnk
 **/config.json
 **/wwiser.ini
+**/*.patch_0
+**/*.exe
