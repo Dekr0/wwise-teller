@@ -3,12 +3,19 @@ package ui
 import (
 	"fmt"
 	"log/slog"
+	"runtime"
+	"slices"
+	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/Dekr0/wwise-teller/utils"
 )
 
 func showFileExplorerWindow(fe *FileExplorer) {
-	imgui.Begin("File Explorer")
+	imgui.BeginV(
+		"File Explorer", 
+		nil, 
+		imgui.WindowFlagsHorizontalScrollbar)
 	if imgui.BeginTabBar("FileExplorerTabBar") {
 		showFileExplorerTab(fe)
 		imgui.EndTabBar()
@@ -24,7 +31,7 @@ func showFileExplorerTab(fe *FileExplorer) {
 	}
 
 	if isLeftShortcut() {
-		if err := fe.CdParent(); err != nil {
+		if err := fe.cdParent(); err != nil {
 			slog.Error(
 				"Failed to change current directory to parent directory",
 				"error", err,
@@ -36,11 +43,32 @@ func showFileExplorerTab(fe *FileExplorer) {
 	useViDown()
 	useViShiftDown()
 
+	if runtime.GOOS == "windows" {
+		vol := fe.vol()
+		idx := int32(slices.IndexFunc(utils.Vols, func(v string) bool {
+			return strings.Compare(v, vol) == 0
+		}))
+		if idx != -1 {
+			imgui.PushIDStr("FileExplorerLP")
+			imgui.PushItemWidth(imgui.CalcTextSize("C:\\").X + 24.0)
+			if imgui.ComboStrarr("", &idx, utils.Vols, int32(len(utils.Vols))) {
+				vol := utils.Vols[idx]
+				if err := fe.switchVol(vol); err != nil {
+					slog.Error("Failed to switch volume to " + vol, "error", err)
+				}
+			}
+			imgui.PopItemWidth()
+			imgui.PopID()
+		}
+	}
+
+	imgui.SameLine()
+
 	imgui.SetNextItemShortcut(
 		imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),
 	)
 	if imgui.InputTextWithHint("Query", "", &fe.fs.query, 0, nil) {
-		fe.Filter()
+		fe.filter()
 	}
 
 	imgui.SameLine()
@@ -49,11 +77,11 @@ func showFileExplorerTab(fe *FileExplorer) {
 		imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyS),
 	)
 	if imgui.Button("Open") {
-		fe.OpenSelective()
+		fe.openSelective()
 	}
 
 	if imgui.ArrowButton("FileExplorerArrowButton", imgui.DirLeft) {
-		if err := fe.CdParent(); err != nil {
+		if err := fe.cdParent(); err != nil {
 			slog.Error(
 				"Failed to change current directory to parent directory",
 				"error", err,
@@ -63,7 +91,7 @@ func showFileExplorerTab(fe *FileExplorer) {
 
 	imgui.SameLine()
 
-	imgui.Text(fe.Pwd())
+	imgui.Text(fe.pwd())
 
 	if imgui.Shortcut(UnFocusQuerySC) {
 		focusTable = true
@@ -92,6 +120,21 @@ func showFileExplorerTabTable(fe *FileExplorer, focusTable bool) {
 		imgui.SetKeyboardFocusHere()
 	}
 	imgui.SelectableBool(".")
+
+	imgui.TableNextRow()
+	imgui.TableSetColumnIndex(0)
+	imgui.SelectableBool("..")
+	focused := imgui.IsItemFocused()
+	doubleClicked := imgui.IsMouseDoubleClicked(0)
+	righted := isRightShortcut()
+	if focused && (doubleClicked || righted) {
+		if err := fe.cdParent(); err != nil {
+			slog.Error(
+				"Failed to change current directory to parent directory",
+				"error", err,
+			)
+		}
+	}
 
 	filtered := fe.fs.filtered
 	storage := fe.storage
@@ -134,8 +177,8 @@ func showFileExplorerTabTable(fe *FileExplorer, focusTable bool) {
 			doubleClicked := imgui.IsMouseDoubleClicked(0)
 			righted := isRightShortcut()
 			if focused && (doubleClicked || righted) {
-				if fe.IsFocusDir(int(n)) {
-					if err := fe.CdFocus(int(n)); err != nil {
+				if fe.isFocusDir(int(n)) {
+					if err := fe.cdFocus(int(n)); err != nil {
 						slog.Error(
 							"Failed to change current directory to selective directory",
 							"error", err,
@@ -143,7 +186,7 @@ func showFileExplorerTabTable(fe *FileExplorer, focusTable bool) {
 					}
 					break clipper
 				} else {
-					fe.OpenFocus(int(n))
+					fe.openFocus(int(n))
 				}
 			}
 		}
