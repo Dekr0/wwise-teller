@@ -4,14 +4,12 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 )
 
-func commandPaletteModal(
-	cmdMngr *CmdPaletteMngr,
-	done *bool,
-) func() {
+func commandPaletteModal(cmdMngr *CmdPaletteMngr) (func(), *bool) {
+	done := false
 	cmdMngr.selected = 0 
 	return func() {
 		if useViEnter() {
-			*done = true
+			done = true
 			cmdMngr.filtered[cmdMngr.selected].cmd.action()
 			return
 		}
@@ -53,5 +51,5 @@ func commandPaletteModal(
 			}
 		}
 		imgui.EndTable()
-	}
+	}, &done
 }
