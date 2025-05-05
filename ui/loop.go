@@ -17,6 +17,7 @@ import (
 	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	"github.com/Dekr0/wwise-teller/log"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	"github.com/Dekr0/wwise-teller/utils"
 )
 
 const MainDockFlags imgui.WindowFlags = 
@@ -51,6 +52,11 @@ func Run() error {
 		&slog.HandlerOptions{Level: slog.LevelInfo},
 	)))
 
+	err = utils.ScanMountPoint()
+	if err != nil {
+		return err
+	}
+
 	conf, err := config.Load()
 	if err != nil {
 		return err
@@ -67,7 +73,7 @@ func Run() error {
 
 	dockMngr := NewDockManager()
 
-	fileExplorer, err := NewFileExplorer(
+	fileExplorer, err := newFileExplorer(
 		openSoundBankFunc(loop, bnkMngr), conf.Home,
 	)
 	if err != nil {
