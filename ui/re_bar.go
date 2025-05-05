@@ -43,13 +43,7 @@ func showMainMenuBar(
 			imgui.InputFlagsRouteGlobal,
 		)
 		if imgui.Button("Command") {
-			done := false
-			modalQ.QModal(
-				&done,
-				0,
-				"Command Plaette",
-				commandPaletteModal(cmdPaletteMngr, &done),
-				nil,)
+			pushCommandPaletteModal(modalQ, cmdPaletteMngr)
 		}
 		imgui.PopStyleColor()
 
