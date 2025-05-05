@@ -6,10 +6,10 @@ import (
 
 // Single select only
 // Operate only on directory
-// Confirm (Ctrl - Enter) and cancel
+// Confirm (Ctrl - s) and cancel
 // Change directory behavior:
 //   - Double click or enter
-// On save (Ctrl - Enter):
+// On save (Ctrl - s):
 //   - If nothing is selected, use current directory on confirm
 //   - If one is selected, use selected on confirm
 type SaveFileDialog struct {
@@ -28,12 +28,12 @@ func NewSaveFileDialog(callback func(string), initialDir string) (
 	return &SaveFileDialog{callback: callback, selected: 0, fs: fs}, nil
 }
 
-func (d *SaveFileDialog) Filter() {
+func (d *SaveFileDialog) filter() {
 	d.fs.filter()
 	d.selected = 0
 }
 
-func (d *SaveFileDialog) CdSelected() error {
+func (d *SaveFileDialog) cdSelected() error {
 	if d.selected >= 0 && d.selected < len(d.fs.filtered) {
 		if err := d.fs.cd(d.fs.filtered[d.selected].entry.Name()); err != nil {
 			return err
@@ -43,7 +43,7 @@ func (d *SaveFileDialog) CdSelected() error {
 	return nil
 }
 
-func (d *SaveFileDialog) CdParent() error {
+func (d *SaveFileDialog) cdParent() error {
 	if err := d.fs.cdParent(); err != nil {
 		return err
 	}
@@ -51,16 +51,16 @@ func (d *SaveFileDialog) CdParent() error {
 	return nil
 }
 
-func (d *SaveFileDialog) SetNext(delta int) {
+func (d *SaveFileDialog) setNext(delta int) {
 	if d.selected + int(delta) >= 0 && d.selected + int(delta) < len(d.fs.filtered) {
 		d.selected += int(delta)
 	}
 }
 
-func (d *SaveFileDialog) Save() {
+func (d *SaveFileDialog) save() {
 	if len(d.fs.filtered) <= 0 || d.selected > len(d.fs.filtered) {
-		d.callback(d.fs.Pwd)
+		d.callback(d.fs.pwd)
 	} else {
-		d.callback(filepath.Join(d.fs.Pwd, d.fs.filtered[d.selected].entry.Name()))
+		d.callback(filepath.Join(d.fs.pwd, d.fs.filtered[d.selected].entry.Name()))
 	}
 }
