@@ -40,7 +40,7 @@ func dispatchExtractSoundBank(loop *async.EventLoop, path string, dest string) {
 		"Extracted sound banks from Helldivers 2 game archive %s", path,
 	)
 	f := func(ctx context.Context) {
-		if err := helldivers.ExtractSoundBank(ctx, path, dest); err != nil {
+		if err := helldivers.ExtractSoundBank(ctx, path, dest, false); err != nil {
 			slog.Error(
 				fmt.Sprintf(
 					"Failed to extract sound bank from game archive %s", path,

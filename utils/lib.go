@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -108,4 +109,9 @@ func IsDigit(s string) bool {
 		}
 	}
 	return true
+}
+
+func Pad16ByteAlign(data []byte) []byte {
+	pad := (int(math.Ceil(float64(len(data)) / float64(16))) * 16) - len(data)
+	return append(data, make([]byte, pad, pad)...)
 }
