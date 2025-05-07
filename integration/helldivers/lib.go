@@ -11,6 +11,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
@@ -73,7 +74,7 @@ type META struct {
 }
 
 // TODO: concurrency
-func ExtractSoundBank(ctx context.Context, path string, dest string) error {
+func ExtractSoundBank(ctx context.Context, path string, dest string, dry bool) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -153,7 +154,7 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 			}
 			a.META = append(a.META, r.Buff[h.DataOffset:h.DataOffset+16]...)
 			a.META = append(a.META, XOR...)
-			if dep, in := wwiseDependencies[h.FileID]; in {
+			if dep, in := wwiseDependencies[h.FileID]; in && !dry {
 				w.Add(1)
 				go func() {
 					defer w.Done()
@@ -199,7 +200,7 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 				soundBanks[h.FileID] = a
 			}
 		case AssetTypeWwiseDependency:
-			if _, in := wwiseDependencies[h.FileID]; in {
+			if _, in := wwiseDependencies[h.FileID]; in && !dry {
 				return fmt.Errorf(
 					"Two Wwise dependency headers use the same of ID of %d",
 					h.FileID,
@@ -211,44 +212,7 @@ func ExtractSoundBank(ctx context.Context, path string, dest string) error {
 			if err != nil {
 				return err
 			}
-			if bnk, in := soundBanks[h.FileID]; in {
-				/*st_path := bytes.ReplaceAll(
-					bytes.ReplaceAll(a.Data[5:], []byte{'\u0000'}, []byte{}),
-					[]byte{'/'}, []byte{'_'},
-				)
-				if bytes.Compare(st_path, []byte{}) == 0 {
-					e <- fmt.Errorf("Sound bank %d name is empty", h.FileID)
-				}
-				path := fmt.Sprintf("%s.st_bnk", st_path)
-				bnk.META = append(bnk.META, a.META...)
-				bnk.META = append(bnk.META, a.Data...)
-				metaSize := uint32(len(bnk.META) - 4 - 4)
-				encodedMetaSize, err := binary.Append(
-					[]byte{}, wio.ByteOrder, metaSize,
-				)
-				if err != nil {
-					e <- err
-				}
-				bnk.META[4] = encodedMetaSize[0]
-				bnk.META[5] = encodedMetaSize[1]
-				bnk.META[6] = encodedMetaSize[2]
-				bnk.META[7] = encodedMetaSize[3]
-
-				wf, err := os.OpenFile(
-					filepath.Join(dest, path), os.O_CREATE|os.O_WRONLY, 0666,
-				)
-				if err != nil {
-					e <- err
-				}
-				if _, err := wf.Write(bnk.Data); err != nil {
-					e <- err
-				}
-				if _, err := wf.Write(bnk.META); err != nil {
-					e <- err
-				}
-				if err := wf.Close(); err != nil {
-					e <- err
-				}*/
+			if bnk, in := soundBanks[h.FileID]; in && !dry {
 				w.Add(1)
 				go func() {
 					defer w.Done()
@@ -408,58 +372,16 @@ func GenHelldiversPatch(
 	if err := writeGameArchiveTypeHeader(ctx, w); err != nil {
 		return err
 	}
-
-	// one sound bank asset header + one Wwise dependency asset header +
-	// 8 bytes padding
-	dataOffset := uint32(160 + w.Tell() + 8)
-
-	meta.SoundBankAssetHeader.Idx = 0
-	meta.SoundBankAssetHeader.DataSize = uint32(len(bnkData)) + 16
-	meta.SoundBankAssetHeader.StreamSize = 0
-	meta.SoundBankAssetHeader.GPURsrcSize = 0
-	meta.SoundBankAssetHeader.DataOffset = uint64(dataOffset)
-	dataOffset += meta.SoundBankAssetHeader.DataSize
-	meta.SoundBankAssetHeader.StreamOffset = 0
-	meta.SoundBankAssetHeader.GPURsrcOffset = 0
-	data, err := binary.Append(nil, wio.ByteOrder, meta.SoundBankAssetHeader)
-	if err != nil {
+	if err := writeAssetHeaders(ctx, w, bnkData, meta); err != nil {
 		return err
 	}
-	if err := w.Bytes(data); err != nil {
-		return err
-	}
-
-	meta.WwiseDependencyHeader.Idx = 1
-	meta.WwiseDependencyHeader.DataOffset = uint64(dataOffset)
-	meta.WwiseDependencyHeader.StreamSize = 0
-	meta.WwiseDependencyHeader.GPURsrcSize = 0
-	dataOffset += meta.WwiseDependencyHeader.DataSize
-	meta.WwiseDependencyHeader.StreamOffset = 0
-	meta.WwiseDependencyHeader.GPURsrcOffset = 0
-	data, err = binary.Append(nil, wio.ByteOrder, meta.WwiseDependencyHeader)
-	if err != nil {
-		return err
-	}
-	if err := w.Bytes(data); err != nil {
-		return err
-	}
-
 	pad := make([]byte, 8, 8)
 	if err := w.Bytes(pad); err != nil {
 		return err
 	}
-
-	if err := w.Bytes(meta.UnusedSoundBank16Data[:]); err != nil {
+	if err := writeSoundBank(ctx, w, bnkData, meta); err != nil {
 		return err
 	}
-	bnkData[0x08] = meta.XOR[0]
-	bnkData[0x09] = meta.XOR[1]
-	bnkData[0x0A] = meta.XOR[2]
-	bnkData[0x0B] = meta.XOR[3]
-	if err := w.Bytes(bnkData); err != nil {
-		return err
-	}
-
 	if err := w.Bytes(meta.WwiseDependencyData); err != nil {
 		return err
 	}
@@ -489,7 +411,14 @@ func writeGameArchiveHeader(
 	if err := w.Bytes(meta.Unknown[:]); err != nil {
 		return err
 	}
-	if err := w.Bytes(meta.Unk4Data[:]); err != nil {
+
+	// if err := w.Bytes(meta.Unk4Data[:]); err != nil {
+	// 	return err
+	// }
+	
+	// Require (Reverse engineering black magic)
+	Unk4Data := []byte{206,9,245,244,0,0,0,0,12,114,159,158,136,114,184,189,0,160,107,2,0,0,0,0,0,121,81,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+	if err := w.Bytes(Unk4Data); err != nil {
 		return err
 	}
 
@@ -535,5 +464,75 @@ func writeGameArchiveTypeHeader(_ context.Context, w *wio.BinaryWriteHelper) err
 		return err
 	}
 
+	return nil
+}
+
+func writeAssetHeaders(
+	_ context.Context,
+	w *wio.BinaryWriteHelper,
+	bnkData []byte,
+	meta *META,
+) error {
+	dataOffset := uint32(160 + w.Tell() + 8)
+
+	// File ID and Type ID should remain same
+	meta.SoundBankAssetHeader.Idx = 0
+	meta.SoundBankAssetHeader.DataSize = uint32(len(bnkData)) + 16
+	meta.SoundBankAssetHeader.StreamSize = 0
+	meta.SoundBankAssetHeader.GPURsrcSize = 0
+	meta.SoundBankAssetHeader.DataOffset = uint64(dataOffset)
+	dataOffset += meta.SoundBankAssetHeader.DataSize
+	meta.SoundBankAssetHeader.StreamOffset = 0
+	meta.SoundBankAssetHeader.GPURsrcOffset = 0
+	data, err := binary.Append(nil, wio.ByteOrder, meta.SoundBankAssetHeader)
+	if err != nil {
+		return err
+	}
+	if err := w.Bytes(data); err != nil {
+		return err
+	}
+
+	// File ID, Type ID, File Size should remain same
+	meta.WwiseDependencyHeader.Idx = 1
+	meta.WwiseDependencyHeader.DataOffset = uint64(dataOffset)
+	meta.WwiseDependencyHeader.StreamSize = 0
+	meta.WwiseDependencyHeader.GPURsrcSize = 0
+	dataOffset += meta.WwiseDependencyHeader.DataSize
+	meta.WwiseDependencyHeader.StreamOffset = 0
+	meta.WwiseDependencyHeader.GPURsrcOffset = 0
+	data, err = binary.Append(nil, wio.ByteOrder, meta.WwiseDependencyHeader)
+	if err != nil {
+		return err
+	}
+	if err := w.Bytes(data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeSoundBank(
+	_ context.Context,
+	w *wio.BinaryWriteHelper,
+	bnkData []byte,
+	meta *META,
+) error {
+	// Require (Reverse engineering black magic)
+	if err := w.Bytes([]byte{216,47,118,120}); err != nil {
+		return err
+	}
+	if err := w.U32(uint32(len(bnkData))); err != nil {
+		return err
+	}
+	if err := w.U64(meta.SoundBankAssetHeader.FileID); err != nil {
+		return err
+	}
+	bnkData[0x08] = meta.XOR[0]
+	bnkData[0x09] = meta.XOR[1]
+	bnkData[0x0A] = meta.XOR[2]
+	bnkData[0x0B] = meta.XOR[3]
+	if err := w.Bytes(utils.Pad16ByteAlign(bnkData)); err != nil {
+		return err
+	}
 	return nil
 }
