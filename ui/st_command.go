@@ -40,15 +40,7 @@ func NewCmdPaletteMngr(
 	}
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
 		"config",
-		func() {
-			renderF, done := configModalFunc(modalQ, conf)
-			modalQ.QModal(
-				done,
-				imgui.WindowFlagsAlwaysAutoResize,
-				"Config",
-				renderF, nil,
-			)
-		},
+		func() { pushConfigModalFunc(modalQ, conf) },
 	})
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
 		"focus file explorer",
