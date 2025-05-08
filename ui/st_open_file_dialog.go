@@ -31,22 +31,6 @@ func NewOpenFileDialog(
 	}, nil
 }
 
-func (d *OpenFileDialog) resetSelection() {
-	d.storage.Clear()
-}
-
-func (d *OpenFileDialog) filter() {
-	d.fs.filter()
-	d.resetSelection()
-}
-
-func (d *OpenFileDialog) isFocusDir(n int) bool {
-	if n >= 0 && n < len(d.fs.filtered) {
-		return d.fs.filtered[n].entry.IsDir()
-	}
-	return false
-}
-
 func (f *OpenFileDialog) cdFocus(n int) error {
 	if n >= 0 && n < len(f.fs.filtered) {
 		if err := f.fs.cd(f.fs.filtered[n].entry.Name()); err != nil {
@@ -65,6 +49,18 @@ func (d *OpenFileDialog) cdParent() error {
 	return nil
 }
 
+func (d *OpenFileDialog) filter() {
+	d.fs.filter()
+	d.resetSelection()
+}
+
+func (d *OpenFileDialog) isFocusDir(n int) bool {
+	if n >= 0 && n < len(d.fs.filtered) {
+		return d.fs.filtered[n].entry.IsDir()
+	}
+	return false
+}
+
 func (d *OpenFileDialog) openSelective() {
 	paths := []string{}
 	for i, e := range d.fs.filtered {
@@ -76,4 +72,16 @@ func (d *OpenFileDialog) openSelective() {
 		}
 	}
 	d.callback(paths)
+}
+
+func (d *OpenFileDialog) resetSelection() {
+	d.storage.Clear()
+}
+
+func (d *OpenFileDialog) switchVol(vol string) error {
+	return d.fs.switchVolume(vol)
+}
+
+func (d *OpenFileDialog) vol() string {
+	return d.fs.vol()
 }
