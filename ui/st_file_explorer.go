@@ -12,7 +12,7 @@ type FileExplorer struct {
 	storage    imgui.SelectionBasicStorage
 }
 
-func NewFileExplorer(callback func([]string), initialDir string) (
+func newFileExplorer(callback func([]string), initialDir string) (
 	*FileExplorer, error,
 ) {
 	fs, err := newFileSystem(initialDir, false, []string{".bnk", ".st_bnk"})
@@ -26,60 +26,68 @@ func NewFileExplorer(callback func([]string), initialDir string) (
 	}, nil
 }
 
-func (f *FileExplorer) Pwd() string {
-	return f.fs.Pwd
+func (f *FileExplorer) cdFocus(n int) error {
+	if n >= 0 && n < len(f.fs.filtered) {
+		if err := f.fs.cd(f.fs.filtered[n].entry.Name()); err != nil {
+			return err
+		}
+		f.resetSelection()
+	}
+	return nil
 }
 
-func (f *FileExplorer) ResetSelection() {
-	f.storage.Clear()
+func (f *FileExplorer) cdParent() error {
+	if err := f.fs.cdParent(); err != nil {
+		return err
+	}
+	f.resetSelection()
+	return nil
 }
 
-func (f *FileExplorer) Filter() {
+func (f *FileExplorer) filter() {
 	f.fs.filter()
-	f.ResetSelection()
+	f.resetSelection()
 }
 
-func (f *FileExplorer) IsFocusDir(n int) bool {
+func (f *FileExplorer) isFocusDir(n int) bool {
 	if n >= 0 && n < len(f.fs.filtered) {
 		return f.fs.filtered[n].entry.IsDir()
 	}
 	return false
 }
 
-func (f *FileExplorer) CdFocus(n int) error {
-	if n >= 0 && n < len(f.fs.filtered) {
-		if err := f.fs.cd(f.fs.filtered[n].entry.Name()); err != nil {
-			return err
-		}
-		f.ResetSelection()
-	}
-	return nil
+func (f *FileExplorer) pwd() string {
+	return f.fs.pwd
 }
 
-func (f *FileExplorer) OpenFocus(n int) {
+func (f *FileExplorer) openFocus(n int) {
 	if n >= 0 && n < len(f.fs.filtered) {
-		path := filepath.Join(f.fs.Pwd, f.fs.filtered[n].entry.Name())
+		path := filepath.Join(f.fs.pwd, f.fs.filtered[n].entry.Name())
 		f.callback([]string{path})
 	}
 }
 
-func (f *FileExplorer) OpenSelective() {
+func (f *FileExplorer) openSelective() {
 	paths := []string{}
 	for i, d := range f.fs.filtered {
 		if f.storage.Contains(imgui.ID(i)) && !d.entry.IsDir() {
-			paths = append(paths, filepath.Join(f.Pwd(), d.entry.Name()))
+			paths = append(paths, filepath.Join(f.pwd(), d.entry.Name()))
 		}
 	}
 	if len(paths) > 0 {
 		f.callback(paths)
-		f.ResetSelection()
+		f.resetSelection()
 	}
 }
 
-func (f *FileExplorer) CdParent() error {
-	if err := f.fs.cdParent(); err != nil {
-		return err
-	}
-	f.ResetSelection()
-	return nil
+func (f *FileExplorer) switchVol(vol string) error {
+	return f.fs.switchVolume(vol)
+}
+
+func (f *FileExplorer) resetSelection() {
+	f.storage.Clear()
+}
+
+func (f *FileExplorer) vol() string {
+	return f.fs.vol() 
 }
