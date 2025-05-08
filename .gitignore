@@ -3,9 +3,10 @@ wwise-teller
 imgui.ini
 tests
 **/*.bnk
+**/*.exe
 **/*.log
+**/*.patch_0
 **/*.st_bnk
+**/*.xml
 **/config.json
 **/wwiser.ini
-**/*.patch_0
-**/*.exe
