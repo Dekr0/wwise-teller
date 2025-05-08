@@ -13,7 +13,7 @@ import (
 
 func _TestExtractSoundBank(t *testing.T) {
 	wio.ByteOrder = binary.LittleEndian
-	target := "/mnt/Program Files/Steam/steamapps/common/Helldivers 2/data/be6c260fadcb8719"
+	target := "../../tests/9ba626afa44a3aa3.patch_0"
 	if err := ExtractSoundBank(nil, target, ".", true); err != nil {
 		t.Fatal(err)
 	}
