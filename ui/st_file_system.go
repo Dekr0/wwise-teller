@@ -17,7 +17,7 @@ type RankDirEntry struct {
 }
 
 type FileSystem struct {
-	Pwd      string
+	pwd      string
 	// Filter
 	dirOnly  bool
 	query    string
@@ -42,7 +42,7 @@ func newFileSystem(
 		filtered[i] = &RankDirEntry{-1, e}
 	}
 	fs := &FileSystem{
-		Pwd     : initialDir,
+		pwd     : initialDir,
 		dirOnly : dirOnly,
 		query   : "",
 		exts    : exts,
@@ -110,11 +110,11 @@ func (f *FileSystem) filter() {
 }
 
 func (f *FileSystem) cdParent() error {
-	pwd := filepath.Dir(f.Pwd)
+	pwd := filepath.Dir(f.pwd)
 	if runtime.GOOS == "windows" && pwd == "." {
 		return nil
 	}
-	if pwd == f.Pwd {
+	if pwd == f.pwd {
 		return nil
 	}
 	var err error
@@ -125,13 +125,13 @@ func (f *FileSystem) cdParent() error {
 	if entries != nil {
 		f.entries = entries
 	}
-	f.Pwd = pwd
+	f.pwd = pwd
 	f.clearFilter()
 	return nil
 }
 
 func (f *FileSystem) cd(basename string) error {
-	pwd := filepath.Join(f.Pwd, basename)
+	pwd := filepath.Join(f.pwd, basename)
 	var err error
 	entries, err := utils.GetDirAndFiles(pwd, f.entries)
 	if err != nil {
@@ -140,7 +140,24 @@ func (f *FileSystem) cd(basename string) error {
 	if entries != nil {
 		f.entries = entries
 	}
-	f.Pwd = pwd
+	f.pwd = pwd
+	f.clearFilter()
+	return nil
+}
+
+func (f *FileSystem) switchVolume(vol string) error {
+	vol = vol + "/"
+	if runtime.GOOS != "windows" {
+		panic("FileSystem.switchVol must be called only on Windows.")
+	}
+	entries, err := utils.GetDirAndFiles(vol, f.entries)
+	if err != nil {
+		return err
+	}
+	if entries != nil {
+		f.entries = entries
+	}
+	f.pwd = vol
 	f.clearFilter()
 	return nil
 }
@@ -148,4 +165,11 @@ func (f *FileSystem) cd(basename string) error {
 func (f *FileSystem) clearFilter() {
 	f.query = ""
 	f.filter()
+}
+
+func (f *FileSystem) vol() string {
+	if runtime.GOOS != "windows" {
+		panic("Current OS is not Windows")
+	}
+	return filepath.VolumeName(f.pwd)
 }
