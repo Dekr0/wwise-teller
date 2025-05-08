@@ -43,36 +43,15 @@ func showFileExplorerTab(fe *FileExplorer) {
 	useViDown()
 	useViShiftDown()
 
-	if runtime.GOOS == "windows" {
-		vol := fe.vol()
-		idx := int32(slices.IndexFunc(utils.Vols, func(v string) bool {
-			return strings.Compare(v, vol) == 0
-		}))
-		if idx != -1 {
-			imgui.PushIDStr("FileExplorerLP")
-			imgui.PushItemWidth(imgui.CalcTextSize("C:\\").X + 24.0)
-			if imgui.ComboStrarr("", &idx, utils.Vols, int32(len(utils.Vols))) {
-				vol := utils.Vols[idx]
-				if err := fe.switchVol(vol); err != nil {
-					slog.Error("Failed to switch volume to " + vol, "error", err)
-				}
-			}
-			imgui.PopItemWidth()
-			imgui.PopID()
-		}
-	}
-
+	showFileExplorerVol(fe)
 	imgui.SameLine()
-
 	imgui.SetNextItemShortcut(
 		imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),
 	)
 	if imgui.InputTextWithHint("Query", "", &fe.fs.query, 0, nil) {
 		fe.filter()
 	}
-
 	imgui.SameLine()
-
 	imgui.SetNextItemShortcut(
 		imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyS),
 	)
@@ -88,9 +67,7 @@ func showFileExplorerTab(fe *FileExplorer) {
 			)
 		}
 	}
-
 	imgui.SameLine()
-
 	imgui.Text(fe.pwd())
 
 	if imgui.Shortcut(UnFocusQuerySC) {
@@ -101,6 +78,34 @@ func showFileExplorerTab(fe *FileExplorer) {
 	showFileExplorerTabTable(fe, focusTable)
 
 	imgui.EndTabItem()
+}
+
+func showFileExplorerVol(fe *FileExplorer) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	if len(utils.Vols) == 0 {
+		return
+	}
+
+	vol := fe.vol()
+	idx := int32(slices.IndexFunc(utils.Vols, func(v string) bool {
+		return strings.Compare(v, vol) == 0
+	}))
+	if idx == -1 {
+		idx = 0
+	}
+
+	imgui.PushIDStr("FileExplorerVol")
+	imgui.PushItemWidth(imgui.CalcTextSize("C:\\").X + 24.0)
+	if imgui.ComboStrarr("", &idx, utils.Vols, int32(len(utils.Vols))) {
+		vol := utils.Vols[idx]
+		if err := fe.switchVol(vol); err != nil {
+			slog.Error("Failed to switch volume to " + vol, "error", err)
+		}
+	}
+	imgui.PopItemWidth()
+	imgui.PopID()
 }
 
 func showFileExplorerTabTable(fe *FileExplorer, focusTable bool) {
