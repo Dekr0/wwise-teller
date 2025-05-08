@@ -28,11 +28,6 @@ func NewSaveFileDialog(callback func(string), initialDir string) (
 	return &SaveFileDialog{callback: callback, selected: 0, fs: fs}, nil
 }
 
-func (d *SaveFileDialog) filter() {
-	d.fs.filter()
-	d.selected = 0
-}
-
 func (d *SaveFileDialog) cdSelected() error {
 	if d.selected >= 0 && d.selected < len(d.fs.filtered) {
 		if err := d.fs.cd(d.fs.filtered[d.selected].entry.Name()); err != nil {
@@ -51,10 +46,9 @@ func (d *SaveFileDialog) cdParent() error {
 	return nil
 }
 
-func (d *SaveFileDialog) setNext(delta int) {
-	if d.selected + int(delta) >= 0 && d.selected + int(delta) < len(d.fs.filtered) {
-		d.selected += int(delta)
-	}
+func (d *SaveFileDialog) filter() {
+	d.fs.filter()
+	d.selected = 0
 }
 
 func (d *SaveFileDialog) save() {
@@ -63,4 +57,18 @@ func (d *SaveFileDialog) save() {
 	} else {
 		d.callback(filepath.Join(d.fs.pwd, d.fs.filtered[d.selected].entry.Name()))
 	}
+}
+
+func (d *SaveFileDialog) setNext(delta int) {
+	if d.selected + int(delta) >= 0 && d.selected + int(delta) < len(d.fs.filtered) {
+		d.selected += int(delta)
+	}
+}
+
+func (d *SaveFileDialog) switchVol(vol string) error {
+	return d.fs.switchVolume(vol)
+}
+
+func (d *SaveFileDialog) vol() string {
+	return d.fs.vol()
 }
