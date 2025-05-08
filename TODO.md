@@ -18,7 +18,7 @@ encoding go routines.
     - It might be better put them into command palette that is dedicated for 
     bank explorer.
 - Maintain what is being selected despite filter is applied
-- Input Text for config
+- Input Text for configuration
 - Input Bugs for range properties
 
 # Design
