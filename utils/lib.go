@@ -7,8 +7,13 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
+
+	"github.com/shirou/gopsutil/v4/disk"
 )
+
+var Vols []string = []string{}
 
 func GetHome() (string, error) {
 	home, err := os.UserHomeDir()
@@ -114,4 +119,19 @@ func IsDigit(s string) bool {
 func Pad16ByteAlign(data []byte) []byte {
 	pad := (int(math.Ceil(float64(len(data)) / float64(16))) * 16) - len(data)
 	return append(data, make([]byte, pad, pad)...)
+}
+
+func ScanMountPoint() error {
+	if runtime.GOOS != "windows" {
+		return nil
+	}
+	stats, err := disk.Partitions(true)
+	if err != nil {
+		return err
+	}
+	Vols = []string{}
+	for _, stat := range stats {
+		Vols = append(Vols, stat.Mountpoint)
+	}
+	return nil
 }
