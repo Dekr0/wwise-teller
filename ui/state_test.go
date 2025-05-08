@@ -17,7 +17,7 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.Pwd)
+	t.Log(f.pwd)
 	for _, e := range f.entries {
 		t.Log(e)
 	}
@@ -27,7 +27,7 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.Pwd)
+	t.Log(f.pwd)
 	for _, e := range f.entries {
 		t.Log(e)
 	}
@@ -37,7 +37,7 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.Pwd)
+	t.Log(f.pwd)
 	for _, e := range f.entries {
 		t.Log(e)
 	}
@@ -47,7 +47,7 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.Pwd)
+	t.Log(f.pwd)
 	for _, e := range f.entries {
 		t.Log(e)
 	}
