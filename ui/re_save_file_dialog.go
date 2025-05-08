@@ -3,8 +3,12 @@ package ui
 import (
 	"fmt"
 	"log/slog"
+	"runtime"
+	"slices"
+	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/Dekr0/wwise-teller/utils"
 )
 
 func saveFileDialogFunc(
@@ -20,7 +24,7 @@ func saveFileDialogFunc(
 		focusTable := false
 
 		if isLeftShortcut() {
-			if err := d.CdParent(); err != nil {
+			if err := d.cdParent(); err != nil {
 				slog.Error(
 					"Failed to change current directory to parent directory",
 					"error", err,
@@ -30,38 +34,34 @@ func saveFileDialogFunc(
 		useViUp()
 		useViDown()
 
+		saveFileDialogVol(d)
+		imgui.SameLine()
 		imgui.SetNextItemShortcut(
 			imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),
 		)
 		if imgui.InputTextWithHint("Query", "", &d.fs.query, 0, nil) {
-			d.Filter()
+			d.filter()
 		}
-
 		imgui.SameLine()
-
 		align := imgui.CursorPos().X
 		imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyS))
 		if imgui.Button("Save") {
-			d.Save()
+			d.save()
 			done = true
 			return
 		}
 
 		if imgui.ArrowButton("SaveFileDialogArrowButton", imgui.DirLeft) {
-			if err := d.CdParent(); err != nil {
+			if err := d.cdParent(); err != nil {
 				slog.Error(
 					"Failed to change current directory to parent directory",
 					"error", err,
 				)
 			}
 		}
-
 		imgui.SameLine()
-
-		imgui.Text(d.fs.Pwd)
-
+		imgui.Text(d.fs.pwd)
 		imgui.SameLine()
-
 		imgui.SetCursorPosX(align)
 		if imgui.Button("Cancel") {
 			done = true
@@ -75,6 +75,34 @@ func saveFileDialogFunc(
 
 		saveFileDialogTable(d, focusTable)
 	}, &done, nil
+}
+
+func saveFileDialogVol(d *SaveFileDialog) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	if len(utils.Vols) == 0 {
+		return
+	}
+
+	vol := d.vol()
+	idx := int32(slices.IndexFunc(utils.Vols, func(v string) bool {
+		return strings.Compare(v, vol) == 0
+	}))
+	if idx == -1 {
+		idx = 0
+	}
+
+	imgui.PushIDStr("FileExplorerVol")
+	imgui.PushItemWidth(imgui.CalcTextSize("C:\\").X + 24.0)
+	if imgui.ComboStrarr("", &idx, utils.Vols, int32(len(utils.Vols))) {
+		vol := utils.Vols[idx]
+		if err := d.switchVol(vol); err != nil {
+			slog.Error("Failed to switch volume to " + vol, "error", err)
+		}
+	}
+	imgui.PopItemWidth()
+	imgui.PopID()
 }
 
 func saveFileDialogTable(d *SaveFileDialog, focusTable bool) {
@@ -94,6 +122,21 @@ func saveFileDialogTable(d *SaveFileDialog, focusTable bool) {
 		imgui.SetKeyboardFocusHere()
 	}
 	imgui.SelectableBool(".")
+
+	imgui.TableNextRow()
+	imgui.TableSetColumnIndex(0)
+	imgui.SelectableBool("..")
+	focused := imgui.IsItemFocused()
+	doubleClicked := imgui.IsMouseDoubleClicked(0)
+	righted := isRightShortcut()
+	if focused && (doubleClicked || righted) {
+		if err := d.cdParent(); err != nil {
+			slog.Error(
+				"Failed to change current directory to parent directory",
+				"error", err,
+			)
+		}
+	}
 
 	filtered := d.fs.filtered
 	clipper := imgui.NewListClipper()
@@ -123,7 +166,7 @@ func saveFileDialogTable(d *SaveFileDialog, focusTable bool) {
 			doubleClicked := imgui.IsMouseDoubleClicked(0)
 			righted := isRightShortcut() 
 			if focused && (doubleClicked || righted) {
-				if err := d.CdSelected(); err != nil {
+				if err := d.cdSelected(); err != nil {
 					slog.Error(
 						"Failed to change current directory selected directory",
 						"error", err,
