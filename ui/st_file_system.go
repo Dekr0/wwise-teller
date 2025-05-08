@@ -59,6 +59,47 @@ func (f *FileSystem) assert() {
 	}
 }
 
+func (f *FileSystem) cd(basename string) error {
+	pwd := filepath.Join(f.pwd, basename)
+	var err error
+	entries, err := utils.GetDirAndFiles(pwd, f.entries)
+	if err != nil {
+		return err
+	}
+	if entries != nil {
+		f.entries = entries
+	}
+	f.pwd = pwd
+	f.clearFilter()
+	return nil
+}
+
+func (f *FileSystem) cdParent() error {
+	pwd := filepath.Dir(f.pwd)
+	if runtime.GOOS == "windows" && pwd == "." {
+		return nil
+	}
+	if pwd == f.pwd {
+		return nil
+	}
+	var err error
+	entries, err := utils.GetDirAndFiles(pwd, f.entries)
+	if err != nil {
+		return err
+	}
+	if entries != nil {
+		f.entries = entries
+	}
+	f.pwd = pwd
+	f.clearFilter()
+	return nil
+}
+
+func (f *FileSystem) clearFilter() {
+	f.query = ""
+	f.filter()
+}
+
 func (f *FileSystem) filter() {
 	f.assert()
 	i := 0
@@ -109,42 +150,6 @@ func (f *FileSystem) filter() {
 	})
 }
 
-func (f *FileSystem) cdParent() error {
-	pwd := filepath.Dir(f.pwd)
-	if runtime.GOOS == "windows" && pwd == "." {
-		return nil
-	}
-	if pwd == f.pwd {
-		return nil
-	}
-	var err error
-	entries, err := utils.GetDirAndFiles(pwd, f.entries)
-	if err != nil {
-		return err
-	}
-	if entries != nil {
-		f.entries = entries
-	}
-	f.pwd = pwd
-	f.clearFilter()
-	return nil
-}
-
-func (f *FileSystem) cd(basename string) error {
-	pwd := filepath.Join(f.pwd, basename)
-	var err error
-	entries, err := utils.GetDirAndFiles(pwd, f.entries)
-	if err != nil {
-		return err
-	}
-	if entries != nil {
-		f.entries = entries
-	}
-	f.pwd = pwd
-	f.clearFilter()
-	return nil
-}
-
 func (f *FileSystem) switchVolume(vol string) error {
 	vol = vol + "/"
 	if runtime.GOOS != "windows" {
@@ -160,11 +165,6 @@ func (f *FileSystem) switchVolume(vol string) error {
 	f.pwd = vol
 	f.clearFilter()
 	return nil
-}
-
-func (f *FileSystem) clearFilter() {
-	f.query = ""
-	f.filter()
 }
 
 func (f *FileSystem) vol() string {
