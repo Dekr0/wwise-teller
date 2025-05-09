@@ -94,12 +94,12 @@ func (f *FileExplorer) pwd() string {
 	return f.fs.pwd
 }
 
-func (f *FileExplorer) switchVol(vol string) error {
-	return f.fs.switchVolume(vol)
-}
-
 func (f *FileExplorer) resetSelection() {
 	f.storage.Clear()
+}
+
+func (f *FileExplorer) switchVol(vol string) error {
+	return f.fs.switchVolume(vol)
 }
 
 func (f *FileExplorer) vol() string {
