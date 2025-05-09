@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"os"
+
 	"path/filepath"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -54,6 +56,18 @@ func (f *FileExplorer) isFocusDir(n int) bool {
 		return f.fs.filtered[n].entry.IsDir()
 	}
 	return false
+}
+
+func (f *FileExplorer) makeDirectory(parentDirectory, directoryName string) error {
+	fullPath := filepath.Join(parentDirectory, directoryName)
+
+	err := os.MkdirAll(fullPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	f.resetSelection()
+	return nil
 }
 
 func (f *FileExplorer) openFocus(n int) {
