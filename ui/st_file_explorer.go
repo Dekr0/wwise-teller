@@ -7,9 +7,9 @@ import (
 )
 
 type FileExplorer struct {
-	fs         *FileSystem
-	callback   func([]string)
-	storage    imgui.SelectionBasicStorage
+	fs       *FileSystem
+	callback func([]string)
+	storage  imgui.SelectionBasicStorage
 }
 
 func newFileExplorer(callback func([]string), initialDir string) (
@@ -20,9 +20,9 @@ func newFileExplorer(callback func([]string), initialDir string) (
 		return nil, err
 	}
 	return &FileExplorer{
-		fs      : fs,
+		fs:       fs,
 		callback: callback,
-		storage : *imgui.NewSelectionBasicStorage(),
+		storage:  *imgui.NewSelectionBasicStorage(),
 	}, nil
 }
 
@@ -56,10 +56,6 @@ func (f *FileExplorer) isFocusDir(n int) bool {
 	return false
 }
 
-func (f *FileExplorer) pwd() string {
-	return f.fs.pwd
-}
-
 func (f *FileExplorer) openFocus(n int) {
 	if n >= 0 && n < len(f.fs.filtered) {
 		path := filepath.Join(f.fs.pwd, f.fs.filtered[n].entry.Name())
@@ -80,6 +76,10 @@ func (f *FileExplorer) openSelective() {
 	}
 }
 
+func (f *FileExplorer) pwd() string {
+	return f.fs.pwd
+}
+
 func (f *FileExplorer) switchVol(vol string) error {
 	return f.fs.switchVolume(vol)
 }
@@ -89,5 +89,5 @@ func (f *FileExplorer) resetSelection() {
 }
 
 func (f *FileExplorer) vol() string {
-	return f.fs.vol() 
+	return f.fs.vol()
 }
