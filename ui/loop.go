@@ -214,9 +214,9 @@ func createLoop(
 
 		showMainMenuBar(reBuildDockSpace, conf, cmdPaletteMngr, modalQ, loop)
 
-		modalQ.ShowModal()
+		modalQ.showModal()
 
-		showFileExplorerWindow(fileExplorer)
+		showFileExplorerWindow(fileExplorer, modalQ)
 
 		activeTab, closeTab, saveTab, saveName, itype := showBankExplorer(
 			bnkMngr, saveActive, itype,
@@ -280,7 +280,7 @@ func showTasks(asyncTasks []*async.Task) {
 }
 
 func showLog(gLog *GuiLog) {
-	imgui.Begin("Log")
+	imgui.BeginV("Log", nil, imgui.WindowFlagsHorizontalScrollbar)
 	gLog.log.Logs.Do(func(a any) {
 		if a == nil {
 			return
