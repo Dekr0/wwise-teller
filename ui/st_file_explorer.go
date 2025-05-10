@@ -84,6 +84,10 @@ func (f *FileExplorer) resetSelection() {
 	f.storage.Clear()
 }
 
+func (f *FileExplorer) refresh() error {
+	return f.fs.refresh()
+}
+
 func (f *FileExplorer) switchVol(vol string) error {
 	return f.fs.switchVolume(vol)
 }
