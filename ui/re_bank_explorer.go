@@ -10,14 +10,14 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func showBankExplorer(bnkMngr *BankManager, saveActive bool, itype int) (
+func showBankExplorerLinear(bnkMngr *BankManager, saveActive bool, itype int) (
 	*bankTab, string, *bankTab, string, int,
 ) {
 	var activeTab *bankTab = nil
 	activeName := ""
 	closeTab := "" 
 
-	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
+	imgui.BeginV("Bank Explorer (Linear View)", nil, imgui.WindowFlagsMenuBar)
 
 	saveTab, saveName, itype := showBankExplorerMenu(bnkMngr, itype)
 
@@ -143,12 +143,12 @@ func showHierarchy(path string, t *bankTab) {
 		imgui.SetKeyboardFocusHere()
 	}
 
-	lSelStorage := t.lSelStorage
+	storage := t.storage
 	hircObjs := t.filtered
 
 	flags := imgui.MultiSelectFlagsClearOnEscape | imgui.MultiSelectFlagsBoxSelect2d
-	msIO := imgui.BeginMultiSelectV(flags, lSelStorage.Size(), int32(len(hircObjs)))
-	lSelStorage.ApplyRequests(msIO)
+	msIO := imgui.BeginMultiSelectV(flags, storage.Size(), int32(len(hircObjs)))
+	storage.ApplyRequests(msIO)
 
 	clipper := imgui.NewListClipper()
 	clipper.Begin(int32(len(hircObjs)))
@@ -171,7 +171,7 @@ func showHierarchy(path string, t *bankTab) {
 				idS = strconv.FormatUint(uint64(id), 10)
 			}
 
-			selected := lSelStorage.Contains(imgui.ID(n))
+			selected := storage.Contains(imgui.ID(n))
 			imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(n))
 			if err != nil {
 				imgui.PushIDStr(fmt.Sprintf("UnknownID%d", n))
@@ -192,7 +192,7 @@ func showHierarchy(path string, t *bankTab) {
 	}
 
 	msIO = imgui.EndMultiSelect()
-	lSelStorage.ApplyRequests(msIO)
+	storage.ApplyRequests(msIO)
 
 	imgui.EndTable()
 }
