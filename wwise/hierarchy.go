@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
@@ -18,16 +19,16 @@ type HircType uint8
 
 const (
 	HircTypeSound HircType = 0x02
-	HircRanSeqCntr HircType = 0x05
-	HircSwitchCntr HircType = 0x06
+	HircTypeRanSeqCntr HircType = 0x05
+	HircTypeSwitchCntr HircType = 0x06
 	HircTypeActorMixer HircType = 0x07
 	HircTypeLayerCntr HircType = 0x09
 )
 
 var KnownHircType []HircType = []HircType{
 	HircTypeSound,
-	HircRanSeqCntr,
-	HircSwitchCntr,
+	HircTypeRanSeqCntr,
+	HircTypeSwitchCntr,
 	HircTypeActorMixer,
 	HircTypeLayerCntr,
 }
@@ -59,13 +60,7 @@ var HircTypeName []string = []string{
 }
 
 type HIRC struct {
- 	// Used for memory allocation upfront during encoding 
-	// Future notes: Should I track individual byte change whenever a hierarchy 
-	// obj changes?
-	oldChunkSize uint32
-
 	I uint8
-
 	T []byte
 
 	// Currently, I don't know the algorithm of how Wwise encode its hierarchy 
@@ -73,8 +68,7 @@ type HIRC struct {
 	// It's probably some sort of modified DFS since there are lot of places 
 	// where child nodes come first, and then the parent node of those child 
 	// nodes come right after it. 
-	// So far now, I will book keep the linear order of hierarchy tree as I 
-	// parse them linearly through.
+	// So far now, I will book keep the linear order of hierarchy tree as I parse them linearly through.
 	HircObjs    []HircObj
 	
 	// Map for different types of hierarchy objects. Each object is a pointer 
@@ -86,12 +80,12 @@ type HIRC struct {
 	Sounds      map[uint32]*Sound
 }
 
-func NewHIRC(I uint8, T []byte, size uint32, numHircItem uint32) *HIRC {
+func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 	return &HIRC{
-		oldChunkSize: size,
 		I: I,
 		T: T,
 		HircObjs: make([]HircObj, numHircItem),
+		
 		ActorMixers: make(map[uint32]*ActorMixer),
 		LayerCntrs: make(map[uint32]*LayerCntr),
 		SwitchCntrs: make(map[uint32]*SwitchCntr),
@@ -105,6 +99,7 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 		i int
 		b []byte
 	}
+	slices.Reverse(h.HircObjs)
 
 	// No initialization since I want it to crash and catch encoding bugs
 	results := make([][]byte, len(h.HircObjs))
@@ -169,10 +164,20 @@ func (h *HIRC) Idx() uint8 {
 	return h.I
 }
 
+func (h *HIRC) ChangeParent(c, p HircObj, op uint32) {
+	if op != 0 {
+
+	}
+}
+
 type HircObj interface {
 	Encode() []byte
+	BaseParameter() (*BaseParameter)
 	HircID() (uint32, error)
 	HircType() HircType 
+	IsCntr() bool
+	AddChild(o HircObj)
+	RemoveChild(o HircObj)
 }
 
 const sizeOfHircObjHeader = 1 + 4
@@ -183,6 +188,7 @@ type HircObjHeader struct {
 }
 
 type ActorMixer struct {
+	HircObj
 	Id uint32
 	BaseParam *BaseParameter
 	Container *Container
@@ -204,6 +210,10 @@ func (a *ActorMixer) DataSize() uint32 {
 	return uint32(4 + a.BaseParam.Size() + a.Container.Size())
 }
 
+func (a *ActorMixer) BaseParameter() *BaseParameter {
+	return a.BaseParam
+}
+
 func (a *ActorMixer) HircID() (uint32, error) {
 	return a.Id, nil
 }
@@ -212,7 +222,29 @@ func (a *ActorMixer) HircType() HircType {
 	return HircTypeActorMixer 
 }
 
+func (a *ActorMixer) IsCntr() bool { return true }
+
+func (a *ActorMixer) AddChild(o HircObj) {
+	id, err := o.HircID()
+	if err != nil { panic(err) }
+	if slices.Contains(a.Container.Children, id) {
+		return
+	}
+}
+
+func (a *ActorMixer) RemoveChild(o HircObj) {
+	id, err := o.HircID()
+	if err != nil { panic(err) }
+	a.Container.Children = slices.DeleteFunc(
+		a.Container.Children, 
+		func(c uint32) bool {
+			return c == id
+		},
+	)
+}
+
 type LayerCntr struct {
+	HircObj
 	Id uint32
 	BaseParam *BaseParameter
 	Container *Container
@@ -248,6 +280,9 @@ func (l *LayerCntr) DataSize() uint32 {
 	return size + 1
 }
 
+func (l *LayerCntr) BaseParameter() *BaseParameter {
+	return l.BaseParam
+}
 
 func (l *LayerCntr) HircID() (uint32, error) {
 	return l.Id, nil
@@ -257,7 +292,12 @@ func (l *LayerCntr) HircType() HircType {
 	return HircTypeLayerCntr
 }
 
+func (l *LayerCntr) IsCntr() bool { return true }
+
+func (l *LayerCntr) RemoveChild(o HircObj) {}
+
 type RanSeqCntr struct {
+	HircObj
 	Id uint32
 	BaseParam *BaseParameter
 	Container *Container
@@ -272,7 +312,7 @@ func (r *RanSeqCntr) Encode() []byte {
 	dataSize := r.DataSize()
 	size := sizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
-	w.AppendByte(uint8(HircRanSeqCntr))
+	w.AppendByte(uint8(HircTypeRanSeqCntr))
 	w.Append(dataSize)
 	w.Append(r.Id)
 	w.AppendBytes(r.BaseParam.Encode())
@@ -289,15 +329,33 @@ func (r *RanSeqCntr) DataSize() uint32 {
 	return uint32(4 + r.BaseParam.Size() + r.Container.Size() + sizeOfPlayListSetting + 2 + uint32(len(r.PlayListItems)) * sizeOfPlayListItem)
 }
 
+func (r *RanSeqCntr) BaseParameter() *BaseParameter {
+	return r.BaseParam
+}
+
 func (r *RanSeqCntr) HircID() (uint32, error) {
 	return r.Id, nil
 }
 
 func (r *RanSeqCntr) HircType() HircType {
-	return HircRanSeqCntr
+	return HircTypeRanSeqCntr
+}
+
+func (r *RanSeqCntr) IsCntr() bool { return true }
+
+func (r *RanSeqCntr) RemoveChild(o HircObj) {
+	id, err := o.HircID()
+	if err != nil { panic(err) }
+	r.Container.Children = slices.DeleteFunc(
+		r.Container.Children, 
+		func(c uint32) bool {
+			return c == id
+		},
+	)
 }
 
 type SwitchCntr struct {
+	HircObj
 	Id uint32
 	BaseParam *BaseParameter
 	GroupType uint8 // U8x
@@ -327,7 +385,7 @@ func (s *SwitchCntr) Encode() []byte {
 				uint32(len(s.SwitchParams)) * sizeOfSwitchParam
 	size := sizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
-	w.AppendByte(uint8(HircSwitchCntr))
+	w.AppendByte(uint8(HircTypeSwitchCntr))
 	w.Append(dataSize)
 	w.Append(s.Id)
 	w.AppendBytes(baseParamData)
@@ -347,15 +405,24 @@ func (s *SwitchCntr) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
+func (s *SwitchCntr) BaseParameter() *BaseParameter {
+	return s.BaseParam
+}
+
 func (s *SwitchCntr) HircID() (uint32, error) {
 	return s.Id, nil
 }
 
 func (s *SwitchCntr) HircType() HircType {
-	return HircSwitchCntr
+	return HircTypeSwitchCntr
 }
 
+func (r *SwitchCntr) IsCntr() bool { return true }
+
+func (s *SwitchCntr) RemoveChild(o HircObj) {}
+
 type Sound struct {
+	HircObj
 	Id uint32
 	BankSourceData *BankSourceData
 	BaseParam *BaseParameter
@@ -374,6 +441,12 @@ func (s *Sound) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
+func (s *Sound) BaseParameter() *BaseParameter {
+	return s.BaseParam
+}
+
+func (s *Sound) IsCntr() bool { return true }
+
 func (s *Sound) HircID() (uint32, error) {
 	return s.Id, nil
 }
@@ -382,7 +455,10 @@ func (s *Sound) HircType() HircType {
 	return HircTypeSound
 }
 
+func (s *Sound) RemoveChild(o HircObj) {}
+
 type Unknown struct {
+	HircObj
 	Header *HircObjHeader
 	b []byte
 }
@@ -410,6 +486,10 @@ func (u *Unknown) Encode() []byte {
 	return bw.Bytes() 
 }
 
+func (u *Unknown) BaseParameter() *BaseParameter {
+	return nil
+}
+
 func (u *Unknown) HircID() (uint32, error) {
 	return 0, fmt.Errorf("Hierarchy object type %d has yet implement GetHircID.", u.Header.Type)
 }
@@ -417,3 +497,5 @@ func (u *Unknown) HircID() (uint32, error) {
 func (u *Unknown) HircType() HircType {
 	return u.Header.Type
 }
+
+func (u *Unknown) RemoveChild(o HircObj) {}
