@@ -9,6 +9,10 @@
 - `ctrl+s` - confirm / ok
 - `ctrl+q` - close the pop up
 
+### Object Editor
+
+- `ctrl+b` - open / close the base parameter tree node
+
 ### File Explorer and File Dialog
 
 - `ctrl+f` - focus on the search bar
