@@ -23,17 +23,7 @@ func saveFileDialogFunc(
 	return func() {
 		focusTable := false
 
-		if isLeftShortcut() {
-			if err := d.cdParent(); err != nil {
-				slog.Error(
-					"Failed to change current directory to parent directory",
-					"error", err,
-				)
-			}
-		}
-		useViUp()
-		useViDown()
-
+		saveFileDialogShortcut(d)
 		saveFileDialogVol(d)
 		imgui.SameLine()
 		imgui.SetNextItemShortcut(
@@ -75,6 +65,19 @@ func saveFileDialogFunc(
 
 		saveFileDialogTable(d, focusTable)
 	}, &done, nil
+}
+
+func saveFileDialogShortcut(d *SaveFileDialog) {
+	if isLeftShortcut() {
+		if err := d.cdParent(); err != nil {
+			slog.Error(
+				"Failed to change current directory to parent directory",
+				"error", err,
+			)
+		}
+	}
+	useViUp()
+	useViDown()
 }
 
 func saveFileDialogVol(d *SaveFileDialog) {
