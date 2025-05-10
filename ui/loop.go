@@ -218,7 +218,7 @@ func createLoop(
 
 		showFileExplorerWindow(fileExplorer, modalQ)
 
-		activeTab, closeTab, saveTab, saveName, itype := showBankExplorer(
+		activeTab, closeTab, saveTab, saveName, itype := showBankExplorerLinear(
 			bnkMngr, saveActive, itype,
 		)
 		if saveTab != nil {
@@ -230,6 +230,7 @@ func createLoop(
 			}
 		}
 
+		// showBankExplorerTree(activeTab)
 		showObjectEditor(activeTab)
 
 		showNotify(nQ)
