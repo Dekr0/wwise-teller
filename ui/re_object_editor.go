@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/implot"
@@ -16,6 +17,10 @@ import (
 
 func showObjectEditor(activeTab *bankTab) {
 	imgui.Begin("Object Editor")
+
+	useViUp()
+	useViDown()
+
 	if activeTab == nil {
 		imgui.End()
 		return
@@ -37,7 +42,7 @@ func showObjectEditor(activeTab *bankTab) {
 
 	s := []wwise.HircObj{}
 	for i, h := range activeTab.filtered {
-		if activeTab.lSelStorage.Contains(imgui.ID(i)) {
+		if activeTab.storage.Contains(imgui.ID(i)) {
 			s = append(s, h)
 		}
 	}
@@ -54,11 +59,15 @@ func showObjectEditor(activeTab *bankTab) {
 		if imgui.BeginTabItem(label) {
 			switch h.(type) {
 			case *wwise.ActorMixer:
-				showActorMixerProperties(h.(*wwise.ActorMixer))
+				showActorMixerProperties(activeTab, h.(*wwise.ActorMixer))
+			case *wwise.LayerCntr:
+				showLayerCntrProperties(activeTab, h.(*wwise.LayerCntr))
 			case *wwise.RanSeqCntr:
-				showRanSeqCntrProperties(h.(*wwise.RanSeqCntr))
+				showRanSeqCntrProperties(activeTab, h.(*wwise.RanSeqCntr))
+			case *wwise.SwitchCntr:
+				showSwitchCntrProperties(activeTab, h.(*wwise.SwitchCntr))
 			case *wwise.Sound:
-				showSoundProperties(h.(*wwise.Sound))
+				showSoundProperties(activeTab, h.(*wwise.Sound))
 			case *wwise.Unknown:
 				showUnknowProperties(h.(*wwise.Unknown))
 			}
@@ -69,16 +78,24 @@ func showObjectEditor(activeTab *bankTab) {
 	imgui.End()
 }
 
-func showActorMixerProperties(o *wwise.ActorMixer) {
-	showBaseParameter(o.BaseParam)
+func showActorMixerProperties(activeTab *bankTab, o *wwise.ActorMixer) {
+	showBaseParameter(activeTab, o)
 }
 
-func showRanSeqCntrProperties(o *wwise.RanSeqCntr) {
-	showBaseParameter(o.BaseParam)
+func showLayerCntrProperties(activeTab *bankTab, o *wwise.LayerCntr) {
+	showBaseParameter(activeTab, o)
 }
 
-func showSoundProperties(o *wwise.Sound) {
-	showBaseParameter(o.BaseParam)
+func showRanSeqCntrProperties(activeTab *bankTab, o *wwise.RanSeqCntr) {
+	showBaseParameter(activeTab, o)
+}
+
+func showSwitchCntrProperties(activeTab *bankTab, o *wwise.SwitchCntr) {
+	showBaseParameter(activeTab, o)
+}
+
+func showSoundProperties(activeTab *bankTab, o *wwise.Sound) {
+	showBaseParameter(activeTab, o)
 }
 
 func showUnknowProperties(o *wwise.Unknown) {
@@ -90,19 +107,41 @@ func showUnknowProperties(o *wwise.Unknown) {
 	)
 }
 
-func showBaseParameter(o *wwise.BaseParameter) {
+func showBaseParameter(activeTab *bankTab, o wwise.HircObj) {
+	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyB))
 	if !imgui.TreeNodeExStr("Base Parameter") {
 		return
 	}
+	b := o.BaseParameter()
 
 	// imgui.CurrentStyle().SetIndentSpacing(0.0)
 
 	// Bus ID override and Direct ID override should be done through a separate 
 	// UI since there are many ID. Filter and combo are required
-	showByBitVector(o)
-	showProperty(o.PropBundle)
-	showRangeProperty(o.RangePropBundle)
-	showAdvanceSetting(o)
+
+	if imgui.BeginCombo(
+		"Direct Parent ID",
+		strconv.FormatUint(uint64(b.DirectParentId), 10),
+	) {
+		for _, p := range activeTab.filteredParent {
+			id, err := p.HircID()
+			if err != nil { continue }
+			selected := b.DirectParentId == id
+			if imgui.SelectableBoolPtr(
+				strconv.FormatUint(uint64(id), 10),
+				&selected,
+			) {
+				activeTab.bank.HIRC().ChangeParent(o, p, b.DirectParentId)
+			}
+			if selected { imgui.SetItemDefaultFocus() }
+		}
+		imgui.EndCombo()
+	}
+
+	showByBitVector(b)
+	showProperty(b.PropBundle)
+	showRangeProperty(b.RangePropBundle)
+	showAdvanceSetting(b)
 	// showRTPC(o.RTPC)
 
 	imgui.TreePop()
