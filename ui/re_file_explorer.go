@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -11,43 +13,27 @@ import (
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
-func showFileExplorerWindow(fe *FileExplorer) {
-	imgui.BeginV(
-		"File Explorer", 
-		nil, 
-		imgui.WindowFlagsHorizontalScrollbar)
+func showFileExplorerWindow(fe *FileExplorer, modalQ *ModalQ) {
+	imgui.BeginV("File Explorer", nil, 0)
 	if imgui.BeginTabBar("FileExplorerTabBar") {
-		showFileExplorerTab(fe)
+		showFileExplorerTab(fe, modalQ)
 		imgui.EndTabBar()
 	}
 	imgui.End()
 }
 
-func showFileExplorerTab(fe *FileExplorer) {
+func showFileExplorerTab(fe *FileExplorer, modalQ *ModalQ) {
 	focusTable := false
 
 	if !imgui.BeginTabItem("File Explorer") {
 		return
 	}
 
-	if isLeftShortcut() {
-		if err := fe.cdParent(); err != nil {
-			slog.Error(
-				"Failed to change current directory to parent directory",
-				"error", err,
-			)
-		}
-	}
-	useViUp()
-	useViShiftUp()
-	useViDown()
-	useViShiftDown()
+	setFileExplorerShortcut(fe)
 
 	showFileExplorerVol(fe)
 	imgui.SameLine()
-	imgui.SetNextItemShortcut(
-		imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),
-	)
+	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),)
 	if imgui.InputTextWithHint("Query", "", &fe.fs.query, 0, nil) {
 		fe.filter()
 	}
@@ -59,6 +45,37 @@ func showFileExplorerTab(fe *FileExplorer) {
 		fe.openSelective()
 	}
 
+	imgui.SetNextItemShortcut(imgui.KeyChord(ModCtrlShift) | imgui.KeyChord(imgui.KeyN))
+	if imgui.Button("+") {
+		onOK := func(name string) {
+			if name == "" { return }
+			path := filepath.Join(fe.pwd(), name)
+			if err := os.MkdirAll(filepath.Join(fe.pwd(), name), os.ModePerm); err != nil {
+				slog.Error(
+					fmt.Sprintf("Failed to create directory %s", path),
+					"error", err,
+				)
+			}
+			if err := fe.refresh(); err != nil {
+				slog.Error(
+					fmt.Sprintf("Failed to refresh %s", fe.fs.pwd),
+					"error", err,
+				)
+			}
+		}
+		pushSimpleTextModal(modalQ, "Make directory", onOK)
+	}
+	imgui.SameLine()
+	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyR))
+	if imgui.Button("R") {
+		if err := fe.refresh(); err != nil {
+			slog.Error(
+				fmt.Sprintf("Failed to refresh %s", fe.fs.pwd),
+				"error", err,
+			)
+		}
+	}
+	imgui.SameLine()
 	if imgui.ArrowButton("FileExplorerArrowButton", imgui.DirLeft) {
 		if err := fe.cdParent(); err != nil {
 			slog.Error(
@@ -78,6 +95,21 @@ func showFileExplorerTab(fe *FileExplorer) {
 	showFileExplorerTabTable(fe, focusTable)
 
 	imgui.EndTabItem()
+}
+
+func setFileExplorerShortcut(fe *FileExplorer) {
+	if isLeftShortcut() {
+		if err := fe.cdParent(); err != nil {
+			slog.Error(
+				"Failed to change current directory to parent directory",
+				"error", err,
+			)
+		}
+	}
+	useViUp()
+	useViShiftUp()
+	useViDown()
+	useViShiftDown()
 }
 
 func showFileExplorerVol(fe *FileExplorer) {
