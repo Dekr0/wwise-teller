@@ -24,8 +24,11 @@ type bankTab struct {
 	bank *wwise.Bank
 	idQuery string
 	typeQuery int32
+	parentIdQuery string
+	parentTypeQuery int32
 	filtered []wwise.HircObj
-	lSelStorage imgui.SelectionBasicStorage
+	filteredParent []wwise.HircObj
+	storage imgui.SelectionBasicStorage
 	// Sync
 	writeLock *atomic.Bool
 }
@@ -66,6 +69,45 @@ func (b *bankTab) filter() {
 	}
 	if i < old {
 		b.filtered = slices.Delete(b.filtered, i, old)
+	}
+}
+
+func (b *bankTab) filterParent() {
+	if b.bank.HIRC() == nil {
+		return
+	}
+	if !utils.IsDigit(b.parentIdQuery) {
+		return
+	}
+	hirc := b.bank.HIRC()
+	i := 0
+	old := len(b.filteredParent)
+	for _, d := range hirc.HircObjs {
+		if b.parentTypeQuery > 0 && b.parentTypeQuery != int32(d.HircType()) {
+			continue
+		}
+		id, err := d.HircID()
+		if err != nil {
+			if i < len(b.filteredParent) {
+				b.filteredParent[i] = d
+			} else {
+				b.filteredParent = append(b.filteredParent, d)
+			}
+			i += 1
+			continue
+		}
+		if !fuzzy.Match(b.parentIdQuery, strconv.FormatUint(uint64(id), 10)) {
+			continue
+		}
+		if i < len(b.filteredParent) {
+			b.filteredParent[i] = d
+		} else {
+			b.filteredParent = append(b.filteredParent, d)
+		}
+		i += 1
+	}
+	if i < old {
+		b.filteredParent = slices.Delete(b.filteredParent, i, old)
 	}
 }
 
@@ -125,11 +167,14 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 
 
 	filtered := []wwise.HircObj{}
+	filteredParent := []wwise.HircObj{}
 	if bank.HIRC() != nil {
 		hirc := bank.HIRC()
 		filtered = make([]wwise.HircObj, len(hirc.HircObjs))
+		filteredParent = make([]wwise.HircObj, len(hirc.HircObjs))
 		for i, o := range hirc.HircObjs {
 			filtered[i] = o
+			filteredParent[i] = o
 		}
 	}
 
@@ -138,8 +183,11 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		bank: bank,
 		idQuery: "",
 		typeQuery: 0,
+		parentIdQuery: "",
+		parentTypeQuery: 0,
 		filtered: filtered,
-		lSelStorage: *imgui.NewSelectionBasicStorage(),
+		filteredParent: filteredParent,
+		storage: *imgui.NewSelectionBasicStorage(),
 	}
 	t.writeLock.Store(false)
 
