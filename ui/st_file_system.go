@@ -150,6 +150,18 @@ func (f *FileSystem) filter() {
 	})
 }
 
+func (f *FileSystem) refresh() error {
+	entries, err := utils.GetDirAndFiles(f.pwd, f.entries)
+	if err != nil {
+		return err
+	}
+	if entries != nil {
+		f.entries = entries
+	}
+	f.clearFilter()
+	return nil
+}
+
 func (f *FileSystem) switchVolume(vol string) error {
 	vol = vol + "/"
 	if runtime.GOOS != "windows" {

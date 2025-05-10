@@ -35,7 +35,7 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 
 	numHircItem := r.U32Unsafe()
 
-	hirc := wwise.NewHIRC(I, T, size, numHircItem)
+	hirc := wwise.NewHIRC(I, T, numHircItem)
 
 	/* sync signal */
 	sem := make(chan struct{}, maxNumParseRoutine)
@@ -90,7 +90,7 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					parserResult,
 					sem,
 				)
-			case wwise.HircRanSeqCntr:
+			case wwise.HircTypeRanSeqCntr:
 				go parserRoutine(
 					dwSectionSize,
 					uint32(i),
@@ -99,7 +99,7 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					parserResult,
 					sem,
 				)
-			case wwise.HircSwitchCntr:
+			case wwise.HircTypeSwitchCntr:
 				go parserRoutine(
 					dwSectionSize,
 					uint32(i),
@@ -142,9 +142,9 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 			switch wwise.HircType(eHircType) {
 			case wwise.HircTypeSound:
 				obj = parseSound(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
-			case wwise.HircRanSeqCntr:
+			case wwise.HircTypeRanSeqCntr:
 				obj = parseRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
-			case wwise.HircSwitchCntr:
+			case wwise.HircTypeSwitchCntr:
 				obj = parseSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeActorMixer:
 				obj = parseActorMixer(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
@@ -165,6 +165,9 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 		"There are data that is not consumed after parsing all HIRC blob",
 	)
 
+	// hirc.ComputeParentIDIdx()
+	slices.Reverse(hirc.HircObjs)
+
 	return hirc, nil
 }
 
@@ -180,12 +183,12 @@ func addHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 			panic(fmt.Sprintf("Duplicate sound object %d", id))
 		}
 		h.Sounds[id] = obj.(*wwise.Sound)
-	case wwise.HircRanSeqCntr:
+	case wwise.HircTypeRanSeqCntr:
 		if _, in := h.RanSeqCntrs[id]; in {
 			panic(fmt.Sprintf("Duplicate random / sequence container object %d", id))
 		}
 		h.RanSeqCntrs[id] = obj.(*wwise.RanSeqCntr)
-	case wwise.HircSwitchCntr:
+	case wwise.HircTypeSwitchCntr:
 		if _, in := h.SwitchCntrs[id]; in {
 			panic(fmt.Sprintf("Duplicate switch container object %d", id))
 		}
