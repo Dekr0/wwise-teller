@@ -9,7 +9,7 @@ import (
 	"github.com/Dekr0/wwise-teller/ui/async"
 )
 
-func (m *ModalQ) ShowModal() {
+func (m *ModalQ) showModal() {
 	if len(m.modals) <= 0 {
 		return
 	}
@@ -205,4 +205,24 @@ func pushExtractSoundBanksModal(
 func pushCommandPaletteModal(modalQ *ModalQ, cmdPaletteMngr *CmdPaletteMngr) {
 	renderF, done := commandPaletteModal(cmdPaletteMngr)
 	modalQ.QModal(done, 0, "Command Palette", renderF, nil)
+}
+
+func pushSimpleTextModal(modalQ *ModalQ, title string, c func(string)) {
+	renderF, done := simpleTextModal(c)
+	modalQ.QModal(done, imgui.WindowFlagsAlwaysAutoResize, title, renderF, nil)
+}
+
+func simpleTextModal(c func(string)) (func(), *bool) {
+	done := false
+	text := ""
+	return func() {
+		imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF))
+		imgui.InputTextWithHint("Directory Name", "", &text, 0, nil)
+		imgui.SameLine()
+		imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyS))
+		if imgui.Button("Create") {
+			done = true
+			c(text)
+		}
+	}, &done
 }
