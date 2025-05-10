@@ -1,8 +1,13 @@
-# Keybinding
+# Keybinding (Recommend reading this)
 
 - I will use `mod` as an alias for `ctrl+shift`.
 
 ## Navigation
+
+### General Pop up / Modal 
+
+- `ctrl+s` - confirm / ok
+- `ctrl+q` - close the pop up
 
 ### File Explorer and File Dialog
 

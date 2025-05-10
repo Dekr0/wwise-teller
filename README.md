@@ -21,7 +21,7 @@ with version 141.
 
 ## Usage
 
-- Detail check here []()
+- Detail check [here]()
 
 ## Contribution
 
