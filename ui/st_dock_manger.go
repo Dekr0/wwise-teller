@@ -58,8 +58,8 @@ func buildDockSpace(dockSpaceID imgui.ID, dockSpaceFlags imgui.DockNodeFlags) {
 	)
 	
 	imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
-	imgui.InternalDockBuilderDockWindow("Bank Explorer (Linear View)", dock2)
-	imgui.InternalDockBuilderDockWindow("Bank Explorer (Tree View)", dock2)
+	imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
+	imgui.InternalDockBuilderDockWindow("Hierarchy View", dock2)
 	imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
 	imgui.InternalDockBuilderDockWindow("Log", dock3)
 	imgui.InternalDockBuilderFinish(mainDock)
