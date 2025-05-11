@@ -13,16 +13,16 @@ import (
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
-func showFileExplorerWindow(fe *FileExplorer, modalQ *ModalQ) {
+func renderFileExplorer(fe *FileExplorer, modalQ *ModalQ) {
 	imgui.BeginV("File Explorer", nil, 0)
 	if imgui.BeginTabBar("FileExplorerTabBar") {
-		showFileExplorerTab(fe, modalQ)
+		renderFileExplorerTab(fe, modalQ)
 		imgui.EndTabBar()
 	}
 	imgui.End()
 }
 
-func showFileExplorerTab(fe *FileExplorer, modalQ *ModalQ) {
+func renderFileExplorerTab(fe *FileExplorer, modalQ *ModalQ) {
 	focusTable := false
 
 	if !imgui.BeginTabItem("File Explorer") {
@@ -31,7 +31,7 @@ func showFileExplorerTab(fe *FileExplorer, modalQ *ModalQ) {
 
 	setFileExplorerShortcut(fe)
 
-	showFileExplorerVol(fe)
+	renderFileExplorerVol(fe)
 	imgui.SameLine()
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),)
 	if imgui.InputTextWithHint("Query", "", &fe.fs.query, 0, nil) {
@@ -92,7 +92,7 @@ func showFileExplorerTab(fe *FileExplorer, modalQ *ModalQ) {
 		imgui.SetKeyboardFocusHere()
 	}
 
-	showFileExplorerTabTable(fe, focusTable)
+	renderFileExplorerTable(fe, focusTable)
 
 	imgui.EndTabItem()
 }
@@ -112,7 +112,7 @@ func setFileExplorerShortcut(fe *FileExplorer) {
 	useViShiftDown()
 }
 
-func showFileExplorerVol(fe *FileExplorer) {
+func renderFileExplorerVol(fe *FileExplorer) {
 	if runtime.GOOS != "windows" {
 		return
 	}
@@ -140,7 +140,7 @@ func showFileExplorerVol(fe *FileExplorer) {
 	imgui.PopID()
 }
 
-func showFileExplorerTabTable(fe *FileExplorer, focusTable bool) {
+func renderFileExplorerTable(fe *FileExplorer, focusTable bool) {
 	if !imgui.BeginTableV("FileExplorerTable",
 		1, imgui.TableFlagsRowBg | imgui.TableFlagsScrollY,
 		imgui.NewVec2(0.0, 0.0), 0.0,

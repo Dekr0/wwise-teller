@@ -6,7 +6,7 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 )
 
-func showNotify(nQ *NotifyQ) {
+func renderNotfiy(nQ *NotifyQ) {
 	if len(nQ.queue) <= 0 {
 		return
 	}
