@@ -176,6 +176,8 @@ type HircObj interface {
 	HircID() (uint32, error)
 	HircType() HircType 
 	IsCntr() bool
+	NumChild() int
+	ParentID() uint32
 	AddChild(o HircObj)
 	RemoveChild(o HircObj)
 }
@@ -210,19 +212,17 @@ func (a *ActorMixer) DataSize() uint32 {
 	return uint32(4 + a.BaseParam.Size() + a.Container.Size())
 }
 
-func (a *ActorMixer) BaseParameter() *BaseParameter {
-	return a.BaseParam
-}
+func (a *ActorMixer) BaseParameter() *BaseParameter { return a.BaseParam }
 
-func (a *ActorMixer) HircID() (uint32, error) {
-	return a.Id, nil
-}
+func (a *ActorMixer) HircID() (uint32, error) { return a.Id, nil }
 
-func (a *ActorMixer) HircType() HircType {
-	return HircTypeActorMixer 
-}
+func (a *ActorMixer) HircType() HircType { return HircTypeActorMixer }
 
 func (a *ActorMixer) IsCntr() bool { return true }
+
+func (a *ActorMixer) NumChild() int { return len(a.Container.Children) }
+
+func (a *ActorMixer) ParentID() uint32 { return a.BaseParam.DirectParentId }
 
 func (a *ActorMixer) AddChild(o HircObj) {
 	id, err := o.HircID()
@@ -294,6 +294,12 @@ func (l *LayerCntr) HircType() HircType {
 
 func (l *LayerCntr) IsCntr() bool { return true }
 
+func (l *LayerCntr) NumChild() int { return len(l.Container.Children) }
+
+func (l *LayerCntr) ParentID() uint32 { return l.BaseParam.DirectParentId }
+
+func (l *LayerCntr) AddChild(o HircObj) {}
+
 func (l *LayerCntr) RemoveChild(o HircObj) {}
 
 type RanSeqCntr struct {
@@ -329,19 +335,19 @@ func (r *RanSeqCntr) DataSize() uint32 {
 	return uint32(4 + r.BaseParam.Size() + r.Container.Size() + sizeOfPlayListSetting + 2 + uint32(len(r.PlayListItems)) * sizeOfPlayListItem)
 }
 
-func (r *RanSeqCntr) BaseParameter() *BaseParameter {
-	return r.BaseParam
-}
+func (r *RanSeqCntr) BaseParameter() *BaseParameter { return r.BaseParam }
 
-func (r *RanSeqCntr) HircID() (uint32, error) {
-	return r.Id, nil
-}
+func (r *RanSeqCntr) HircID() (uint32, error) { return r.Id, nil }
 
-func (r *RanSeqCntr) HircType() HircType {
-	return HircTypeRanSeqCntr
-}
+func (r *RanSeqCntr) HircType() HircType { return HircTypeRanSeqCntr }
 
 func (r *RanSeqCntr) IsCntr() bool { return true }
+
+func (r *RanSeqCntr) NumChild() int { return len(r.Container.Children) }
+
+func (r *RanSeqCntr) ParentID() uint32 { return r.BaseParam.DirectParentId }
+
+func (r *RanSeqCntr) AddChild(o HircObj) {}
 
 func (r *RanSeqCntr) RemoveChild(o HircObj) {
 	id, err := o.HircID()
@@ -405,19 +411,19 @@ func (s *SwitchCntr) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (s *SwitchCntr) BaseParameter() *BaseParameter {
-	return s.BaseParam
-}
+func (s *SwitchCntr) BaseParameter() *BaseParameter { return s.BaseParam }
 
-func (s *SwitchCntr) HircID() (uint32, error) {
-	return s.Id, nil
-}
+func (s *SwitchCntr) HircID() (uint32, error) { return s.Id, nil }
 
-func (s *SwitchCntr) HircType() HircType {
-	return HircTypeSwitchCntr
-}
+func (s *SwitchCntr) HircType() HircType { return HircTypeSwitchCntr }
 
 func (r *SwitchCntr) IsCntr() bool { return true }
+
+func (s *SwitchCntr) NumChild() int { return len(s.Container.Children) }
+
+func (s *SwitchCntr) ParentID() uint32 { return s.BaseParam.DirectParentId }
+
+func (s *SwitchCntr) AddChild(o HircObj) {}
 
 func (s *SwitchCntr) RemoveChild(o HircObj) {}
 
@@ -441,19 +447,19 @@ func (s *Sound) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (s *Sound) BaseParameter() *BaseParameter {
-	return s.BaseParam
-}
+func (s *Sound) BaseParameter() *BaseParameter { return s.BaseParam }
+
+func (s *Sound) HircID() (uint32, error) { return s.Id, nil }
+
+func (s *Sound) HircType() HircType { return HircTypeSound }
 
 func (s *Sound) IsCntr() bool { return true }
 
-func (s *Sound) HircID() (uint32, error) {
-	return s.Id, nil
-}
+func (s *Sound) NumChild() int { return 0 }
 
-func (s *Sound) HircType() HircType {
-	return HircTypeSound
-}
+func (s *Sound) ParentID() uint32 { return s.BaseParam.DirectParentId }
+
+func (s *Sound) AddChild(o HircObj) {}
 
 func (s *Sound) RemoveChild(o HircObj) {}
 
@@ -486,16 +492,20 @@ func (u *Unknown) Encode() []byte {
 	return bw.Bytes() 
 }
 
-func (u *Unknown) BaseParameter() *BaseParameter {
-	return nil
-}
+func (u *Unknown) BaseParameter() *BaseParameter { return nil }
 
 func (u *Unknown) HircID() (uint32, error) {
 	return 0, fmt.Errorf("Hierarchy object type %d has yet implement GetHircID.", u.Header.Type)
 }
 
-func (u *Unknown) HircType() HircType {
-	return u.Header.Type
-}
+func (u *Unknown) HircType() HircType { return u.Header.Type }
+
+func (u *Unknown) IsCntr() bool { return true }
+
+func (u *Unknown) NumChild() int { return 0 }
+
+func (u *Unknown) ParentID() uint32 { return 0 }
+
+func (u *Unknown) AddChild(o HircObj) {}
 
 func (u *Unknown) RemoveChild(o HircObj) {}
