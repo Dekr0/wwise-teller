@@ -10,16 +10,16 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func showBankExplorerLinear(bnkMngr *BankManager, saveActive bool, itype int) (
+func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 	*bankTab, string, *bankTab, string, int,
 ) {
 	var activeTab *bankTab = nil
 	activeName := ""
-	closeTab := "" 
+	closedTab := "" 
 
-	imgui.BeginV("Bank Explorer (Linear View)", nil, imgui.WindowFlagsMenuBar)
+	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
 
-	saveTab, saveName, itype := showBankExplorerMenu(bnkMngr, itype)
+	savedTab, savedName, iType := renderBankExplorerMenu(bnkMngr, iType)
 
 	if imgui.BeginTabBarV(
 		"BankExplorerTabBar",
@@ -30,7 +30,7 @@ func showBankExplorerLinear(bnkMngr *BankManager, saveActive bool, itype int) (
 			base := filepath.Base(key.(string))
 			open := true
 			if imgui.BeginTabItemV(base, &open, 0) {
-				showHierarchy(key.(string), value.(*bankTab))
+				renderHircLTable(value.(*bankTab))
 				activeTab = value.(*bankTab)
 				activeName = key.(string)
 				imgui.EndTabItem()
@@ -38,7 +38,7 @@ func showBankExplorerLinear(bnkMngr *BankManager, saveActive bool, itype int) (
 
 			if !open {
 				activeTab = nil
-				closeTab = key.(string)
+				closedTab = key.(string)
 			}
 
 			return true
@@ -48,14 +48,14 @@ func showBankExplorerLinear(bnkMngr *BankManager, saveActive bool, itype int) (
 	imgui.End()
 
 	if saveActive {
-		saveTab = activeTab
-		saveName = activeName
+		savedTab = activeTab
+		savedName = activeName
 	}
 
-	return activeTab, closeTab, saveTab, saveName, itype
+	return activeTab, closedTab, savedTab, savedName, iType
 }
 
-func showBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, int) {
+func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, int) {
 	var saveTab *bankTab = nil
 	saveName := ""
 
@@ -96,7 +96,7 @@ func showBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, in
 	return saveTab, saveName, itype
 }
 
-func showHierarchy(path string, t *bankTab) {
+func renderHircLTable(b *bankTab) {
 	focusTable := false
 
 	useViUp()
@@ -108,25 +108,25 @@ func showHierarchy(path string, t *bankTab) {
 
 	imgui.SetNextItemShortcut(DefaultSearchSC)
 	if imgui.InputTextWithHint(
-		"Filter by hierarchy object ID", "", &t.idQuery, 0, nil,
+		"Filter by hierarchy object ID", "", &b.idQuery, 0, nil,
 	) {
-		t.filter()
+		b.filter()
 	}
 
 	if imgui.ComboStrarr(
 		"Filter by hierarchy object type",
-		&t.typeQuery,
+		&b.typeQuery,
 		wwise.HircTypeName,
 		int32(len(wwise.HircTypeName)),
 	) {
-		t.filter()
+		b.filter()
 	}
 
 	if imgui.Shortcut(UnFocusQuerySC) {
 		focusTable = true
 		imgui.SetKeyboardFocusHere()
 	}
-	if !imgui.BeginTableV(path, 2, 
+	if !imgui.BeginTableV("LinearTable", 2, 
 		imgui.TableFlagsResizable | imgui.TableFlagsReorderable | 
 		imgui.TableFlagsRowBg | 
 		imgui.TableFlagsBordersH | imgui.TableFlagsBordersV |
@@ -143,8 +143,8 @@ func showHierarchy(path string, t *bankTab) {
 		imgui.SetKeyboardFocusHere()
 	}
 
-	storage := t.storage
-	hircObjs := t.filtered
+	storage := b.storage
+	hircObjs := b.filtered
 
 	flags := imgui.MultiSelectFlagsClearOnEscape | imgui.MultiSelectFlagsBoxSelect2d
 	msIO := imgui.BeginMultiSelectV(flags, storage.Size(), int32(len(hircObjs)))
@@ -190,9 +190,132 @@ func showHierarchy(path string, t *bankTab) {
 			}
 		}
 	}
-
 	msIO = imgui.EndMultiSelect()
 	storage.ApplyRequests(msIO)
 
 	imgui.EndTable()
+}
+
+func renderHircTree(t *bankTab)  {
+	imgui.Begin("Hierarchy View")
+	if t == nil {
+		imgui.End()
+		return
+	}
+	renderHircTTable(t)
+	imgui.End()
+}
+
+func renderHircTTable(t *bankTab) {
+	if !imgui.BeginTableV("TreeTable", 2, 
+		imgui.TableFlagsResizable | imgui.TableFlagsReorderable | 
+		imgui.TableFlagsRowBg | 
+		imgui.TableFlagsBordersH | imgui.TableFlagsBordersV,
+		imgui.Vec2{X: 0.0, Y: 0.0}, 0,
+	) {
+		return
+	}
+	imgui.TableSetupColumn("Hierarchy ID")
+	imgui.TableSetupColumn("Hierarchy Type")
+	imgui.TableSetupScrollFreeze(0, 1)
+	imgui.TableHeadersRow()
+
+	hircObjs := t.bank.HIRC().HircObjs
+
+	c := imgui.NewListClipper()
+	c.Begin(int32(len(hircObjs)))
+
+	treeIdx := 0 
+	drawIdx := int32(0)
+	for c.Step() {
+		for drawIdx < c.DisplayEnd() && treeIdx < len(hircObjs) {
+			renderHircNode(c, &drawIdx, &treeIdx, hircObjs)
+		}
+	}
+	for treeIdx < len(hircObjs) {
+		renderHircNode(c, &drawIdx, &treeIdx, hircObjs)
+	}
+
+	imgui.EndTable()
+}
+
+func renderHircNode(
+	c *imgui.ListClipper,
+	drawIdx *int32,
+	treeIdx *int,
+	hircObjs []wwise.HircObj,
+) bool {
+	o := hircObjs[*treeIdx]
+	visible := *drawIdx >= c.DisplayStart() && *drawIdx < c.DisplayEnd()
+	*drawIdx += 1
+	*treeIdx += 1
+
+	var sid string
+	id, err := o.HircID()
+	if err != nil {
+		sid = fmt.Sprintf("Unknown Id (Tree Index %d)", *treeIdx)
+	} else {
+		sid = strconv.FormatUint(uint64(id), 10)
+	}
+
+	rootless := false
+	if o.ParentID() == 0 {
+		rootless = true
+	}
+
+	if visible {
+		imgui.SetNextItemStorageID(imgui.IDInt(int32(*treeIdx)))
+		imgui.TableNextRow()
+		imgui.TableSetColumnIndex(0)
+		open := imgui.TreeNodeExStrV(sid, imgui.TreeNodeFlagsSpanAllColumns)
+		imgui.TableSetColumnIndex(1)
+		imgui.Text(wwise.HircTypeName[o.HircType()])
+		if open {
+			for j := 0; j < o.NumChild(); {
+				if !renderHircNode(c, drawIdx, treeIdx, hircObjs) {
+					j += 1
+				}
+			}
+			imgui.TreePop()
+		} else {
+			for j := 0; j < o.NumChild(); {
+				if !clippedHircNode(treeIdx, hircObjs) {
+					j += 1
+				}
+			}
+		}
+	} else if o.NumChild() > 0 {
+		// clipped
+		if imgui.StateStorage().Int(imgui.IDInt(int32(*treeIdx))) != 0 { // open?
+			imgui.TreePushStr(sid)
+			for j := 0; j < o.NumChild(); {
+				if !renderHircNode(c, drawIdx, treeIdx, hircObjs) {
+					j += 1
+				}
+			}
+			imgui.TreePop()
+		} else {
+			for j := 0; j < o.NumChild(); {
+				if !clippedHircNode(treeIdx, hircObjs) {
+					j += 1
+				}
+			}
+		}
+	}
+	return rootless
+}
+
+func clippedHircNode(treeIdx *int, hircObjs []wwise.HircObj) bool {
+	o := hircObjs[*treeIdx]
+	*treeIdx += 1
+	freeFloat := false
+	if o.ParentID() == 0 {
+		freeFloat = true
+	}
+	for j := 0; j < o.NumChild(); {
+		if !clippedHircNode(treeIdx, hircObjs) {
+			j += 1
+		}
+	}
+	return freeFloat
 }
