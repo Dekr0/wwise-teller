@@ -9,7 +9,7 @@ import (
 	"github.com/Dekr0/wwise-teller/ui/async"
 )
 
-func (m *ModalQ) showModal() {
+func (m *ModalQ) renderModal() {
 	if len(m.modals) <= 0 {
 		return
 	}
