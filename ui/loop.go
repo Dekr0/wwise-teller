@@ -192,7 +192,7 @@ func createLoop(
 			imgui.SetWindowFocusStr(dockMngr.Focus())
 		}
 
-		showStatusBar(loop.AsyncTasks)
+		renderStatusBar(loop.AsyncTasks)
 
 		imgui.SetNextWindowPos(viewport.WorkPos())
 		imgui.SetNextWindowSize(viewport.WorkSize())
@@ -212,13 +212,13 @@ func createLoop(
 			imgui.NewEmptyWindowClass(),
 		)
 
-		showMainMenuBar(reBuildDockSpace, conf, cmdPaletteMngr, modalQ, loop)
+		renderMainMenuBar(reBuildDockSpace, conf, cmdPaletteMngr, modalQ, loop)
 
-		modalQ.showModal()
+		modalQ.renderModal()
 
-		showFileExplorerWindow(fileExplorer, modalQ)
+		renderFileExplorer(fileExplorer, modalQ)
 
-		activeTab, closeTab, saveTab, saveName, itype := showBankExplorerLinear(
+		activeTab, closeTab, saveTab, saveName, itype := renderBankExplorerL(
 			bnkMngr, saveActive, itype,
 		)
 		if saveTab != nil {
@@ -230,13 +230,13 @@ func createLoop(
 			}
 		}
 
-		// showBankExplorerTree(activeTab)
-		showObjectEditor(activeTab)
+		renderHircTree(activeTab)
 
-		showNotify(nQ)
+		renderObjEditor(activeTab)
 
-		showLog(gLog)
-		// showDevDebug(loop, modalQ)
+		renderNotfiy(nQ)
+
+		renderLog(gLog)
 
 		imgui.End()
 
@@ -246,7 +246,7 @@ func createLoop(
 	}
 }
 
-func showTasks(asyncTasks []*async.Task) {
+func renderTasks(asyncTasks []*async.Task) {
 	if !imgui.BeginPopupV("Tasks", imgui.WindowFlagsAlwaysAutoResize) {
 		return
 	}
@@ -280,7 +280,7 @@ func showTasks(asyncTasks []*async.Task) {
 	imgui.EndPopup()
 }
 
-func showLog(gLog *GuiLog) {
+func renderLog(gLog *GuiLog) {
 	imgui.BeginV("Log", nil, imgui.WindowFlagsHorizontalScrollbar)
 	gLog.log.Logs.Do(func(a any) {
 		if a == nil {
@@ -291,11 +291,11 @@ func showLog(gLog *GuiLog) {
 	imgui.End()
 }
 
-func showDevDebug(
+func renderDebug(
 	loop *async.EventLoop,
 	modalQ *ModalQ,
 ) {
-	imgui.Begin("Dev. Debug")
+	imgui.Begin("Debug")
 	imgui.Text(fmt.Sprintf("Number of modals: %d", len(modalQ.modals)))
 	imgui.Text(fmt.Sprintf("Number of asynchronous tasks: %d", loop.NumTasks()))
 	imgui.End()
