@@ -28,6 +28,7 @@ type bankTab struct {
 	parentTypeQuery int32
 	filtered []wwise.HircObj
 	filteredParent []wwise.HircObj
+	// roots []*Node
 	storage imgui.SelectionBasicStorage
 	// Sync
 	writeLock *atomic.Bool
@@ -165,7 +166,6 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		return fmt.Errorf("Sound bank %s is already open", path)
 	}
 
-
 	filtered := []wwise.HircObj{}
 	filteredParent := []wwise.HircObj{}
 	if bank.HIRC() != nil {
@@ -189,6 +189,7 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		filteredParent: filteredParent,
 		storage: *imgui.NewSelectionBasicStorage(),
 	}
+	// t.buildTree()
 	t.writeLock.Store(false)
 
 	b.banks.Store(path, t)
@@ -199,3 +200,39 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 func (b *BankManager) closeBank(del string) {
 	b.banks.Delete(del)
 }
+
+// type Node struct {
+// 	tid   uint
+// 	leafs []*Node
+// }
+// 
+// func (b *bankTab) buildTree() {
+// 	hircObjs := b.bank.HIRC().HircObjs
+// 	b.roots = []*Node{}
+// 	tid := 0
+// 	for tid < len(hircObjs) {
+// 		root, _ := b.buildRoot(&tid, hircObjs)
+// 		b.roots = append(b.roots, root)
+// 	}
+// }
+
+// func (b *bankTab) buildRoot(tid *int, hircObjs []wwise.HircObj) (*Node, bool) {
+// 	o := hircObjs[*tid]
+// 	n := &Node{
+// 		tid: uint(*tid),
+// 		leafs: make([]*Node, 0, o.NumChild()),
+// 	}
+// 	*tid += 1
+// 
+// 	rootless := false
+// 
+// 	if o.ParentID() == 0 { rootless = true }
+// 
+// 	for j := 0; j < o.NumChild(); {
+// 		leaf, rootless := b.buildRoot(tid, hircObjs)
+// 		n.leafs = append(n.leafs, leaf)
+// 		if !rootless { j += 1 }
+// 	}
+// 
+// 	return n, rootless
+// }
