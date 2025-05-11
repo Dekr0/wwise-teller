@@ -8,7 +8,7 @@ import (
 	"github.com/Dekr0/wwise-teller/ui/async"
 )
 
-func showMainMenuBar(
+func renderMainMenuBar(
 	reBuildDockSpace *bool,
 	conf             *config.Config,
 	cmdPaletteMngr   *CmdPaletteMngr,
@@ -61,8 +61,8 @@ func showMainMenuBar(
 	}
 }
 
-func showStatusBar(asyncTasks []*async.Task) {
-	showTaskPopup := false
+func renderStatusBar(asyncTasks []*async.Task) {
+	renderTaskPopup := false
 
 	viewport := imgui.MainViewport()
 
@@ -78,16 +78,16 @@ func showStatusBar(asyncTasks []*async.Task) {
 				imgui.Vec4{X: 0.0, Y: 0.0, Z: 0.0, W: 0.0},
 			)
 			if imgui.Button("Task status") {
-				showTaskPopup = true
+				renderTaskPopup = true
 			}
 			imgui.PopStyleColor()
 
-			if showTaskPopup {
+			if renderTaskPopup {
 				if !imgui.IsPopupOpenStr("Tasks") {
 					imgui.OpenPopupStr("Tasks")
 				}
 			}
-			showTasks(asyncTasks)
+			renderTasks(asyncTasks)
 			imgui.SameLine()
 			imgui.Text(fmt.Sprintf("%f FPS", imgui.CurrentIO().Framerate()))
 
