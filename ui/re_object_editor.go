@@ -15,18 +15,18 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func showObjectEditor(activeTab *bankTab) {
+func renderObjEditor(t *bankTab) {
 	imgui.Begin("Object Editor")
 
 	useViUp()
 	useViDown()
 
-	if activeTab == nil {
+	if t == nil {
 		imgui.End()
 		return
 	}
 
-	if activeTab.writeLock.Load() {
+	if t.writeLock.Load() {
 		imgui.End()
 		return
 	}
@@ -41,8 +41,8 @@ func showObjectEditor(activeTab *bankTab) {
 	}
 
 	s := []wwise.HircObj{}
-	for i, h := range activeTab.filtered {
-		if activeTab.storage.Contains(imgui.ID(i)) {
+	for i, h := range t.filtered {
+		if t.storage.Contains(imgui.ID(i)) {
 			s = append(s, h)
 		}
 	}
@@ -59,17 +59,17 @@ func showObjectEditor(activeTab *bankTab) {
 		if imgui.BeginTabItem(label) {
 			switch h.(type) {
 			case *wwise.ActorMixer:
-				showActorMixerProperties(activeTab, h.(*wwise.ActorMixer))
+				renderActorMixer(t, h.(*wwise.ActorMixer))
 			case *wwise.LayerCntr:
-				showLayerCntrProperties(activeTab, h.(*wwise.LayerCntr))
+				renderLayerCntr(t, h.(*wwise.LayerCntr))
 			case *wwise.RanSeqCntr:
-				showRanSeqCntrProperties(activeTab, h.(*wwise.RanSeqCntr))
+				renderRanSeqCntr(t, h.(*wwise.RanSeqCntr))
 			case *wwise.SwitchCntr:
-				showSwitchCntrProperties(activeTab, h.(*wwise.SwitchCntr))
+				renderSwitchCntr(t, h.(*wwise.SwitchCntr))
 			case *wwise.Sound:
-				showSoundProperties(activeTab, h.(*wwise.Sound))
+				renderSound(t, h.(*wwise.Sound))
 			case *wwise.Unknown:
-				showUnknowProperties(h.(*wwise.Unknown))
+				renderUnknown(h.(*wwise.Unknown))
 			}
 			imgui.EndTabItem()
 		}
@@ -78,27 +78,27 @@ func showObjectEditor(activeTab *bankTab) {
 	imgui.End()
 }
 
-func showActorMixerProperties(activeTab *bankTab, o *wwise.ActorMixer) {
-	showBaseParameter(activeTab, o)
+func renderActorMixer(activeTab *bankTab, o *wwise.ActorMixer) {
+	renderBaseParam(activeTab, o)
 }
 
-func showLayerCntrProperties(activeTab *bankTab, o *wwise.LayerCntr) {
-	showBaseParameter(activeTab, o)
+func renderLayerCntr(activeTab *bankTab, o *wwise.LayerCntr) {
+	renderBaseParam(activeTab, o)
 }
 
-func showRanSeqCntrProperties(activeTab *bankTab, o *wwise.RanSeqCntr) {
-	showBaseParameter(activeTab, o)
+func renderRanSeqCntr(activeTab *bankTab, o *wwise.RanSeqCntr) {
+	renderBaseParam(activeTab, o)
 }
 
-func showSwitchCntrProperties(activeTab *bankTab, o *wwise.SwitchCntr) {
-	showBaseParameter(activeTab, o)
+func renderSwitchCntr(activeTab *bankTab, o *wwise.SwitchCntr) {
+	renderBaseParam(activeTab, o)
 }
 
-func showSoundProperties(activeTab *bankTab, o *wwise.Sound) {
-	showBaseParameter(activeTab, o)
+func renderSound(activeTab *bankTab, o *wwise.Sound) {
+	renderBaseParam(activeTab, o)
 }
 
-func showUnknowProperties(o *wwise.Unknown) {
+func renderUnknown(o *wwise.Unknown) {
 	imgui.Text(
 		fmt.Sprintf(
 			"Support for hierarchy object type %s is still under construction.",
@@ -107,7 +107,7 @@ func showUnknowProperties(o *wwise.Unknown) {
 	)
 }
 
-func showBaseParameter(activeTab *bankTab, o wwise.HircObj) {
+func renderBaseParam(activeTab *bankTab, o wwise.HircObj) {
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyB))
 	if !imgui.TreeNodeExStr("Base Parameter") {
 		return
@@ -138,16 +138,15 @@ func showBaseParameter(activeTab *bankTab, o wwise.HircObj) {
 		imgui.EndCombo()
 	}
 
-	showByBitVector(b)
-	showProperty(b.PropBundle)
-	showRangeProperty(b.RangePropBundle)
-	showAdvanceSetting(b)
-	// showRTPC(o.RTPC)
+	renderByBitVec(b)
+	renderProp(b.PropBundle)
+	renderRangeProp(b.RangePropBundle)
+	renderAdvSetting(b)
 
 	imgui.TreePop()
 }
 
-func showByBitVector(o *wwise.BaseParameter) {
+func renderByBitVec(o *wwise.BaseParameter) {
 	if !imgui.TreeNodeExStr("Override (Category 1)") {
 		return
 	}
@@ -183,7 +182,7 @@ func showByBitVector(o *wwise.BaseParameter) {
 	imgui.TreePop()
 }
 
-func showProperty(p *wwise.PropBundle) {
+func renderProp(p *wwise.PropBundle) {
 	if !imgui.TreeNodeExStr("Property") {
 		return
 	}
@@ -269,7 +268,7 @@ func showProperty(p *wwise.PropBundle) {
 	imgui.TreePop()
 }
 
-func showRangeProperty(r *wwise.RangePropBundle) {
+func renderRangeProp(r *wwise.RangePropBundle) {
 	if !imgui.TreeNodeExStr("Range Property") {
 		return
 	}
@@ -380,7 +379,7 @@ func showRangeProperty(r *wwise.RangePropBundle) {
 	imgui.TreePop()
 }
 
-func showAdvanceSetting(o *wwise.BaseParameter) {
+func renderAdvSetting(o *wwise.BaseParameter) {
 	if !imgui.TreeNodeStr("Advanced Setting") {
 		return
 	}
@@ -415,7 +414,7 @@ func showAdvanceSetting(o *wwise.BaseParameter) {
 	imgui.TreePop()
 }
 
-func showRTPC(rtpc *wwise.RTPC) {
+func renderRTPC(rtpc *wwise.RTPC) {
 	imgui.SeparatorText("RTPC")
 
 	if !imgui.TreeNodeExStr("RTPC") {
