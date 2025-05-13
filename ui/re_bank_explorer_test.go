@@ -30,7 +30,7 @@ func renderTreeNodeDry(i *int, hircObjs []wwise.HircObj) bool {
 		freeFloat = true
 	}
 
-	for j := 0; j < o.NumChild(); {
+	for j := 0; j < o.NumLeaf(); {
 		if !renderTreeNodeDry(i, hircObjs) {
 			j += 1
 		}
