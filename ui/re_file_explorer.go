@@ -173,6 +173,9 @@ func renderFileExplorerTable(fe *FileExplorer, focusTable bool) {
 		}
 	}
 
+	var cdFocus func() = nil
+	var openFocus func() = nil
+
 	filtered := fe.fs.filtered
 	storage := fe.storage
 	msIO := imgui.BeginMultiSelectV(
@@ -187,7 +190,6 @@ func renderFileExplorerTable(fe *FileExplorer, focusTable bool) {
 	if msIO.RangeSrcItem() != 1 {
 		clipper.IncludeItemByIndex(int32(msIO.RangeSrcItem()))
 	}
-	clipper:
 	for clipper.Step() {
 		for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
 			entry := filtered[n].entry
@@ -215,22 +217,37 @@ func renderFileExplorerTable(fe *FileExplorer, focusTable bool) {
 			righted := isRightShortcut()
 			if focused && (doubleClicked || righted) {
 				if fe.isFocusDir(int(n)) {
-					if err := fe.cdFocus(int(n)); err != nil {
-						slog.Error(
-							"Failed to change current directory to selective directory",
-							"error", err,
-							)
-					}
-					break clipper
+					cdFocus = bindCdFoucs(fe, n)
 				} else {
-					fe.openFocus(int(n))
+					openFocus = bindOpenFoucs(fe, n)
 				}
 			}
 		}
 	}
-
 	msIO = imgui.EndMultiSelect()
 	storage.ApplyRequests(msIO)
-
 	imgui.EndTable()
+	if cdFocus != nil {
+		cdFocus()
+	}
+	if openFocus != nil {
+		openFocus()
+	}
+}
+
+func bindCdFoucs(fe *FileExplorer, n int32) func() {
+	return func() {
+		if err := fe.cdFocus(int(n)); err != nil {
+			slog.Error(
+				"Failed to change current directory to selective directory",
+				"error", err,
+				)
+		}
+	}
+}
+
+func bindOpenFoucs(fe *FileExplorer, n int32) func() {
+	return func() {
+		fe.openFocus(int(n))
+	}
 }
