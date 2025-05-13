@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 
 	"github.com/Dekr0/wwise-teller/assert"
@@ -63,13 +64,10 @@ type HIRC struct {
 	I uint8
 	T []byte
 
-	// Currently, I don't know the algorithm of how Wwise encode its hierarchy 
-	// tree. 
-	// It's probably some sort of modified DFS since there are lot of places 
-	// where child nodes come first, and then the parent node of those child 
-	// nodes come right after it. 
-	// So far now, I will book keep the linear order of hierarchy tree as I parse them linearly through.
+	// Retain the tree structure that comes from the decoding with minimal 
+	// modification
 	HircObjs    []HircObj
+	HircObjsMap map[uint32]HircObj
 	
 	// Map for different types of hierarchy objects. Each object is a pointer 
 	// to a specific hierarchy object, which is also in `HircObjs`.
@@ -85,7 +83,7 @@ func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 		I: I,
 		T: T,
 		HircObjs: make([]HircObj, numHircItem),
-		
+		HircObjsMap: make(map[uint32]HircObj),
 		ActorMixers: make(map[uint32]*ActorMixer),
 		LayerCntrs: make(map[uint32]*LayerCntr),
 		SwitchCntrs: make(map[uint32]*SwitchCntr),
@@ -164,9 +162,33 @@ func (h *HIRC) Idx() uint8 {
 	return h.I
 }
 
-func (h *HIRC) ChangeParent(c, p HircObj, op uint32) {
-	if op != 0 {
+func (h *HIRC) ChangeRoot(l, r HircObj, orid uint32) {
+	lid, err := l.HircID()
+	if err != nil {
+		panic("Passing a leaf object without a hierarchy ID.")
+	}
+	b := l.BaseParameter() 
+	if b == nil {
+		panic(fmt.Sprintf("Leaf object %d is not a containable object.", lid))
+	}
+	rid, err := r.HircID()
+	if err != nil {
+		panic("Passing a root object without a hierarchy ID.")
+	}
+	if !r.IsCntr() {
+		panic(fmt.Sprintf("Root object %d is not a container type object.", rid))
+	}
 
+	b.DirectParentId = rid
+
+	r.AddLeaf(l)
+
+	if orid != 0 {
+		op, in := h.HircObjsMap[orid]
+		if !in {
+			panic(fmt.Sprintf("Old parent ID %d does not exist.", orid))
+		}
+		op.RemoveLeaf(l)
 	}
 }
 
@@ -176,10 +198,16 @@ type HircObj interface {
 	HircID() (uint32, error)
 	HircType() HircType 
 	IsCntr() bool
-	NumChild() int
+	NumLeaf() int
 	ParentID() uint32
-	AddChild(o HircObj)
-	RemoveChild(o HircObj)
+	// Modify DirectParentId, 
+	// pre condition: o.DirectParentId == 0
+	// post condition: o.DirectParentId == HircObj.HircID
+	AddLeaf(o HircObj) 
+	// Modify DirectParentId, 
+	// pre condition: o.DirectParentId == HircObj.HircID
+	// post condition: DirectParentId = 0
+	RemoveLeaf(o HircObj) 
 }
 
 const sizeOfHircObjHeader = 1 + 4
@@ -220,27 +248,49 @@ func (a *ActorMixer) HircType() HircType { return HircTypeActorMixer }
 
 func (a *ActorMixer) IsCntr() bool { return true }
 
-func (a *ActorMixer) NumChild() int { return len(a.Container.Children) }
+func (a *ActorMixer) NumLeaf() int { return len(a.Container.Children) }
 
 func (a *ActorMixer) ParentID() uint32 { return a.BaseParam.DirectParentId }
 
-func (a *ActorMixer) AddChild(o HircObj) {
+func (a *ActorMixer) AddLeaf(o HircObj) {
 	id, err := o.HircID()
-	if err != nil { panic(err) }
-	if slices.Contains(a.Container.Children, id) {
-		return
+	if err != nil {
+		panic("Passing a leaf object without hierarchy ID.")
 	}
+	b := o.BaseParameter()
+	if b == nil {
+		panic("Leaf object %d is not a containable object.")
+	}
+	if b.DirectParentId != 0 {
+		panic(fmt.Sprintf("Leaf object %d is already attach to root %d. AddLeaf is an atomic operation.", id, b.DirectParentId))
+	}
+	if slices.Contains(a.Container.Children, id) {
+		panic(fmt.Sprintf("Leaf object %d is already in actor mixer %d", id, a.Id))
+	}
+	a.Container.Children = append(a.Container.Children, id)
+	b.DirectParentId = a.Id
 }
 
-func (a *ActorMixer) RemoveChild(o HircObj) {
+func (a *ActorMixer) RemoveLeaf(o HircObj) {
 	id, err := o.HircID()
-	if err != nil { panic(err) }
+	if err != nil {
+		panic("Passing a leaf object without hierarchy ID.")
+	}
+	b := o.BaseParameter()
+	if b == nil {
+		panic("Leaf object %d is not a containable object.")
+	}
+	l := len(a.Container.Children)
 	a.Container.Children = slices.DeleteFunc(
 		a.Container.Children, 
 		func(c uint32) bool {
 			return c == id
 		},
 	)
+	if l >= len(a.Container.Children) {
+		panic(fmt.Sprintf("Leaf object is not actor mixer %d", id))
+	}
+	b.DirectParentId = 0
 }
 
 type LayerCntr struct {
@@ -294,13 +344,17 @@ func (l *LayerCntr) HircType() HircType {
 
 func (l *LayerCntr) IsCntr() bool { return true }
 
-func (l *LayerCntr) NumChild() int { return len(l.Container.Children) }
+func (l *LayerCntr) NumLeaf() int { return len(l.Container.Children) }
 
 func (l *LayerCntr) ParentID() uint32 { return l.BaseParam.DirectParentId }
 
-func (l *LayerCntr) AddChild(o HircObj) {}
+func (l *LayerCntr) AddLeaf(o HircObj) {
+	slog.Warn("Adding new leaf is not implemented for layer container.")
+}
 
-func (l *LayerCntr) RemoveChild(o HircObj) {}
+func (l *LayerCntr) RemoveLeaf(o HircObj) {
+	slog.Warn("Removing old leaf is not implemented for layer container.")
+}
 
 type RanSeqCntr struct {
 	HircObj
@@ -343,21 +397,91 @@ func (r *RanSeqCntr) HircType() HircType { return HircTypeRanSeqCntr }
 
 func (r *RanSeqCntr) IsCntr() bool { return true }
 
-func (r *RanSeqCntr) NumChild() int { return len(r.Container.Children) }
+func (r *RanSeqCntr) NumLeaf() int { return len(r.Container.Children) }
 
 func (r *RanSeqCntr) ParentID() uint32 { return r.BaseParam.DirectParentId }
 
-func (r *RanSeqCntr) AddChild(o HircObj) {}
-
-func (r *RanSeqCntr) RemoveChild(o HircObj) {
+func (r *RanSeqCntr) AddLeaf(o HircObj) {
 	id, err := o.HircID()
-	if err != nil { panic(err) }
+	if err != nil {
+		panic("Passing a leaf object without hierarchy ID.")
+	}
+	if slices.Contains(r.Container.Children, id) {
+		panic(fmt.Sprintf("Leaf object %d is already in random / sequence container %d", id, r.Id))
+	} 
+	b := o.BaseParameter()
+	if b == nil {
+		panic("Leaf object %d is not a containable object.")
+	}
+	if b.DirectParentId != 0 {
+		panic(fmt.Sprintf("Leaf object %d is already attach to root %d. AddLeaf is an atomic operation.", id, b.DirectParentId))
+	}
+	r.Container.Children = append(r.Container.Children, id)
+	if slices.ContainsFunc(
+		r.PlayListItems,
+		func(p *PlayListItem) bool {
+			return p.UniquePlayID == id
+		},
+	) {
+		panic(fmt.Sprintf("Newly added leaf object %d is in playlist item of random / sequence container %d", id, r.Id))
+	}
+	b.DirectParentId = r.Id
+}
+
+func (r *RanSeqCntr) RemoveLeaf(o HircObj) {
+	id, err := o.HircID()
+	if err != nil {
+		panic("Passing a leaf object without hierarchy ID.")
+	}
+	b := o.BaseParameter()
+	if b == nil {
+		panic("Leaf object %d is not a containable object.")
+	}
+	l := len(r.Container.Children)
 	r.Container.Children = slices.DeleteFunc(
-		r.Container.Children, 
+		r.Container.Children,
 		func(c uint32) bool {
 			return c == id
 		},
 	)
+	if l >= len(r.Container.Children) {
+		panic(fmt.Sprintf("Leaf object %d is not in random / sequence container %d", id, r.Id))
+	}
+	r.PlayListItems = slices.DeleteFunc(
+		r.PlayListItems,
+		func(p *PlayListItem) bool {
+			return p.UniquePlayID == id
+		},
+	)
+	b.DirectParentId = 0
+}
+
+func (r *RanSeqCntr) AddLeafToPlayList(i int) {
+	if slices.ContainsFunc(r.PlayListItems, func(p *PlayListItem) bool {
+		return p.UniquePlayID == r.Container.Children[i]
+	}) {
+		return
+	}
+	r.PlayListItems = append(r.PlayListItems, &PlayListItem{
+		r.Container.Children[i], 50000,
+	})
+}
+
+func (r *RanSeqCntr) MovePlayListItem(a int, b int) {
+	r.PlayListItems[b], r.PlayListItems[a] = r.PlayListItems[a], r.PlayListItems[b]
+}
+
+func (r *RanSeqCntr) RemoveLeafFromPlayList(i int) {
+	r.PlayListItems = slices.Delete(r.PlayListItems, i, i + 1)
+}
+
+func (r *RanSeqCntr) RemoveLeafsFromPlayList(ids []uint32) {
+	for _, id := range ids {
+		r.PlayListItems = slices.DeleteFunc(
+			r.PlayListItems,
+			func(p *PlayListItem) bool { return id == p.UniquePlayID },
+		)
+	}
 }
 
 type SwitchCntr struct {
@@ -419,13 +543,17 @@ func (s *SwitchCntr) HircType() HircType { return HircTypeSwitchCntr }
 
 func (r *SwitchCntr) IsCntr() bool { return true }
 
-func (s *SwitchCntr) NumChild() int { return len(s.Container.Children) }
+func (s *SwitchCntr) NumLeaf() int { return len(s.Container.Children) }
 
 func (s *SwitchCntr) ParentID() uint32 { return s.BaseParam.DirectParentId }
 
-func (s *SwitchCntr) AddChild(o HircObj) {}
+func (s *SwitchCntr) AddLeaf(o HircObj) {
+	slog.Warn("Adding new leaf is not implemented for switch container.")
+}
 
-func (s *SwitchCntr) RemoveChild(o HircObj) {}
+func (s *SwitchCntr) RemoveLeaf(o HircObj) {
+	slog.Warn("Removing old leaf is not implemented for switch container.")
+}
 
 type Sound struct {
 	HircObj
@@ -455,13 +583,17 @@ func (s *Sound) HircType() HircType { return HircTypeSound }
 
 func (s *Sound) IsCntr() bool { return true }
 
-func (s *Sound) NumChild() int { return 0 }
+func (s *Sound) NumLeaf() int { return 0 }
 
 func (s *Sound) ParentID() uint32 { return s.BaseParam.DirectParentId }
 
-func (s *Sound) AddChild(o HircObj) {}
+func (s *Sound) AddLeaf(o HircObj) {
+	panic("Sound is not a container type hierarchy object.")
+}
 
-func (s *Sound) RemoveChild(o HircObj) {}
+func (s *Sound) RemoveLeaf(o HircObj) {
+	panic("Sound is not a container type hierarchy object.")
+}
 
 type Unknown struct {
 	HircObj
@@ -502,10 +634,14 @@ func (u *Unknown) HircType() HircType { return u.Header.Type }
 
 func (u *Unknown) IsCntr() bool { return true }
 
-func (u *Unknown) NumChild() int { return 0 }
+func (u *Unknown) NumLeaf() int { return 0 }
 
 func (u *Unknown) ParentID() uint32 { return 0 }
 
-func (u *Unknown) AddChild(o HircObj) {}
+func (u *Unknown) AddLeaf(o HircObj) {
+	panic("Work in development hierarchy object type is calling AddLeaf.")
+}
 
-func (u *Unknown) RemoveChild(o HircObj) {}
+func (u *Unknown) RemoveLeaf(o HircObj) {
+	panic("Work in development hierarchy object type is calling RemoveLeaf.")
+}
