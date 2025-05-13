@@ -13,6 +13,8 @@ import (
 	"github.com/shirou/gopsutil/v4/disk"
 )
 
+const MaxInt = int32(^uint32(0) >> 1)
+
 var Vols []string = []string{}
 
 func GetHome() (string, error) {
