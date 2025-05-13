@@ -172,16 +172,16 @@ func createLoop(
 		imguizmo.BeginFrame()
 
 		saveActive := false
-		itype := -1
+		iType := -1
 		viewport := imgui.MainViewport()
 
 		if imgui.ShortcutNilV(DefaultSaveAsSC, imgui.InputFlagsRouteGlobal) {
 			saveActive = true
-			itype = -1
+			iType = -1
 		}
 		if imgui.ShortcutNilV(ModCtrlShift | imgui.KeyChord(imgui.KeyI), imgui.InputFlagsRouteGlobal) {
 			saveActive = true
-			itype = int(helldivers.IntegrationTypeHelldivers2)
+			iType = int(helldivers.IntegrationTypeHelldivers2)
 		}
 		if imgui.ShortcutNilV(DefaultNavPrevSC, imgui.InputFlagsRouteGlobal) {
 			dockMngr.FocusPrev()
@@ -216,13 +216,15 @@ func createLoop(
 
 		modalQ.renderModal()
 
+		renderLog(gLog)
+
 		renderFileExplorer(fileExplorer, modalQ)
 
-		activeTab, closeTab, saveTab, saveName, itype := renderBankExplorerL(
-			bnkMngr, saveActive, itype,
+		activeTab, closeTab, saveTab, saveName, iType := renderBankExplorerL(
+			bnkMngr, saveActive, iType,
 		)
 		if saveTab != nil {
-			switch itype {
+			switch iType {
 			case -1:
 				pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
 			case int(helldivers.IntegrationTypeHelldivers2):
@@ -235,8 +237,6 @@ func createLoop(
 		renderObjEditor(activeTab)
 
 		renderNotfiy(nQ)
-
-		renderLog(gLog)
 
 		imgui.End()
 
