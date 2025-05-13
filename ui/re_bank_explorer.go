@@ -192,7 +192,6 @@ func renderHircLTable(b *bankTab) {
 	}
 	msIO = imgui.EndMultiSelect()
 	storage.ApplyRequests(msIO)
-
 	imgui.EndTable()
 }
 
@@ -271,31 +270,31 @@ func renderHircNode(
 		imgui.TableSetColumnIndex(1)
 		imgui.Text(wwise.HircTypeName[o.HircType()])
 		if open {
-			for j := 0; j < o.NumChild(); {
+			for j := 0; j < o.NumLeaf(); {
 				if !renderHircNode(c, drawIdx, treeIdx, hircObjs) {
 					j += 1
 				}
 			}
 			imgui.TreePop()
 		} else {
-			for j := 0; j < o.NumChild(); {
+			for j := 0; j < o.NumLeaf(); {
 				if !clippedHircNode(treeIdx, hircObjs) {
 					j += 1
 				}
 			}
 		}
-	} else if o.NumChild() > 0 {
+	} else if o.NumLeaf() > 0 {
 		// clipped
 		if imgui.StateStorage().Int(imgui.IDInt(int32(*treeIdx))) != 0 { // open?
 			imgui.TreePushStr(sid)
-			for j := 0; j < o.NumChild(); {
+			for j := 0; j < o.NumLeaf(); {
 				if !renderHircNode(c, drawIdx, treeIdx, hircObjs) {
 					j += 1
 				}
 			}
 			imgui.TreePop()
 		} else {
-			for j := 0; j < o.NumChild(); {
+			for j := 0; j < o.NumLeaf(); {
 				if !clippedHircNode(treeIdx, hircObjs) {
 					j += 1
 				}
@@ -312,7 +311,7 @@ func clippedHircNode(treeIdx *int, hircObjs []wwise.HircObj) bool {
 	if o.ParentID() == 0 {
 		freeFloat = true
 	}
-	for j := 0; j < o.NumChild(); {
+	for j := 0; j < o.NumLeaf(); {
 		if !clippedHircNode(treeIdx, hircObjs) {
 			j += 1
 		}
