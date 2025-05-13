@@ -13,8 +13,8 @@ func NewDockManager() *DockManager {
 	return &DockManager{
 		focused: 0,
 		DockWindows: []string{
-			"Bank Explorer (Linear View)",
-			"Bank Explorer (Tree View)",
+			"Bank Explorer",
+			"Hierarchy View",
 			"File Explorer",
 			"Log",
 			"Object Editor",
@@ -54,14 +54,14 @@ func buildDockSpace(dockSpaceID imgui.ID, dockSpaceFlags imgui.DockNodeFlags) {
 		mainDock, imgui.DirRight, 0.75, nil, &mainDock,
 	)
 	dock3 := imgui.InternalDockBuilderSplitNode(
-		mainDock, imgui.DirDown, 0.35, nil, &dock2,
+		mainDock, imgui.DirDown, 0.45, nil, &dock2,
 	)
 	
 	imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 	imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
 	imgui.InternalDockBuilderDockWindow("Hierarchy View", dock2)
-	imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
 	imgui.InternalDockBuilderDockWindow("Log", dock3)
+	imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
 	imgui.InternalDockBuilderFinish(mainDock)
 }
 
