@@ -29,7 +29,11 @@ type bankTab struct {
 	filtered []wwise.HircObj
 	filteredParent []wwise.HircObj
 	// roots []*Node
-	storage imgui.SelectionBasicStorage
+	storage *imgui.SelectionBasicStorage
+	activeHirc wwise.HircObj
+	cntrStorage *imgui.SelectionBasicStorage
+	pendingPlayListStorage *imgui.SelectionBasicStorage
+	playListStorage *imgui.SelectionBasicStorage
 	// Sync
 	writeLock *atomic.Bool
 }
@@ -187,7 +191,11 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		parentTypeQuery: 0,
 		filtered: filtered,
 		filteredParent: filteredParent,
-		storage: *imgui.NewSelectionBasicStorage(),
+		activeHirc: nil,
+		storage: imgui.NewSelectionBasicStorage(),
+		pendingPlayListStorage: imgui.NewSelectionBasicStorage(),
+		cntrStorage: imgui.NewSelectionBasicStorage(),
+		playListStorage: imgui.NewSelectionBasicStorage(),
 	}
 	// t.buildTree()
 	t.writeLock.Store(false)
