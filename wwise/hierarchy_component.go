@@ -1244,10 +1244,16 @@ type PlayListSetting struct {
 	TransitionMode uint8 // U8x
 	RandomMode uint8 // U8x
 	Mode uint8 // U8x
+
+	// _bIsUsingWeight
+	// bResetPlayListAtEachPlay
+	// bIsRestartBackward
+	// bIsContinuous
+	// bIsGlobal
 	PlayListBitVector uint8 // U8x
 }
 
-func (p *PlayListSetting) IsUsingWeight() bool {
+func (p *PlayListSetting) UsingWeight() bool {
 	return wio.GetBit(p.PlayListBitVector, 0)
 }
 
@@ -1271,7 +1277,7 @@ func (p *PlayListSetting) SetRestartBackward(set bool) {
 	p.PlayListBitVector = wio.SetBit(p.PlayListBitVector, 2, set)
 }
 
-func (p *PlayListSetting) IsContinuous() bool {
+func (p *PlayListSetting) Continuous() bool {
 	return wio.GetBit(p.PlayListBitVector, 3)
 }
 
@@ -1279,7 +1285,7 @@ func (p *PlayListSetting) SetContinuous(set bool) {
 	p.PlayListBitVector = wio.SetBit(p.PlayListBitVector, 3, set)
 }
 
-func (p *PlayListSetting) IsGlobal() bool {
+func (p *PlayListSetting) Global() bool {
 	return wio.GetBit(p.PlayListBitVector, 4)
 }
 
