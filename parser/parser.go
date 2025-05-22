@@ -475,12 +475,12 @@ func checkHeader(r *wio.Reader) (uint32, error) {
 		return 0, fmt.Errorf("Custom version %d of Wwise sound bank is not supported yet.", version)
 	}
 
-	if version&0xFFFF0000 == 0x80000000 {
+	if version & 0xFFFF0000 == 0x80000000 {
 		version = version & 0x0000FFFF
 		return 0, fmt.Errorf("Unknown custom version %d of Wwise sound bank is not supported yet.", version)
 	}
 
-	if version&0x0FFFF000 > 0 {
+	if version & 0x0FFFF000 > 0 {
 		return 0, fmt.Errorf("Encrypted bank version %d Wwise sound bank. Decryption of Wwise sound bank version is not supported yet.", version)
 	}
 
