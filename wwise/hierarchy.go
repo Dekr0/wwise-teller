@@ -19,19 +19,27 @@ const sizeOfHIRCHeader = 4
 type HircType uint8
 
 const (
-	HircTypeSound HircType = 0x02
+	HircTypeSound      HircType = 0x02
 	HircTypeRanSeqCntr HircType = 0x05
 	HircTypeSwitchCntr HircType = 0x06
 	HircTypeActorMixer HircType = 0x07
-	HircTypeLayerCntr HircType = 0x09
+	HircTypeLayerCntr  HircType = 0x09
 )
 
 var KnownHircType []HircType = []HircType{
+	0x00,
 	HircTypeSound,
 	HircTypeRanSeqCntr,
 	HircTypeSwitchCntr,
 	HircTypeActorMixer,
 	HircTypeLayerCntr,
+}
+
+var ContainerHircType []HircType = []HircType{
+	HircTypeRanSeqCntr,
+	// HircTypeSwitchCntr, Not Implemented
+	HircTypeActorMixer,
+	// HircTypeLayerCntr, Not Implemented
 }
 
 var HircTypeName []string = []string{
@@ -97,7 +105,6 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 		i int
 		b []byte
 	}
-	slices.Reverse(h.HircObjs)
 
 	// No initialization since I want it to crash and catch encoding bugs
 	results := make([][]byte, len(h.HircObjs))
@@ -162,33 +169,50 @@ func (h *HIRC) Idx() uint8 {
 	return h.I
 }
 
-func (h *HIRC) ChangeRoot(l, r HircObj, orid uint32) {
-	lid, err := l.HircID()
+func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
+	leaf, in := h.HircObjsMap[id]
+	if !in {
+		panic(fmt.Sprintf("ID %d has no associated hierarchy.", id))
+	}
+	if b := leaf.BaseParameter(); b == nil {
+		panic(fmt.Sprintf("%d is not containable", id))
+	}
+	_, err := leaf.HircID()
 	if err != nil {
-		panic("Passing a leaf object without a hierarchy ID.")
+		panic(fmt.Sprintf("ID %d has an associated hiearchy but its HircID interface returns error.", id))
 	}
-	b := l.BaseParameter() 
-	if b == nil {
-		panic(fmt.Sprintf("Leaf object %d is not a containable object.", lid))
+
+	newRoot, in := h.HircObjsMap[newRootID];
+	if !in {
+		panic(fmt.Sprintf("ID %d has no associated hierarchy.", newRootID))
 	}
-	rid, err := r.HircID()
+	_, err = newRoot.HircID()
 	if err != nil {
-		panic("Passing a root object without a hierarchy ID.")
+		panic(fmt.Sprintf("ID %d has an associated hiearchy but its HircID interface returns error.", newRootID))
 	}
-	if !r.IsCntr() {
-		panic(fmt.Sprintf("Root object %d is not a container type object.", rid))
+	if !newRoot.IsCntr() {
+		panic(fmt.Sprintf("ID %d is not a container", newRootID))
 	}
 
-	b.DirectParentId = rid
+	oldRoot, in := h.HircObjsMap[oldRootID]
+	if !in {
+		panic(fmt.Sprintf("ID %d has no associated hierarchy.", oldRootID))
+	}
+	_, err = oldRoot.HircID()
+	if err != nil {
+		panic(fmt.Sprintf("ID %d has an associated hiearchy but its HircID interface returns error.", oldRootID))
+	}
+	if !oldRoot.IsCntr() {
+		panic(fmt.Sprintf("ID %d is not a container", oldRootID))
+	}
 
-	r.AddLeaf(l)
-
-	if orid != 0 {
-		op, in := h.HircObjsMap[orid]
-		if !in {
-			panic(fmt.Sprintf("Old parent ID %d does not exist.", orid))
-		}
-		op.RemoveLeaf(l)
+	oldRoot.RemoveLeaf(leaf)
+	if leaf.BaseParameter().DirectParentId != 0 {
+		panic(fmt.Sprintf("RemoveLeaf contract break. %d parent ID is non zero after removing from %d", id, oldRootID))
+	}
+	newRoot.AddLeaf(leaf)
+	if leaf.BaseParameter().DirectParentId != newRootID {
+		panic(fmt.Sprintf("AddLeaf contract break. %d parent ID is non zero after attaching to %d", id, newRootID))
 	}
 }
 
@@ -255,17 +279,17 @@ func (a *ActorMixer) ParentID() uint32 { return a.BaseParam.DirectParentId }
 func (a *ActorMixer) AddLeaf(o HircObj) {
 	id, err := o.HircID()
 	if err != nil {
-		panic("Passing a leaf object without hierarchy ID.")
+		panic("Passing a hierarchy without a hierarchy ID.")
 	}
 	b := o.BaseParameter()
 	if b == nil {
-		panic("Leaf object %d is not a containable object.")
+		panic("%d is not containable")
 	}
 	if b.DirectParentId != 0 {
-		panic(fmt.Sprintf("Leaf object %d is already attach to root %d. AddLeaf is an atomic operation.", id, b.DirectParentId))
+		panic(fmt.Sprintf("%d is already attach to root %d. AddLeaf is an atomic operation.", id, b.DirectParentId))
 	}
 	if slices.Contains(a.Container.Children, id) {
-		panic(fmt.Sprintf("Leaf object %d is already in actor mixer %d", id, a.Id))
+		panic(fmt.Sprintf("%d is already in actor mixer %d", id, a.Id))
 	}
 	a.Container.Children = append(a.Container.Children, id)
 	b.DirectParentId = a.Id
@@ -274,11 +298,11 @@ func (a *ActorMixer) AddLeaf(o HircObj) {
 func (a *ActorMixer) RemoveLeaf(o HircObj) {
 	id, err := o.HircID()
 	if err != nil {
-		panic("Passing a leaf object without hierarchy ID.")
+		panic("Passing a hierarchy without a hierarchy ID.")
 	}
 	b := o.BaseParameter()
 	if b == nil {
-		panic("Leaf object %d is not a containable object.")
+		panic("%d is not containable")
 	}
 	l := len(a.Container.Children)
 	a.Container.Children = slices.DeleteFunc(
@@ -288,7 +312,7 @@ func (a *ActorMixer) RemoveLeaf(o HircObj) {
 		},
 	)
 	if l >= len(a.Container.Children) {
-		panic(fmt.Sprintf("Leaf object is not actor mixer %d", id))
+		panic(fmt.Sprintf("%d is not in actor mixer %d", id, a.Id))
 	}
 	b.DirectParentId = 0
 }
@@ -330,17 +354,11 @@ func (l *LayerCntr) DataSize() uint32 {
 	return size + 1
 }
 
-func (l *LayerCntr) BaseParameter() *BaseParameter {
-	return l.BaseParam
-}
+func (l *LayerCntr) BaseParameter() *BaseParameter { return l.BaseParam }
 
-func (l *LayerCntr) HircID() (uint32, error) {
-	return l.Id, nil
-}
+func (l *LayerCntr) HircID() (uint32, error) { return l.Id, nil }
 
-func (l *LayerCntr) HircType() HircType {
-	return HircTypeLayerCntr
-}
+func (l *LayerCntr) HircType() HircType { return HircTypeLayerCntr }
 
 func (l *LayerCntr) IsCntr() bool { return true }
 
@@ -404,17 +422,17 @@ func (r *RanSeqCntr) ParentID() uint32 { return r.BaseParam.DirectParentId }
 func (r *RanSeqCntr) AddLeaf(o HircObj) {
 	id, err := o.HircID()
 	if err != nil {
-		panic("Passing a leaf object without hierarchy ID.")
+		panic("Passing a hierarchy without a hierarchy ID.")
 	}
 	if slices.Contains(r.Container.Children, id) {
-		panic(fmt.Sprintf("Leaf object %d is already in random / sequence container %d", id, r.Id))
+		panic(fmt.Sprintf("%d is already in random / sequence container %d", id, r.Id))
 	} 
 	b := o.BaseParameter()
 	if b == nil {
-		panic("Leaf object %d is not a containable object.")
+		panic("%d is not containable.")
 	}
 	if b.DirectParentId != 0 {
-		panic(fmt.Sprintf("Leaf object %d is already attach to root %d. AddLeaf is an atomic operation.", id, b.DirectParentId))
+		panic(fmt.Sprintf("%d is already attach to root %d. AddLeaf is an atomic operation.", id, b.DirectParentId))
 	}
 	r.Container.Children = append(r.Container.Children, id)
 	if slices.ContainsFunc(
@@ -423,7 +441,7 @@ func (r *RanSeqCntr) AddLeaf(o HircObj) {
 			return p.UniquePlayID == id
 		},
 	) {
-		panic(fmt.Sprintf("Newly added leaf object %d is in playlist item of random / sequence container %d", id, r.Id))
+		panic(fmt.Sprintf("%d is in playlist item of random / sequence container %d", id, r.Id))
 	}
 	b.DirectParentId = r.Id
 }
@@ -431,11 +449,11 @@ func (r *RanSeqCntr) AddLeaf(o HircObj) {
 func (r *RanSeqCntr) RemoveLeaf(o HircObj) {
 	id, err := o.HircID()
 	if err != nil {
-		panic("Passing a leaf object without hierarchy ID.")
+		panic("Passing a hierarchy without a hierarchy ID.")
 	}
 	b := o.BaseParameter()
 	if b == nil {
-		panic("Leaf object %d is not a containable object.")
+		panic("%d is not containable.")
 	}
 	l := len(r.Container.Children)
 	r.Container.Children = slices.DeleteFunc(
@@ -445,7 +463,7 @@ func (r *RanSeqCntr) RemoveLeaf(o HircObj) {
 		},
 	)
 	if l >= len(r.Container.Children) {
-		panic(fmt.Sprintf("Leaf object %d is not in random / sequence container %d", id, r.Id))
+		panic(fmt.Sprintf("%d is not in random / sequence container %d", id, r.Id))
 	}
 	r.PlayListItems = slices.DeleteFunc(
 		r.PlayListItems,
@@ -581,7 +599,7 @@ func (s *Sound) HircID() (uint32, error) { return s.Id, nil }
 
 func (s *Sound) HircType() HircType { return HircTypeSound }
 
-func (s *Sound) IsCntr() bool { return true }
+func (s *Sound) IsCntr() bool { return false }
 
 func (s *Sound) NumLeaf() int { return 0 }
 
@@ -632,7 +650,7 @@ func (u *Unknown) HircID() (uint32, error) {
 
 func (u *Unknown) HircType() HircType { return u.Header.Type }
 
-func (u *Unknown) IsCntr() bool { return true }
+func (u *Unknown) IsCntr() bool { return false }
 
 func (u *Unknown) NumLeaf() int { return 0 }
 

@@ -165,9 +165,6 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 		"There are data that is not consumed after parsing all HIRC blob",
 	)
 
-	// hirc.ComputeParentIDIdx()
-	slices.Reverse(hirc.HircObjs)
-
 	return hirc, nil
 }
 
@@ -207,6 +204,12 @@ func addHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 		panic("Assertion Trap")
 	}
 	h.HircObjs[i] = obj
+	if err == nil {
+		if _, in := h.HircObjsMap[id]; in {
+			panic(fmt.Sprintf("Duplicate hierarchy object %d", id))
+		}
+		h.HircObjsMap[id] = obj
+	}
 	slog.Debug(fmt.Sprintf("Collected %s parser", wwise.HircTypeName[obj.HircType()]))
 }
 
