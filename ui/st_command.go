@@ -27,7 +27,7 @@ type CmdPaletteMngr struct {
 }
 
 func NewCmdPaletteMngr(
-	reBuildDockspace *bool,
+	dockMngr *DockManager,
 	conf *config.Config,
 	loop *async.EventLoop,
 	modalQ *ModalQ,
@@ -59,8 +59,18 @@ func NewCmdPaletteMngr(
 		func() { imgui.SetWindowFocusStr("Object Editor") },
 	})
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-		"reset layout",
-		func() { *reBuildDockspace = true },
+		"Use docking layout 1",
+		func() {
+			dockMngr.layout = Layout01
+			dockMngr.rebuild = true
+		},
+	})
+	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+		"Use docking layout 2",
+		func() {
+			dockMngr.layout = Layout02
+			dockMngr.rebuild = true
+		},
 	})
 
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
