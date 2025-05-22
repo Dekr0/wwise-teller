@@ -23,16 +23,16 @@ type BankManager struct {
 type bankTab struct {
 	bank *wwise.Bank
 	idQuery string
+	sidQuery string
 	typeQuery int32
 	parentIdQuery string
-	parentTypeQuery int32
+	parentTypeQuery wwise.HircType
 	filtered []wwise.HircObj
 	filteredParent []wwise.HircObj
 	// roots []*Node
 	storage *imgui.SelectionBasicStorage
 	activeHirc wwise.HircObj
 	cntrStorage *imgui.SelectionBasicStorage
-	pendingPlayListStorage *imgui.SelectionBasicStorage
 	playListStorage *imgui.SelectionBasicStorage
 	// Sync
 	writeLock *atomic.Bool
@@ -88,9 +88,14 @@ func (b *bankTab) filterParent() {
 	i := 0
 	old := len(b.filteredParent)
 	for _, d := range hirc.HircObjs {
-		if b.parentTypeQuery > 0 && b.parentTypeQuery != int32(d.HircType()) {
+		if !slices.Contains(wwise.ContainerHircType, d.HircType()) {
 			continue
 		}
+
+		if b.parentTypeQuery > 0 && b.parentTypeQuery != d.HircType() {
+			continue
+		}
+
 		id, err := d.HircID()
 		if err != nil {
 			if i < len(b.filteredParent) {
@@ -175,10 +180,12 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 	if bank.HIRC() != nil {
 		hirc := bank.HIRC()
 		filtered = make([]wwise.HircObj, len(hirc.HircObjs))
-		filteredParent = make([]wwise.HircObj, len(hirc.HircObjs))
+		filteredParent = make([]wwise.HircObj, 0, len(hirc.HircObjs) / 2)
 		for i, o := range hirc.HircObjs {
 			filtered[i] = o
-			filteredParent[i] = o
+			if slices.Contains(wwise.ContainerHircType, o.HircType()) {
+				filteredParent = append(filteredParent, o)
+			}
 		}
 	}
 
@@ -186,6 +193,7 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		writeLock: &atomic.Bool{},
 		bank: bank,
 		idQuery: "",
+		sidQuery: "",
 		typeQuery: 0,
 		parentIdQuery: "",
 		parentTypeQuery: 0,
@@ -193,7 +201,6 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		filteredParent: filteredParent,
 		activeHirc: nil,
 		storage: imgui.NewSelectionBasicStorage(),
-		pendingPlayListStorage: imgui.NewSelectionBasicStorage(),
 		cntrStorage: imgui.NewSelectionBasicStorage(),
 		playListStorage: imgui.NewSelectionBasicStorage(),
 	}
