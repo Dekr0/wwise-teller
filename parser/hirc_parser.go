@@ -20,16 +20,16 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-const maxNumParseRoutine = 8
+const MaxNumParseRoutine = 8
 
-type parserResult struct {
+type ParserResult struct {
 	i uint32
 	obj wwise.HircObj
 }
 
-type parser func(uint32, *wio.Reader) wwise.HircObj
+type Parser func(uint32, *wio.Reader) wwise.HircObj
 
-func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint32) (
+func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint32) (
 	*wwise.HIRC, error,
 ) {
 	assert.Equal(0, r.Pos(), "Parser for HIRC does not start at byte 0.")
@@ -39,7 +39,7 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 	hirc := wwise.NewHIRC(I, T, numHircItem)
 
 	/* sync signal */
-	sem := make(chan struct{}, maxNumParseRoutine)
+	sem := make(chan struct{}, MaxNumParseRoutine)
 	i := uint32(0)
 	parsed := atomic.Uint32{}
 
@@ -58,7 +58,7 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 		}
 		eHircType := r.U8Unsafe()
 		dwSectionSize := r.U32Unsafe()
-		if skipHircObjType(wwise.HircType(eHircType)) {
+		if SkipHircObjType(wwise.HircType(eHircType)) {
 			unknown := wwise.NewUnknown(
 				wwise.HircType(eHircType),
 				dwSectionSize,
@@ -80,51 +80,51 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 		case sem <- struct{}{}:
 			switch wwise.HircType(eHircType) {
 			case wwise.HircTypeSound:
-				go parserRoutine(
+				go ParserRoutine(
 					dwSectionSize,
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
-					parseSound,
+					ParseSound,
 					hirc,
 					sem,
 					&parsed,
 				)
 			case wwise.HircTypeRanSeqCntr:
-				go parserRoutine(
+				go ParserRoutine(
 					dwSectionSize,
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
-					parseRanSeqCntr,
+					ParseRanSeqCntr,
 					hirc,
 					sem,
 					&parsed,
 				)
 			case wwise.HircTypeSwitchCntr:
-				go parserRoutine(
+				go ParserRoutine(
 					dwSectionSize,
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
-					parseSwitchCntr,
+					ParseSwitchCntr,
 					hirc,
 					sem,
 					&parsed,
 				)
 			case wwise.HircTypeActorMixer:
-				go parserRoutine(
+				go ParserRoutine(
 					dwSectionSize,
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
-					parseActorMixer,
+					ParseActorMixer,
 					hirc,
 					sem,
 					&parsed,
 				)
 			case wwise.HircTypeLayerCntr:
-				go parserRoutine(
+				go ParserRoutine(
 					dwSectionSize,
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
-					parseLayerCntr,
+					ParseLayerCntr,
 					hirc,
 					sem,
 					&parsed,
@@ -144,19 +144,19 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 			var obj wwise.HircObj
 			switch wwise.HircType(eHircType) {
 			case wwise.HircTypeSound:
-				obj = parseSound(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseSound(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeRanSeqCntr:
-				obj = parseRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeSwitchCntr:
-				obj = parseSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeActorMixer:
-				obj = parseActorMixer(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseActorMixer(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeLayerCntr:
-				obj = parseLayerCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseLayerCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			default:
 				panic("Assertion Trap")
 			}
-			addHircObj(hirc, uint32(i), obj)
+			AddHircObj(hirc, uint32(i), obj)
 			i += 1
 			parsed.Add(1)
 		}
@@ -173,7 +173,7 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 
 // Side effect: It will modify HIRC. Specifically, HIRC.HircObjs and maps for 
 // different types of hierarchy objects.
-func addHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
+func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 	t := obj.HircType()
 	id, err := obj.HircID()
 	if err != nil { panic(err) }
@@ -208,7 +208,7 @@ func addHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 	slog.Debug(fmt.Sprintf("Collected %s parser", wwise.HircTypeName[obj.HircType()]))
 }
 
-func skipHircObjType(t wwise.HircType) bool {
+func SkipHircObjType(t wwise.HircType) bool {
 	_, find := sort.Find(len(wwise.KnownHircType), func(i int) int {
 		if t < wwise.KnownHircType[i] {
 			return -1
@@ -221,7 +221,7 @@ func skipHircObjType(t wwise.HircType) bool {
 	return !find
 }
 
-func parserRoutine[T wwise.HircObj](
+func ParserRoutine[T wwise.HircObj](
 	size uint32,
 	i uint32,
 	r *wio.Reader,
@@ -230,18 +230,18 @@ func parserRoutine[T wwise.HircObj](
 	sem chan struct{},
 	parsed *atomic.Uint32,
 ) {
-	addHircObj(h, i, f(size, r))
+	AddHircObj(h, i, f(size, r))
 	parsed.Add(1)
 	<- sem
 }
 
-func parseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
+func ParseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
 	assert.Equal(0, r.Pos(), "Actor mixer parser position doesn't start at position 0.")
 	begin := r.Pos()
 	a := &wwise.ActorMixer{}
 	a.Id = r.U32Unsafe()
-	a.BaseParam = parseBaseParam(r)
-	a.Container = parseContainer(r)
+	a.BaseParam = ParseBaseParam(r)
+	a.Container = ParseContainer(r)
 	end := r.Pos()
 	if begin >= end {
 		panic("Reader consumes zero byte.")
@@ -252,14 +252,14 @@ func parseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
 	return a
 }
 
-func parseLayerCntr(size uint32, r *wio.Reader) *wwise.LayerCntr {
+func ParseLayerCntr(size uint32, r *wio.Reader) *wwise.LayerCntr {
 	assert.Equal(0, r.Pos(), "Layer container parser position doesn't start at position 0.")
 	begin := r.Pos()
 	l := &wwise.LayerCntr{
 		Id: r.U32Unsafe(),
-		BaseParam: parseBaseParam(r),
-		Container: parseContainer(r),
-		Layers: parseLayers(r),
+		BaseParam: ParseBaseParam(r),
+		Container: ParseContainer(r),
+		Layers: ParseLayers(r),
 		IsContinuousValidation: r.U8Unsafe(),
 	}
 	end := r.Pos()
@@ -272,12 +272,12 @@ func parseLayerCntr(size uint32, r *wio.Reader) *wwise.LayerCntr {
 	return l
 }
 
-func parseLayers(r *wio.Reader) []*wwise.Layer {
+func ParseLayers(r *wio.Reader) []*wwise.Layer {
 	layers := make([]*wwise.Layer, r.U32Unsafe())
 	for i := range layers {
 		l := &wwise.Layer{
 			Id: r.U32Unsafe(),
-			InitialRTPC: parseRTPC(r),
+			InitialRTPC: ParseRTPC(r),
 			RTPCId: r.U32Unsafe(),
 			RTPCType: r.U8Unsafe(),
 			LayerRTPCs: make([]*wwise.LayerRTPC, r.U32Unsafe()),
@@ -301,18 +301,18 @@ func parseLayers(r *wio.Reader) []*wwise.Layer {
 	return layers
 }
 
-func parseRanSeqCntr(size uint32, r *wio.Reader) *wwise.RanSeqCntr {
+func ParseRanSeqCntr(size uint32, r *wio.Reader) *wwise.RanSeqCntr {
 	assert.Equal(0, r.Pos(), "Random / Sequence container parser position doesn't start at position 0.")
 	begin := r.Pos()
 	rs := &wwise.RanSeqCntr{
 		Id: r.U32Unsafe(),
-		BaseParam: parseBaseParam(r),
-		PlayListSetting: parsePlayListSetting(r),
-		Container: parseContainer(r),
+		BaseParam: ParseBaseParam(r),
+		PlayListSetting: ParsePlayListSetting(r),
+		Container: ParseContainer(r),
 		PlayListItems: make([]*wwise.PlayListItem, r.U16Unsafe()),
 	}
 	for i := range rs.PlayListItems {
-		rs.PlayListItems[i] = parsePlayListItem(r)
+		rs.PlayListItems[i] = ParsePlayListItem(r)
 	}
 	end := r.Pos()
 	if begin >= end {
@@ -324,14 +324,14 @@ func parseRanSeqCntr(size uint32, r *wio.Reader) *wwise.RanSeqCntr {
 	return rs
 }
 
-func parsePlayListItem(r *wio.Reader) *wwise.PlayListItem {
+func ParsePlayListItem(r *wio.Reader) *wwise.PlayListItem {
 	return &wwise.PlayListItem{
 		UniquePlayID: r.U32Unsafe(),
 		Weight: r.I32Unsafe(),
 	}
 }
 
-func parsePlayListSetting(r *wio.Reader) *wwise.PlayListSetting {
+func ParsePlayListSetting(r *wio.Reader) *wwise.PlayListSetting {
 	return &wwise.PlayListSetting{
 		LoopCount: r.U16Unsafe(),
 		LoopModMin: r.U16Unsafe(),
@@ -347,13 +347,13 @@ func parsePlayListSetting(r *wio.Reader) *wwise.PlayListSetting {
 	}
 }
 
-func parseSound(size uint32, r *wio.Reader) *wwise.Sound {
+func ParseSound(size uint32, r *wio.Reader) *wwise.Sound {
 	assert.Equal(0, r.Pos(), "Sound parser position doesn't start 0.")
 	begin := r.Pos()
 	s := &wwise.Sound{}
 	s.Id = r.U32Unsafe()
-	s.BankSourceData = parseBankSourceData(r)
-	s.BaseParam = parseBaseParam(r)
+	s.BankSourceData = ParseBankSourceData(r)
+	s.BaseParam = ParseBaseParam(r)
 	end := r.Pos()
 	if begin >= end {
 		panic("Reader consumes zero byte")
@@ -364,7 +364,7 @@ func parseSound(size uint32, r *wio.Reader) *wwise.Sound {
 	return s
 }
 
-func parseBankSourceData(r *wio.Reader) *wwise.BankSourceData {
+func ParseBankSourceData(r *wio.Reader) *wwise.BankSourceData {
 	b := &wwise.BankSourceData{
 		PluginID: r.U32Unsafe(),
 		StreamType: r.U8Unsafe(),
@@ -400,17 +400,17 @@ func parseBankSourceData(r *wio.Reader) *wwise.BankSourceData {
 	return b
 }
 
-func parseSwitchCntr(size uint32, r *wio.Reader) *wwise.SwitchCntr {
+func ParseSwitchCntr(size uint32, r *wio.Reader) *wwise.SwitchCntr {
 	assert.Equal(0, r.Pos(), "Switch container parser position doesn't start at 0.")
 	begin := r.Pos()
 	s := &wwise.SwitchCntr{
 		Id: r.U32Unsafe(),
-		BaseParam: parseBaseParam(r),
+		BaseParam: ParseBaseParam(r),
 		GroupType: r.U8Unsafe(),
 		GroupID: r.U32Unsafe(),
 		DefaultSwitch: r.U32Unsafe(),
 		IsContinuousValidation: r.U8Unsafe(),
-		Container: parseContainer(r),
+		Container: ParseContainer(r),
 		SwitchGroups: make([]*wwise.SwitchGroupItem, r.U32Unsafe()),
 	}
 	for i := range s.SwitchGroups {
@@ -445,27 +445,27 @@ func parseSwitchCntr(size uint32, r *wio.Reader) *wwise.SwitchCntr {
 	return s
 }
 
-func parseBaseParam(r *wio.Reader) *wwise.BaseParameter {
+func ParseBaseParam(r *wio.Reader) *wwise.BaseParameter {
 	b := wwise.BaseParameter{}
 	b.BitIsOverrideParentFx = r.U8Unsafe()
-	b.FxChunk = parseFxChunk(r)
-	b.FxChunkMetadata = parseFxChunkMetadata(r)
+	b.FxChunk = ParseFxChunk(r)
+	b.FxChunkMetadata = ParseFxChunkMetadata(r)
 	b.BitOverrideAttachmentParams = r.U8Unsafe()
 	b.OverrideBusId = r.U32Unsafe()
 	b.DirectParentId = r.U32Unsafe()
 	b.ByBitVectorA = r.U8Unsafe()
-	b.PropBundle = parsePropBundle(r)
-	b.RangePropBundle = parseRangePropBundle(r)
-	b.PositioningParam = parsePositioningParam(r)
-	b.AuxParam = parseAuxParam(r)
-	b.AdvanceSetting = parseAdvanceSetting(r)
-	b.StateProp = parseStateProp(r)
-	b.StateGroup = parseStateGroup(r)
-	b.RTPC = parseRTPC(r)
+	b.PropBundle = ParsePropBundle(r)
+	b.RangePropBundle = ParseRangePropBundle(r)
+	b.PositioningParam = ParsePositioningParam(r)
+	b.AuxParam = ParseAuxParam(r)
+	b.AdvanceSetting = ParseAdvanceSetting(r)
+	b.StateProp = ParseStateProp(r)
+	b.StateGroup = ParseStateGroup(r)
+	b.RTPC = ParseRTPC(r)
 	return &b
 }
 
-func parseFxChunk(r *wio.Reader) *wwise.FxChunk {
+func ParseFxChunk(r *wio.Reader) *wwise.FxChunk {
 	f := wwise.NewFxChunk()
 	UniqueNumFx := r.U8Unsafe()
 	if UniqueNumFx <= 0 {
@@ -487,7 +487,7 @@ func parseFxChunk(r *wio.Reader) *wwise.FxChunk {
 	return f
 }
 
-func parseFxChunkMetadata(r *wio.Reader) *wwise.FxChunkMetadata {
+func ParseFxChunkMetadata(r *wio.Reader) *wwise.FxChunkMetadata {
 	f := wwise.NewFxChunkMetadata()
 	f.BitIsOverrideParentMetadata = r.U8Unsafe()
 	UniqueNumFxMetadata := r.U8Unsafe()
@@ -500,7 +500,7 @@ func parseFxChunkMetadata(r *wio.Reader) *wwise.FxChunkMetadata {
 	return f
 }
 
-func parsePropBundle(r *wio.Reader) *wwise.PropBundle {
+func ParsePropBundle(r *wio.Reader) *wwise.PropBundle {
 	p := wwise.NewPropBundle()
 	CProps := r.U8Unsafe()
 	p.PropValues = make([]*wwise.PropValue, CProps)
@@ -513,7 +513,7 @@ func parsePropBundle(r *wio.Reader) *wwise.PropBundle {
 	return p
 }
 
-func parseRangePropBundle(r *wio.Reader) *wwise.RangePropBundle {
+func ParseRangePropBundle(r *wio.Reader) *wwise.RangePropBundle {
 	p := wwise.NewRangePropBundle()
 	CProps := r.U8Unsafe()
 	p.RangeValues = make([]*wwise.RangeValue, CProps)
@@ -527,7 +527,7 @@ func parseRangePropBundle(r *wio.Reader) *wwise.RangePropBundle {
 	return p
 }
 
-func parsePositioningParam(r *wio.Reader) *wwise.PositioningParam {
+func ParsePositioningParam(r *wio.Reader) *wwise.PositioningParam {
 	p := wwise.NewPositioningParam()
 	p.BitsPositioning = r.U8Unsafe()
 	if !p.HasPositioningAnd3D() {
@@ -568,7 +568,7 @@ func parsePositioningParam(r *wio.Reader) *wwise.PositioningParam {
 	return p
 }
 
-func parseAuxParam(r *wio.Reader) *wwise.AuxParam {
+func ParseAuxParam(r *wio.Reader) *wwise.AuxParam {
 	a := wwise.NewAuxParam()
 	a.AuxBitVector = r.U8Unsafe()
 	if a.HasAux() {
@@ -583,7 +583,7 @@ func parseAuxParam(r *wio.Reader) *wwise.AuxParam {
 	return a
 }
 
-func parseAdvanceSetting(r *wio.Reader) *wwise.AdvanceSetting {
+func ParseAdvanceSetting(r *wio.Reader) *wwise.AdvanceSetting {
 	return &wwise.AdvanceSetting{
 		AdvanceSettingBitVector: r.U8Unsafe(),
 		VirtualQueueBehavior:    r.U8Unsafe(),
@@ -593,7 +593,7 @@ func parseAdvanceSetting(r *wio.Reader) *wwise.AdvanceSetting {
 	}
 }
 
-func parseStateProp(r *wio.Reader) *wwise.StateProp {
+func ParseStateProp(r *wio.Reader) *wwise.StateProp {
 	s := wwise.NewStateProp()
 	NumStateProps := r.U8Unsafe()
 	s.StatePropItems = make([]*wwise.StatePropItem, NumStateProps)
@@ -607,7 +607,7 @@ func parseStateProp(r *wio.Reader) *wwise.StateProp {
 	return s
 }
 
-func parseStateGroup(r *wio.Reader) *wwise.StateGroup {
+func ParseStateGroup(r *wio.Reader) *wwise.StateGroup {
 	s := wwise.NewStateGroup()
 	NumStateGroups := r.U8Unsafe()
 	s.StateGroupItems = make([]*wwise.StateGroupItem, NumStateGroups)
@@ -628,7 +628,7 @@ func parseStateGroup(r *wio.Reader) *wwise.StateGroup {
 	return s
 }
 
-func parseRTPC(r *wio.Reader) *wwise.RTPC {
+func ParseRTPC(r *wio.Reader) *wwise.RTPC {
 	rtpc := wwise.NewRTPC()
 	NumRTPC := r.U16Unsafe()
 	rtpc.RTPCItems = make([]*wwise.RTPCItem, NumRTPC, NumRTPC)
@@ -687,7 +687,7 @@ func computeRTPCSamplePoints(rpts []*wwise.RTPCGraphPoint) []float32 {
 	return spts
 }
 
-func parseContainer(r *wio.Reader) *wwise.Container {
+func ParseContainer(r *wio.Reader) *wwise.Container {
 	c := wwise.NewCntrChildren()
 	NumChild := r.U32Unsafe()
 	c.Children = make([]uint32, NumChild)

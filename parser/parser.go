@@ -82,7 +82,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 
 	bankReader := wio.NewReader(f, binary.LittleEndian)
 
-	version, err := checkHeader(bankReader)
+	version, err := CheckHeader(bankReader)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +304,7 @@ func BKHDRoutine(
 	T []byte,
 	size uint32,
 ) {
-	cu, e := parseBKHD(r, I, T, size)
+	cu, e := ParseBKHD(r, I, T, size)
 	c <- &DecodeResult{cu, e}
 }
 
@@ -316,7 +316,7 @@ func DIDXRoutine(
 	T []byte,
 	size uint32,
 ) {
-	cu, e := parseDIDX(r, I, T, size)
+	cu, e := ParseDIDX(r, I, T, size)
 	c <- &DecodeResult{cu, e}
 }
 
@@ -328,11 +328,11 @@ func HIRCRoutine(
 	T []byte,
 	size uint32,
 ) {
-	cu, e := parseHIRC(ctx, r, I, T, size)
+	cu, e := ParseHIRC(ctx, r, I, T, size)
 	c <- &DecodeResult{cu, e}
 }
 
-func parseBKHD(r *wio.Reader, I uint8, T []byte, size uint32) (
+func ParseBKHD(r *wio.Reader, I uint8, T []byte, size uint32) (
 	*wwise.BKHD, error,
 ) {
 	assert.Equal(0, r.Pos(), "Parser for BKHD does not start at byte 0.")
@@ -382,7 +382,7 @@ func parseBKHD(r *wio.Reader, I uint8, T []byte, size uint32) (
 	return bkhd, nil
 }
 
-func parseDIDX(r *wio.Reader, I uint8, T []byte, size uint32) (
+func ParseDIDX(r *wio.Reader, I uint8, T []byte, size uint32) (
 	*wwise.DIDX, error,
 ) {
 	assert.Equal(0, r.Pos(), "Parser for DIDX does not start at byte 0.")
@@ -418,7 +418,7 @@ func parseDIDX(r *wio.Reader, I uint8, T []byte, size uint32) (
 	return didx, nil
 }
 
-func checkHeader(r *wio.Reader) (uint32, error) {
+func CheckHeader(r *wio.Reader) (uint32, error) {
 	curr := r.Pos()
 
 	tag, err := r.FourCC()
