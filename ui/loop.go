@@ -81,8 +81,6 @@ func Run() error {
 	}
 	slog.Info("Created file explorer backend for file exploring")
 
-	reBuildDockSpace := true
-
 	nQ := &NotifyQ{make([]*notfiy, 0, 16)}
 	// End of app state
 
@@ -110,11 +108,10 @@ func Run() error {
 		modalQ,
 		dockMngr,
 		fileExplorer,
-		NewCmdPaletteMngr(&reBuildDockSpace, conf, loop, modalQ),
+		NewCmdPaletteMngr(dockMngr, conf, loop, modalQ),
 		bnkMngr, 
 		nQ,
 		gLog,
-		&reBuildDockSpace,
 	))
 
 	return nil
@@ -165,7 +162,6 @@ func createLoop(
 	bnkMngr *BankManager,
 	nQ *NotifyQ,
 	gLog *GuiLog,
-	reBuildDockSpace *bool,
 ) func() {
 	return func() {
 		imgui.ClearSizeCallbackPool()
@@ -200,19 +196,11 @@ func createLoop(
 
 		imgui.BeginV("MainDock", nil, MainDockFlags)
 
-		dockSpaceID := imgui.IDStr("MainDock")
-		if *reBuildDockSpace {
-			buildDockSpace(dockSpaceID, DockSpaceFlags)
-			*reBuildDockSpace = false
-		}
-		imgui.DockSpaceV(
-			dockSpaceID,
-			imgui.NewVec2(0, 0),
-			DockSpaceFlags,
-			imgui.NewEmptyWindowClass(),
-		)
+		dockSpaceID := dockMngr.buildDockSpace()
+		size := imgui.NewVec2(0, 0)
+		imgui.DockSpaceV(dockSpaceID, size, DockSpaceFlags, imgui.NewEmptyWindowClass())
 
-		renderMainMenuBar(reBuildDockSpace, conf, cmdPaletteMngr, modalQ, loop)
+		renderMainMenuBar(dockMngr, conf, cmdPaletteMngr, modalQ, loop)
 
 		modalQ.renderModal()
 
