@@ -1084,6 +1084,11 @@ type RTPCGraphPoint struct {
 	Interp uint32 // U32
 }
 
+var SourceType []string = []string{
+	"DATA",
+	"Streaming",
+	"Prefetch Streaming",
+}
 type BankSourceData struct {
 	PluginID uint32 // U32
 	StreamType uint8 // U8x
