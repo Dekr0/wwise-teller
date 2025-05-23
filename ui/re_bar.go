@@ -9,16 +9,21 @@ import (
 )
 
 func renderMainMenuBar(
-	reBuildDockSpace *bool,
-	conf             *config.Config,
-	cmdPaletteMngr   *CmdPaletteMngr,
-	modalQ           *ModalQ,
-	loop             *async.EventLoop,
+	dockMngr       *DockManager,
+	conf           *config.Config,
+	cmdPaletteMngr *CmdPaletteMngr,
+	modalQ         *ModalQ,
+	loop           *async.EventLoop,
 ) {
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("Layout") {
-			if imgui.MenuItemBool("Reset") {
-				*reBuildDockSpace = true
+			if imgui.MenuItemBool("Layout 1") {
+				dockMngr.layout = Layout01
+				dockMngr.rebuild = true
+			}
+			if imgui.MenuItemBool("Layout 2") {
+				dockMngr.layout = Layout02
+				dockMngr.rebuild = true
 			}
 			imgui.EndMenu()
 		}
