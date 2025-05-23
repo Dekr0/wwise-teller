@@ -38,6 +38,20 @@ type bankTab struct {
 	writeLock *atomic.Bool
 }
 
+func (b *bankTab) changeRoot(hid, np, op uint32) {
+	b.bank.HIRC().ChangeRoot(hid, np, op)
+	b.filter()
+	b.cntrStorage.Clear()
+	b.playListStorage.Clear()
+}
+
+func (b *bankTab) removeRoot(hid, op uint32) {
+	b.bank.HIRC().RemoveRoot(hid, op)
+	b.filter()
+	b.cntrStorage.Clear()
+	b.playListStorage.Clear()
+}
+
 func (b *bankTab) filter() {
 	if b.bank.HIRC() == nil {
 		return
