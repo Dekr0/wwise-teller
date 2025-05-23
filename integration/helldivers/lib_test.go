@@ -65,7 +65,7 @@ func _TestParseMeta(t *testing.T) {
 		t.Fail()
 		return
 	}
-	_, err = ParseMETA(nil, wio.NewInPlaceReader(metaCu.Data, wio.ByteOrder))
+	_, err = ParseMETA(nil, wio.NewInPlaceReader(metaCu.B, wio.ByteOrder))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func _TestGenHelldiversPatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := GenHelldiversPatch(timeout, bnkData, bnk.META().Data, "."); err != nil {
+	if err := GenHelldiversPatch(timeout, bnkData, bnk.META().B, "."); err != nil {
 		t.Fatal(err)
 	}
 }
