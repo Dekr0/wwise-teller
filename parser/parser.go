@@ -283,18 +283,6 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			}
 			pending -= 1
 			slog.Debug(fmt.Sprintf("Parsed %s section", res.c.Tag()))
-
-			if bytes.Compare(res.c.Tag(), []byte{'H', 'I', 'R', 'C'}) == 0 {
-				hirc := res.c.(*wwise.HIRC)
-				slog.Info("Collected HIRC parsing result",
-					"numHircObjs", len(hirc.HircObjs),
-					"numSounds", len(hirc.Sounds),
-					"numActorMixers", len(hirc.ActorMixers),
-					"numLayerCntrs", len(hirc.LayerCntrs),
-					"numRanSeqCntrs", len(hirc.RanSeqCntrs),
-					"numSwitchCntrs", len(hirc.SwitchCntrs),
-				)
-			}
 		}
 	}
 
