@@ -18,8 +18,8 @@ func NewDIDX(I uint8, T []byte, num uint32) *DIDX {
 }
 
 func (d *DIDX) Encode(ctx context.Context) ([]byte, error) {
-	size := uint32(len(d.MediaIndexs) * mediaIndexFieldSize)
-	w := wio.NewWriter(uint64(chunkHeaderSize + size))
+	size := uint32(len(d.MediaIndexs) * SizeOfMediaIndex)
+	w := wio.NewWriter(uint64(SizeOfChunkHeader + size))
 	w.AppendBytes(d.T)
 	w.Append(size)
 	for _, m := range d.MediaIndexs { w.Append(m) }
@@ -39,7 +39,7 @@ func (d *DIDX) Idx() uint8 {
 	return d.I
 }
 
-const mediaIndexFieldSize = 12
+const SizeOfMediaIndex = 12
 
 type MediaIndex struct {
 	Sid uint32 // sid

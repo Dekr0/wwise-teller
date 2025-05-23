@@ -10,7 +10,7 @@ import (
 type FXPR struct {
 	I uint8
 	T []byte
-	b []byte
+	B []byte
 }
 
 func NewFXPR(I uint8, T []byte, b []byte) *FXPR {
@@ -19,7 +19,7 @@ func NewFXPR(I uint8, T []byte, b []byte) *FXPR {
 
 func (f *FXPR) Encode(ctx context.Context) ([]byte, error) {
 	encoded := f.T
-	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(f.b)))
+	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(f.B)))
 	if err != nil {
 		panic(err)
 	}

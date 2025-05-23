@@ -10,7 +10,7 @@ import (
 type INIT struct {
 	I uint8
 	T []byte
-	b []byte
+	B []byte
 }
 
 func NewINIT(I uint8, T []byte, b []byte) *INIT {
@@ -19,7 +19,7 @@ func NewINIT(I uint8, T []byte, b []byte) *INIT {
 
 func (i *INIT) Encode(ctx context.Context) ([]byte, error) {
 	encoded := i.T
-	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(i.b)))
+	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(i.B)))
 	if err != nil {
 		panic(err)
 	}

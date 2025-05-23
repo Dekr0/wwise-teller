@@ -15,7 +15,7 @@ func (s *Sound) Encode() []byte {
 	b := s.BankSourceData.Encode()
 	b = append(b, s.BaseParam.Encode()...)
 	dataSize := uint32(4 + len(b))
-	size := sizeOfHircObjHeader + dataSize
+	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeSound))
 	w.Append(dataSize)

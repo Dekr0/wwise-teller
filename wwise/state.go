@@ -6,22 +6,22 @@ type State struct {
 	HircObj
 
 	Id   uint32
-	data []byte
+	Data []byte
 }
 
 func (s *State) Encode() []byte {
 	dataSize := s.DataSize()
-	size := sizeOfHircObjHeader + dataSize
+	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeState))
 	w.Append(dataSize)
 	w.Append(s.Id)
-	w.AppendBytes(s.data)
+	w.AppendBytes(s.Data)
 	return w.BytesAssert(int(size))
 }
 
 func (s *State) DataSize() uint32 {
-	return uint32(4 + len(s.data))
+	return uint32(4 + len(s.Data))
 }
 
 func (s *State) BaseParameter() *BaseParameter { return nil }

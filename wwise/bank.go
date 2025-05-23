@@ -10,7 +10,7 @@ import (
 
 var BankVersion = -1
 
-const chunkHeaderSize = 4 + 4
+const SizeOfChunkHeader = 4 + 4
 
 type Chunk interface {
 	Encode(ctx context.Context) ([]byte, error)
@@ -81,7 +81,7 @@ type EncodedChunk struct {
 	e error
 }
 
-func createEncodeClosure(
+func CreateEncodeClosure(
 	ctx context.Context, c chan *EncodedChunk, cu Chunk,
 ) func() {
 	return func() {
@@ -102,7 +102,7 @@ func (bnk *Bank) Encode(ctx context.Context) ([]byte, error) {
 		if bytes.Compare(cu.Tag(), []byte{'M', 'E', 'T', 'A'}) == 0 {
 			continue
 		}
-		go createEncodeClosure(ctx, c, cu)()
+		go CreateEncodeClosure(ctx, c, cu)()
 		i += 1
 	}
 

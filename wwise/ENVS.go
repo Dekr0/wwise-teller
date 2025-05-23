@@ -10,12 +10,12 @@ import (
 type ENVS struct {
 	I uint8
 	T []byte
-	b []byte
+	B []byte
 }
 
 func (e *ENVS) Encode(ctx context.Context) ([]byte, error) {
 	encoded := e.T
-	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(e.b)))
+	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(e.B)))
 	if err != nil {
 		panic(err)
 	}

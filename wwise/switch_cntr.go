@@ -34,8 +34,8 @@ func (s *SwitchCntr) Encode() []byte {
 	}
 	dataSize := 4 + uint32(len(baseParamData)) + 1 + 4 + 4 + 1 + 
 				uint32(len(cntrData)) + switchGroupDataSize + 4 + 
-				uint32(len(s.SwitchParams)) * sizeOfSwitchParam
-	size := sizeOfHircObjHeader + dataSize
+				uint32(len(s.SwitchParams)) * SizeOfSwitchParam
+	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeSwitchCntr))
 	w.Append(dataSize)

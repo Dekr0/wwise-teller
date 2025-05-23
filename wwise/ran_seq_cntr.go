@@ -21,7 +21,7 @@ type RanSeqCntr struct {
 
 func (r *RanSeqCntr) Encode() []byte {
 	dataSize := r.DataSize()
-	size := sizeOfHircObjHeader + dataSize
+	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeRanSeqCntr))
 	w.Append(dataSize)
@@ -37,7 +37,7 @@ func (r *RanSeqCntr) Encode() []byte {
 }
 
 func (r *RanSeqCntr) DataSize() uint32 {
-	return uint32(4 + r.BaseParam.Size() + r.Container.Size() + sizeOfPlayListSetting + 2 + uint32(len(r.PlayListItems)) * sizeOfPlayListItem)
+	return uint32(4 + r.BaseParam.Size() + r.Container.Size() + SizeOfPlayListSetting + 2 + uint32(len(r.PlayListItems)) * SizeOfPlayListItem)
 }
 
 func (r *RanSeqCntr) BaseParameter() *BaseParameter { return r.BaseParam }

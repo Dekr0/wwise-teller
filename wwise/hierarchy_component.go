@@ -51,7 +51,7 @@ func (b *BaseParameter) Encode() []byte {
 }
 
 func (b *BaseParameter) Size() uint32 {
-	return 1 + b.FxChunk.Size() + b.FxChunkMetadata.Size() + 1 + 4 + 4 + 1 + b.PropBundle.Size() + b.RangePropBundle.Size() + b.PositioningParam.Size() + b.AuxParam.Size() + sizeOfAdvanceSetting + b.StateProp.Size() + b.StateGroup.Size() + b.RTPC.Size()
+	return 1 + b.FxChunk.Size() + b.FxChunkMetadata.Size() + 1 + 4 + 4 + 1 + b.PropBundle.Size() + b.RangePropBundle.Size() + b.PositioningParam.Size() + b.AuxParam.Size() + SizeOfAdvanceSetting + b.StateProp.Size() + b.StateGroup.Size() + b.RTPC.Size()
 }
 
 func (b *BaseParameter) PriorityOverrideParent() bool {
@@ -130,10 +130,10 @@ func (f *FxChunk) Size() uint32 {
 	if len(f.FxChunkItems) <= 0 {
 		return 1
 	}
-	return uint32(1 + 1 + len(f.FxChunkItems) * sizeOfFxChunk)
+	return uint32(1 + 1 + len(f.FxChunkItems) * SizeOfFxChunk)
 }
 
-const sizeOfFxChunk = 7
+const SizeOfFxChunk = 7
 type FxChunkItem struct {
 	UniqueFxIndex uint8 // u8i
 	FxId uint32 // tid
@@ -163,17 +163,17 @@ func (f *FxChunkMetadata) Encode() []byte {
 }
 
 func (f *FxChunkMetadata) Size() uint32 {
-	return uint32(1 + 1 + len(f.FxMetaDataChunkItems) * sizeOfFxChunkMetadata)
+	return uint32(1 + 1 + len(f.FxMetaDataChunkItems) * SizeOfFxChunkMetadata)
 }
 
-const sizeOfFxChunkMetadata = 6
+const SizeOfFxChunkMetadata = 6
 type FxChunkMetadataItem struct {
 	UniqueFxIndex uint8 // u8i
 	FxId uint32 // tid
 	BitIsShareSet uint8 // U8x
 }
 
-const sizeOfPropValue = 4
+const SizeOfPropValue = 4
 
 var ExceedMaxNumOfProperty = errors.New("Exceed max number of property.")
 
@@ -283,7 +283,7 @@ func (p *PropBundle) Encode() []byte {
 }
 
 func (p *PropBundle) Size() uint32 {
-	return uint32(1 + len(p.PropValues) + sizeOfPropValue * len(p.PropValues))
+	return uint32(1 + len(p.PropValues) + SizeOfPropValue * len(p.PropValues))
 }
 
 func (p *PropBundle) HasPid(pId uint8) (int, bool) {
@@ -432,7 +432,7 @@ func (r *RangePropBundle) Encode() []byte {
 }
 
 func (r *RangePropBundle) Size() uint32 {
-	return uint32(1 + len(r.RangeValues) + sizeOfRangeValue * len(r.RangeValues))
+	return uint32(1 + len(r.RangeValues) + SizeOfRangeValue * len(r.RangeValues))
 }
 
 func (r *RangePropBundle) HasPid(pID uint8) (int, bool) {
@@ -557,7 +557,7 @@ func (r *RangePropBundle) Sort() {
 	)
 }
 
-const sizeOfRangeValue = 8
+const SizeOfRangeValue = 8
 type RangeValue struct {
 	PId uint8
 	Min []byte // Union[tid, uni / float32]
@@ -565,11 +565,11 @@ type RangeValue struct {
 }
 
 func (r *RangeValue) Encode() []byte {
-	b := make([]byte, 0, sizeOfRangeValue)
+	b := make([]byte, 0, SizeOfRangeValue)
 	b = append(b, r.Min...) 
 	b = append(b, r.Max...)
 	assert.Equal(
-		sizeOfRangeValue, len(b),
+		SizeOfRangeValue, len(b),
 		"Encoded data of RangeValue has incorrect size",
 	)
 	return b
@@ -674,7 +674,7 @@ func (p *PositioningParam) Size() uint32 {
 	if !p.HasAutomation() {
 		return 2
 	}
-	return uint32(1 + 1 + 1 + 4 + 4 + len(p.PositionVertices) * sizeOfPositionVertex + 4 + len(p.PositionPlayListItems) * sizeOfPositionPlayListItem + len(p.PositionPlayListItems) * sizeOfAk3DAutomationParam)
+	return uint32(1 + 1 + 1 + 4 + 4 + len(p.PositionVertices) * SizeOfPositionVertex + 4 + len(p.PositionPlayListItems) * SizeOfPositionPlayListItem + len(p.PositionPlayListItems) * SizeOfAk3DAutomationParam)
 }
 
 /* Will Panic */
@@ -717,7 +717,7 @@ func (p *PositioningParam) assert() {
 	)
 }
 
-const sizeOfPositionVertex = 16 
+const SizeOfPositionVertex = 16 
 type PositionVertex struct {
 	X float32 // f32
 	Y float32 // f32
@@ -725,13 +725,13 @@ type PositionVertex struct {
 	Duration int32 // s32
 }
 
-const sizeOfPositionPlayListItem = 8 
+const SizeOfPositionPlayListItem = 8 
 type PositionPlayListItem struct {
 	UniqueVerticesOffset uint32 // U32
 	INumVertices uint32 // u32
 }
 
-const sizeOfAk3DAutomationParam = 12
+const SizeOfAk3DAutomationParam = 12
 type Ak3DAutomationParam struct {
 	XRange float32 // f32
 	YRange float32 // f32
@@ -838,7 +838,7 @@ var BelowThresholdBehaviorString []string = []string{
 	"Continue To Play", "Kill Voice", "Send To Virtual Voice",
 }
 
-const sizeOfAdvanceSetting = 6
+const SizeOfAdvanceSetting = 6
 type AdvanceSetting struct {
 	AdvanceSettingBitVector uint8 // U8x
 	VirtualQueueBehavior uint8 // U8x
@@ -931,10 +931,10 @@ func (s *StateProp) Encode() []byte {
 }
 
 func (s *StateProp) Size() uint32 {
-	return uint32(1 + len(s.StatePropItems) * sizeOfStatePropItem)
+	return uint32(1 + len(s.StatePropItems) * SizeOfStatePropItem)
 }
 
-const sizeOfStatePropItem = 3
+const SizeOfStatePropItem = 3
 type StatePropItem struct {
 	PropertyId uint8 // var (at least 1 byte / 8 bits)
 	AccumType uint8 // U8x
@@ -992,10 +992,10 @@ func (s * StateGroupItem) Encode() []byte {
 }
 
 func (s *StateGroupItem) Size() uint32 {
-	return uint32(4 + 1 + 1 + sizeOfStateGroupItem * len(s.States))
+	return uint32(4 + 1 + 1 + SizeOfStateGroupItem * len(s.States))
 }
 
-const sizeOfStateGroupItem = 8
+const SizeOfStateGroupItem = 8
 type StateGroupItemState struct {
 	StateID uint32 // tid
 	StateInstanceID uint32 // tid
@@ -1061,7 +1061,7 @@ func (r *RTPCItem) Encode() []byte {
 }
 
 func (r *RTPCItem) Size() uint32 {
-	return uint32(4 + 1 + 1 + 1 + 4 + 1 + 2 + len(r.RTPCGraphPoints) * sizeOfRtpcGraphPoint)
+	return uint32(4 + 1 + 1 + 1 + 4 + 1 + 2 + len(r.RTPCGraphPoints) * SizeOfRtpcGraphPoint)
 }
 
 var RTPCInterp []string = []string{
@@ -1077,7 +1077,7 @@ var RTPCInterp []string = []string{
   "Constant",
 }
 
-const sizeOfRtpcGraphPoint = 12
+const SizeOfRtpcGraphPoint = 12
 type RTPCGraphPoint struct {
 	From float32 // f32 
 	To float32 // f32
@@ -1202,7 +1202,7 @@ func (c *Container) Size() uint32 {
 	return uint32(4 + 4 * len(c.Children))
 }
 
-const sizeOfPlayListSetting = 24
+const SizeOfPlayListSetting = 24
 
 const (
 	TransitionModeDisable = 0
@@ -1293,7 +1293,7 @@ func (p *PlayListSetting) SetGlobal(set bool) {
 	p.PlayListBitVector = wio.SetBit(p.PlayListBitVector, 4, set)
 }
 
-const sizeOfPlayListItem = 8
+const SizeOfPlayListItem = 8
 type PlayListItem struct {
 	UniquePlayID uint32 // tid
 	Weight int32 // s32
@@ -1322,7 +1322,7 @@ func (s *SwitchGroupItem) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-const sizeOfSwitchParam = 14
+const SizeOfSwitchParam = 14
 type SwitchParam struct {
 	NodeId uint32 // tid
 	PlayBackBitVector uint8 // U8x
@@ -1384,5 +1384,5 @@ func (l *LayerRTPC) Encode() []byte {
 }
 
 func (l *LayerRTPC) Size() uint32 {
-	return uint32(4 + 4 + len(l.RTPCGraphPoints) * sizeOfRtpcGraphPoint)
+	return uint32(4 + 4 + len(l.RTPCGraphPoints) * SizeOfRtpcGraphPoint)
 }

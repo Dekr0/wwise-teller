@@ -6,22 +6,22 @@ type Event struct {
 	HircObj
 
 	Id   uint32
-	data []byte
+	Data []byte
 }
 
 func (h *Event) Encode() []byte {
 	dataSize := h.DataSize()
-	size := sizeOfHircObjHeader + dataSize
+	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeEvent))
 	w.Append(dataSize)
 	w.Append(h.Id)
-	w.AppendBytes(h.data)
+	w.AppendBytes(h.Data)
 	return w.BytesAssert(int(size))
 }
 
 func (h *Event) DataSize() uint32 {
-	return uint32(4 + len(h.data))
+	return uint32(4 + len(h.Data))
 }
 
 func (h *Event) BaseParameter() *BaseParameter { return nil }

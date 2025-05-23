@@ -10,7 +10,7 @@ import (
 type PLAT struct {
 	I uint8
 	T []byte
-	b []byte
+	B []byte
 }
 
 func NewPLAT(I uint8, T []byte, b []byte) *PLAT {
@@ -19,7 +19,7 @@ func NewPLAT(I uint8, T []byte, b []byte) *PLAT {
 
 func (p *PLAT) Encode(ctx context.Context) ([]byte, error) {
 	encoded := p.T
-	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(p.b)))
+	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(p.B)))
 	if err != nil {
 		panic(err)
 	}

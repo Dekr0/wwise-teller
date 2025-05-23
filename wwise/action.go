@@ -6,22 +6,22 @@ type Action struct {
 	HircObj
 
 	Id   uint32
-	data []byte
+	Data []byte
 }
 
 func (a *Action) Encode() []byte {
 	dataSize := a.DataSize()
-	size := sizeOfHircObjHeader + dataSize
+	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeAction))
 	w.Append(dataSize)
 	w.Append(a.Id)
-	w.AppendBytes(a.data)
+	w.AppendBytes(a.Data)
 	return w.BytesAssert(int(size))
 }
 
 func (a *Action) DataSize() uint32 {
-	return uint32(4 + len(a.data))
+	return uint32(4 + len(a.Data))
 }
 
 func (a *Action) BaseParameter() *BaseParameter { return nil }

@@ -10,7 +10,7 @@ import (
 type STID struct {
 	I uint8
 	T []byte
-	b []byte
+	B []byte
 }
 
 func NewSTID(I uint8, T []byte, b []byte) *STID {
@@ -19,7 +19,7 @@ func NewSTID(I uint8, T []byte, b []byte) *STID {
 
 func (s *STID) Encode(ctx context.Context) ([]byte, error) {
 	encoded := s.T 
-	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(s.b)))
+	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(s.B)))
 	if err != nil {
 		panic(err)
 	}

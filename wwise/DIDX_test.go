@@ -20,7 +20,7 @@ func TestMediaIndexEncode(t *testing.T) {
 	})
 
 	b, _ := d.Encode(nil)
-	if len(b) != 4 + 4 + len(d.MediaIndexs) * mediaIndexFieldSize {
+	if len(b) != 4 + 4 + len(d.MediaIndexs) * SizeOfMediaIndex {
 		t.Fail()
 	}
 }

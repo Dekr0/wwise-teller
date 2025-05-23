@@ -10,7 +10,7 @@ import (
 type STMG struct {
 	I uint8
 	T []byte
-	b []byte
+	B []byte
 }
 
 func NewSTMG(I uint8, T []byte, b []byte) *STMG {
@@ -19,7 +19,7 @@ func NewSTMG(I uint8, T []byte, b []byte) *STMG {
 
 func (s *STMG) Encode(ctx context.Context) ([]byte, error) {
 	encoded := s.T 
-	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(s.b)))
+	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(s.B)))
 	if err != nil {
 		panic(err)
 	}

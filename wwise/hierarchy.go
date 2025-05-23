@@ -11,10 +11,10 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
-const maxEncodeRoutine = 8
+const MaxEncodeRoutine = 8
 
 // # of hierarchy object (uint32)
-const sizeOfHIRCHeader = 4
+const SizeOfHIRCHeader = 4
 
 type HircType uint8
 
@@ -127,10 +127,10 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 	results := make([][]byte, len(h.HircObjs))
 
 	// sync signal
-	c := make(chan *result, maxEncodeRoutine)
+	c := make(chan *result, MaxEncodeRoutine)
 
 	// limit # of go routines running at the same time
-	sem := make(chan struct{} , maxEncodeRoutine)
+	sem := make(chan struct{} , MaxEncodeRoutine)
 
 	done := 0
 	i := 0
@@ -168,9 +168,9 @@ func (h *HIRC) Encode(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 
-	dataSize := uint32(sizeOfHIRCHeader + len(b))
-	size := chunkHeaderSize + dataSize
-	w := wio.NewWriter(uint64(chunkHeaderSize + dataSize))
+	dataSize := uint32(SizeOfHIRCHeader + len(b))
+	size := SizeOfChunkHeader + dataSize
+	w := wio.NewWriter(uint64(SizeOfChunkHeader + dataSize))
 	w.AppendBytes(h.T)
 	w.Append(dataSize)
 	w.Append(uint32(len(h.HircObjs)))
@@ -361,7 +361,7 @@ type HircObj interface {
 	RemoveLeaf(o HircObj) 
 }
 
-const sizeOfHircObjHeader = 1 + 4
+const SizeOfHircObjHeader = 1 + 4
 
 type HircObjHeader struct {
 	Type HircType // U8x
@@ -371,28 +371,28 @@ type HircObjHeader struct {
 type Unknown struct {
 	HircObj
 	Header *HircObjHeader
-	b []byte
+	Data   []byte
 }
 
 func NewUnknown(t HircType, s uint32, b []byte) *Unknown {
 	return &Unknown{
 		Header: &HircObjHeader{Type: t, Size: s},
-		b: b,
+		Data: b,
 	}
 }
 
 func (u *Unknown) Encode() []byte {
 	assert.Equal(
 		u.Header.Size,
-		uint32(len(u.b)),
+		uint32(len(u.Data)),
 		"Header size does not equal to actual data size",
 	)
 
-	bw := wio.NewWriter(uint64(sizeOfHircObjHeader + len(u.b)))
+	bw := wio.NewWriter(uint64(SizeOfHircObjHeader + len(u.Data)))
 	
 	/* Header */
 	bw.Append(u.Header)
-	bw.AppendBytes(u.b)
+	bw.AppendBytes(u.Data)
 
 	return bw.Bytes() 
 }

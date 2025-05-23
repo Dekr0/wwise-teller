@@ -16,13 +16,11 @@ type LayerCntr struct {
 	
 	Layers []*Layer
 	IsContinuousValidation uint8 // U8x
-
-	idx uint32
 }
 
 func (l *LayerCntr) Encode() []byte {
 	dataSize := l.DataSize()
-	size := sizeOfHircObjHeader + dataSize
+	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeLayerCntr))
 	w.Append(dataSize)

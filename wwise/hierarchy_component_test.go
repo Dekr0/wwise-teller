@@ -7,7 +7,7 @@ import (
 
 func TestFxChunkEncode(t *testing.T) {
 	f := FxChunkItem{1, 12345, 0, 0}
-	b := make([]byte, sizeOfFxChunk, sizeOfFxChunk)
+	b := make([]byte, SizeOfFxChunk, SizeOfFxChunk)
 	_, err := binary.Encode(b, binary.LittleEndian, f)
 	if err != nil {
 		t.Fatal(err)
@@ -16,7 +16,7 @@ func TestFxChunkEncode(t *testing.T) {
 
 func TestFxChunkMetadataEncode(t *testing.T) {
 	f := FxChunkMetadataItem{1, 12345, 0}
-	b := make([]byte, sizeOfFxChunkMetadata, sizeOfFxChunkMetadata)
+	b := make([]byte, SizeOfFxChunkMetadata, SizeOfFxChunkMetadata)
 	_, err := binary.Encode(b, binary.LittleEndian, f)
 	if err != nil {
 		t.Fatal(err)

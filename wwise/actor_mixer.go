@@ -16,7 +16,7 @@ type ActorMixer struct {
 
 func (a *ActorMixer) Encode() []byte {
 	dataSize := a.DataSize()
-	size := sizeOfHircObjHeader + dataSize
+	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeActorMixer))
 	w.Append(dataSize)

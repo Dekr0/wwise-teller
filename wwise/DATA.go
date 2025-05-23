@@ -10,19 +10,19 @@ import (
 type DATA struct {
 	I uint8
 	T []byte
-	b []byte
+	B []byte
 }
 
 func NewDATA(I uint8, T []byte, b []byte) *DATA {
-	return &DATA{I: I, T: T, b: b}
+	return &DATA{I: I, T: T, B: b}
 }
 
 func (d *DATA) Encode(ctx context.Context) ([]byte, error) {
-	size := uint32(len(d.b))
-	bw := wio.NewWriter(uint64(chunkHeaderSize + size))
+	size := uint32(len(d.B))
+	bw := wio.NewWriter(uint64(SizeOfChunkHeader + size))
 	bw.AppendBytes(d.T)
 	bw.Append(size)
-	bw.AppendBytes(d.b)
+	bw.AppendBytes(d.B)
 	assert.Equal(
 		int(size),
 		bw.Len() - 4 - 4,

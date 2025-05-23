@@ -10,7 +10,7 @@ import (
 type META struct {
 	I uint8
 	T []byte
-	Data []byte
+	B []byte
 }
 
 func NewMETA(I uint8, T []byte, Data []byte) *META {
@@ -19,7 +19,7 @@ func NewMETA(I uint8, T []byte, Data []byte) *META {
 
 func (e *META) Encode(ctx context.Context) ([]byte, error) {
 	encoded := e.T
-	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(e.Data)))
+	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(e.B)))
 	if err != nil {
 		panic(err)
 	}

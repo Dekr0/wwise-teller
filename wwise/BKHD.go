@@ -7,7 +7,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
-const bkhdFieldSize = 4 * 5
+const SizeOfBKHD = 4 * 5
 
 type BKHD struct {
 	I uint8
@@ -22,8 +22,6 @@ type BKHD struct {
 
 	ProjectID uint32 // u32
 	Undefined []byte
-	
-	oldData []byte /* for testing */
 }
 
 func NewBKHD(I uint8, T []byte) *BKHD {
@@ -31,8 +29,8 @@ func NewBKHD(I uint8, T []byte) *BKHD {
 }
 
 func (b *BKHD) Encode(ctx context.Context) ([]byte, error) {
-	size := uint32(bkhdFieldSize + len(b.Undefined))
-	w := wio.NewWriter(uint64(chunkHeaderSize + size))
+	size := uint32(SizeOfBKHD + len(b.Undefined))
+	w := wio.NewWriter(uint64(SizeOfChunkHeader + size))
 	w.AppendBytes(b.T)
 	w.Append(size);
 	w.Append(b.BankGenerationVersion); 
