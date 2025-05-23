@@ -113,9 +113,11 @@ func renderHircLTable(b *bankTab) {
 		b.filter()
 	}
 
+	imgui.BeginDisabledV(b.typeQuery != 0 && b.typeQuery != int32(wwise.HircTypeSound))
 	if imgui.InputTextWithHint("Filter by source ID", "", &b.sidQuery, 0, nil) {
-
+		b.filter()
 	}
+	imgui.EndDisabled()
 
 	if imgui.ComboStrarr(
 		"Filter by hierarchy object type",
