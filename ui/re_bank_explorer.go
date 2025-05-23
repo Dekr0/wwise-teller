@@ -21,11 +21,11 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 
 	savedTab, savedName, iType := renderBankExplorerMenu(bnkMngr, iType)
 
-	if imgui.BeginTabBarV(
-		"BankExplorerTabBar",
-		imgui.TabBarFlagsReorderable | imgui.TabBarFlagsAutoSelectNewTabs | 
-		imgui.TabBarFlagsTabListPopupButton | imgui.TabBarFlagsFittingPolicyScroll,
-	) {
+	flags := imgui.TabBarFlagsReorderable        | 
+	         imgui.TabBarFlagsAutoSelectNewTabs  | 
+		     imgui.TabBarFlagsTabListPopupButton | 
+	         imgui.TabBarFlagsFittingPolicyScroll
+	if imgui.BeginTabBarV("BankExplorerTabBar", flags) {
 		bnkMngr.banks.Range(func(key any, value any) bool {
 			base := filepath.Base(key.(string))
 			open := true
@@ -113,6 +113,10 @@ func renderHircLTable(b *bankTab) {
 		b.filter()
 	}
 
+	if imgui.InputTextWithHint("Filter by source ID", "", &b.sidQuery, 0, nil) {
+
+	}
+
 	if imgui.ComboStrarr(
 		"Filter by hierarchy object type",
 		&b.typeQuery,
@@ -126,73 +130,82 @@ func renderHircLTable(b *bankTab) {
 		focusTable = true
 		imgui.SetKeyboardFocusHere()
 	}
-	if !imgui.BeginTableV("LinearTable", 2, 
-		imgui.TableFlagsResizable | imgui.TableFlagsReorderable | 
-		imgui.TableFlagsRowBg | 
-		imgui.TableFlagsBordersH | imgui.TableFlagsBordersV |
-		imgui.TableFlagsScrollY,
-		imgui.Vec2{X: 0.0, Y: 0.0}, 0,
-	) {
-		return
-	}
-	imgui.TableSetupColumn("Hierarchy ID")
-	imgui.TableSetupColumn("Hierarchy Type")
-	imgui.TableSetupScrollFreeze(0, 1)
-	imgui.TableHeadersRow()
-	if focusTable {
-		imgui.SetKeyboardFocusHere()
-	}
 
-	storage := b.storage
-	hircObjs := b.filtered
+	tableFlags := imgui.TableFlagsResizable   |
+			      imgui.TableFlagsReorderable |
+		          imgui.TableFlagsRowBg       |
+		          imgui.TableFlagsBordersH    |
+				  imgui.TableFlagsBordersV    |
+		          imgui.TableFlagsScrollY
+	outerSize := imgui.NewVec2(0, 0)
+	if imgui.BeginTableV("LinearTable", 2, tableFlags, outerSize, 0) {
+		imgui.TableSetupColumn("Hierarchy ID")
+		imgui.TableSetupColumn("Hierarchy Type")
+		imgui.TableSetupScrollFreeze(0, 1)
+		imgui.TableHeadersRow()
+		if focusTable {
+			imgui.SetKeyboardFocusHere()
+		}
 
-	flags := imgui.MultiSelectFlagsClearOnEscape | imgui.MultiSelectFlagsBoxSelect2d
-	msIO := imgui.BeginMultiSelectV(flags, storage.Size(), int32(len(hircObjs)))
-	storage.ApplyRequests(msIO)
+		storage := b.storage
+		hircObjs := b.filtered
 
-	clipper := imgui.NewListClipper()
-	clipper.Begin(int32(len(hircObjs)))
-	if msIO.RangeSrcItem() != 1 {
-		// Ensure RangeSrc item is not clipped
-		clipper.IncludeItemByIndex(int32(msIO.RangeSrcItem()))
-	}
-	for clipper.Step() {
-		for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-			o := hircObjs[n]
+		flags := imgui.MultiSelectFlagsClearOnEscape | 
+		         imgui.MultiSelectFlagsBoxSelect2d
+		msIO := imgui.BeginMultiSelectV(flags, storage.Size(), int32(len(hircObjs)))
+		storage.ApplyRequests(msIO)
 
-			imgui.TableNextRow()
-			imgui.TableSetColumnIndex(0)
+		clipper := imgui.NewListClipper()
+		clipper.Begin(int32(len(hircObjs)))
+		if msIO.RangeSrcItem() != 1 {
+			// Ensure RangeSrc item is not clipped
+			clipper.IncludeItemByIndex(int32(msIO.RangeSrcItem()))
+		}
+		for clipper.Step() {
+			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
+				o := hircObjs[n]
 
-			var idS string
-			id, err := o.HircID()
-			if err != nil {
-				idS = "-"
-			} else {
-				idS = strconv.FormatUint(uint64(id), 10)
-			}
+				imgui.TableNextRow()
+				imgui.TableSetColumnIndex(0)
 
-			selected := storage.Contains(imgui.ID(n))
-			imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(n))
-			if err != nil {
-				imgui.PushIDStr(fmt.Sprintf("UnknownID%d", n))
-			}
-			imgui.SelectableBoolPtrV(
-				idS, &selected, 
-				imgui.SelectableFlagsSpanAllColumns | 
-				imgui.SelectableFlagsAllowOverlap,
-				imgui.Vec2{X: 0, Y: 0},
-			)
+				var idS string
+				var selected bool = false
+				id, err := o.HircID()
+				if err != nil {
+					idS = "-"
+				} else {
+					idS = strconv.FormatUint(uint64(id), 10)
+					selected = storage.Contains(imgui.ID(id))
+					imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(id))
+				}
 
-			imgui.TableSetColumnIndex(1)
-			imgui.Text(wwise.HircTypeName[o.HircType()])
-			if err != nil {
-				imgui.PopID()
+				if err != nil {
+					imgui.PushIDStr(fmt.Sprintf("UnknownID%d", n))
+				}
+				flags := imgui.SelectableFlagsSpanAllColumns | 
+					     imgui.SelectableFlagsAllowOverlap
+				size := imgui.NewVec2(0, 0)
+				imgui.SelectableBoolPtrV(idS, &selected, flags, size)
+
+				imgui.TableSetColumnIndex(1)
+				st := wwise.HircTypeName[o.HircType()]
+				if o.HircType() == wwise.HircTypeSound {
+					st = fmt.Sprintf(
+						"%s (Audio Source %d)",
+						st, o.(*wwise.Sound).BankSourceData.SourceID,
+					)
+				}
+				imgui.Text(st)
+
+				if err != nil {
+					imgui.PopID()
+				}
 			}
 		}
+		msIO = imgui.EndMultiSelect()
+		storage.ApplyRequests(msIO)
+		imgui.EndTable()
 	}
-	msIO = imgui.EndMultiSelect()
-	storage.ApplyRequests(msIO)
-	imgui.EndTable()
 }
 
 func renderHircTree(t *bankTab)  {
@@ -206,36 +219,36 @@ func renderHircTree(t *bankTab)  {
 }
 
 func renderHircTTable(t *bankTab) {
-	if !imgui.BeginTableV("TreeTable", 2, 
-		imgui.TableFlagsResizable | imgui.TableFlagsReorderable | 
-		imgui.TableFlagsRowBg | 
-		imgui.TableFlagsBordersH | imgui.TableFlagsBordersV,
-		imgui.Vec2{X: 0.0, Y: 0.0}, 0,
-	) {
-		return
-	}
-	imgui.TableSetupColumn("Hierarchy ID")
-	imgui.TableSetupColumn("Hierarchy Type")
-	imgui.TableSetupScrollFreeze(0, 1)
-	imgui.TableHeadersRow()
+	tableFlags := imgui.TableFlagsResizable   | 
+				  imgui.TableFlagsReorderable | 
+			      imgui.TableFlagsRowBg       | 
+		          imgui.TableFlagsBordersH    | 
+				  imgui.TableFlagsBordersV
+	outerSize := imgui.NewVec2(0, 0)
+	if imgui.BeginTableV("TreeTable", 2, tableFlags, outerSize, 0) {
+		imgui.TableSetupColumn("Hierarchy ID")
+		imgui.TableSetupColumn("Hierarchy Type")
+		imgui.TableSetupScrollFreeze(0, 1)
+		imgui.TableHeadersRow()
 
-	hircObjs := t.bank.HIRC().HircObjs
+		hircObjs := t.bank.HIRC().HircObjs
 
-	c := imgui.NewListClipper()
-	c.Begin(int32(len(hircObjs)))
+		c := imgui.NewListClipper()
+		c.Begin(int32(len(hircObjs)))
 
-	treeIdx := 0 
-	drawIdx := int32(0)
-	for c.Step() {
-		for drawIdx < c.DisplayEnd() && treeIdx < len(hircObjs) {
+		treeIdx := 0 
+		drawIdx := int32(0)
+		for c.Step() {
+			for drawIdx < c.DisplayEnd() && treeIdx < len(hircObjs) {
+				renderHircNode(c, &drawIdx, &treeIdx, hircObjs)
+			}
+		}
+		for treeIdx < len(hircObjs) {
 			renderHircNode(c, &drawIdx, &treeIdx, hircObjs)
 		}
-	}
-	for treeIdx < len(hircObjs) {
-		renderHircNode(c, &drawIdx, &treeIdx, hircObjs)
-	}
 
-	imgui.EndTable()
+		imgui.EndTable()
+	}
 }
 
 func renderHircNode(
@@ -244,7 +257,8 @@ func renderHircNode(
 	treeIdx *int,
 	hircObjs []wwise.HircObj,
 ) bool {
-	o := hircObjs[*treeIdx]
+	l := len(hircObjs)
+	o := hircObjs[l - *treeIdx - 1]
 	visible := *drawIdx >= c.DisplayStart() && *drawIdx < c.DisplayEnd()
 	*drawIdx += 1
 	*treeIdx += 1
@@ -268,7 +282,14 @@ func renderHircNode(
 		imgui.TableSetColumnIndex(0)
 		open := imgui.TreeNodeExStrV(sid, imgui.TreeNodeFlagsSpanAllColumns)
 		imgui.TableSetColumnIndex(1)
-		imgui.Text(wwise.HircTypeName[o.HircType()])
+		st := wwise.HircTypeName[o.HircType()]
+		if o.HircType() == wwise.HircTypeSound {
+			st = fmt.Sprintf(
+				"%s (Audio Source %d)",
+				st, o.(*wwise.Sound).BankSourceData.SourceID,
+			)
+		}
+		imgui.Text(st)
 		if open {
 			for j := 0; j < o.NumLeaf(); {
 				if !renderHircNode(c, drawIdx, treeIdx, hircObjs) {
@@ -305,7 +326,8 @@ func renderHircNode(
 }
 
 func clippedHircNode(treeIdx *int, hircObjs []wwise.HircObj) bool {
-	o := hircObjs[*treeIdx]
+	l := len(hircObjs)
+	o := hircObjs[l - *treeIdx - 1]
 	*treeIdx += 1
 	freeFloat := false
 	if o.ParentID() == 0 {
