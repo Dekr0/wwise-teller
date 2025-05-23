@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"sync"
 
@@ -281,6 +282,10 @@ func (h *HIRC) RemoveRoot(id, oldRootID uint32) {
 	leaf := v.(HircObj)
 	if b := leaf.BaseParameter(); b == nil {
 		panic(fmt.Sprintf("%d is not containable", id))
+	}
+	if leaf.HircType() != HircTypeSound {
+		slog.Warn("Parent rewiring is only supported for Sound right now")
+		return
 	}
 	_, err := leaf.HircID()
 	if err != nil {
