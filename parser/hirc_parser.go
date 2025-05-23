@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"slices"
 	"sort"
+	"sync/atomic"
 
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/interp"
@@ -39,24 +40,20 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 
 	/* sync signal */
 	sem := make(chan struct{}, maxNumParseRoutine)
-	parserResult := make(chan *parserResult, numHircItem)
-	i := 0
-	parsed := 0
+	i := uint32(0)
+	parsed := atomic.Uint32{}
 
 	slog.Debug("Start scanning through all hierarchy object, and scheduling parser",
 		"numHircItem", numHircItem,
 	)
 
-	for parsed < int(numHircItem) {
+	for parsed.Load() < numHircItem {
 		select {
-		case <-ctx.Done():
+		case <- ctx.Done():
 			return nil, ctx.Err()
-		case res := <- parserResult:
-			addHircObj(hirc, res.i, res.obj)
-			parsed += 1
 		default:
 		}
-		if i >= int(numHircItem) {
+		if i >= numHircItem {
 			continue
 		}
 		eHircType := r.U8Unsafe()
@@ -68,8 +65,9 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 				r.ReadNUnsafe(uint64(dwSectionSize), 4),
 			)
 			hirc.HircObjs[i] = unknown
+
 			i += 1
-			parsed += 1
+			parsed.Add(1)
 			slog.Debug("Skipped hierarchy object",
 				"index", i,
 				"hircType", eHircType,
@@ -87,8 +85,9 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
 					parseSound,
-					parserResult,
+					hirc,
 					sem,
+					&parsed,
 				)
 			case wwise.HircTypeRanSeqCntr:
 				go parserRoutine(
@@ -96,8 +95,9 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
 					parseRanSeqCntr,
-					parserResult,
+					hirc,
 					sem,
+					&parsed,
 				)
 			case wwise.HircTypeSwitchCntr:
 				go parserRoutine(
@@ -105,8 +105,9 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
 					parseSwitchCntr,
-					parserResult,
+					hirc,
 					sem,
+					&parsed,
 				)
 			case wwise.HircTypeActorMixer:
 				go parserRoutine(
@@ -114,8 +115,9 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
 					parseActorMixer,
-					parserResult,
+					hirc,
 					sem,
+					&parsed,
 				)
 			case wwise.HircTypeLayerCntr:
 				go parserRoutine(
@@ -123,8 +125,9 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
 					parseLayerCntr,
-					parserResult,
+					hirc,
 					sem,
+					&parsed,
 				)
 			default:
 				panic("Assertion Trap")
@@ -155,7 +158,7 @@ func parseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 			}
 			addHircObj(hirc, uint32(i), obj)
 			i += 1
-			parsed += 1
+			parsed.Add(1)
 		}
 	}
 
@@ -176,39 +179,31 @@ func addHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 	if err != nil { panic(err) }
 	switch t {
 	case wwise.HircTypeSound:
-		if _, in := h.Sounds[id]; in {
+		if _, in := h.Sounds.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate sound object %d", id))
 		}
-		h.Sounds[id] = obj.(*wwise.Sound)
 	case wwise.HircTypeRanSeqCntr:
-		if _, in := h.RanSeqCntrs[id]; in {
+		if _, in := h.RanSeqCntrs.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate random / sequence container object %d", id))
 		}
-		h.RanSeqCntrs[id] = obj.(*wwise.RanSeqCntr)
 	case wwise.HircTypeSwitchCntr:
-		if _, in := h.SwitchCntrs[id]; in {
+		if _, in := h.SwitchCntrs.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate switch container object %d", id))
 		}
-		h.SwitchCntrs[id] = obj.(*wwise.SwitchCntr)
 	case wwise.HircTypeActorMixer:
-		if _, in := h.ActorMixers[id]; in {
+		if _, in := h.ActorMixers.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate actor mixer object %d", id))
 		}
-		h.ActorMixers[id] = obj.(*wwise.ActorMixer)
 	case wwise.HircTypeLayerCntr:
-		if _, in := h.LayerCntrs[id]; in {
+		if _, in := h.LayerCntrs.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate layer container object %d", id))
 		}
-		h.LayerCntrs[id] = obj.(*wwise.LayerCntr)
 	default:
 		panic("Assertion Trap")
 	}
 	h.HircObjs[i] = obj
-	if err == nil {
-		if _, in := h.HircObjsMap[id]; in {
-			panic(fmt.Sprintf("Duplicate hierarchy object %d", id))
-		}
-		h.HircObjsMap[id] = obj
+	if _, in := h.HircObjsMap.LoadOrStore(id, obj); in {
+		panic(fmt.Sprintf("Duplicate hierarchy object %d", id))
 	}
 	slog.Debug(fmt.Sprintf("Collected %s parser", wwise.HircTypeName[obj.HircType()]))
 }
@@ -226,19 +221,17 @@ func skipHircObjType(t wwise.HircType) bool {
 	return !find
 }
 
-// Side effect: Channel will receive a parser result. Semaphore channel will 
-// release an item once parser finishes to allows other more parser routine to 
-// start.
 func parserRoutine[T wwise.HircObj](
 	size uint32,
 	i uint32,
 	r *wio.Reader,
 	f func(uint32, *wio.Reader) T,
-	c chan *parserResult,
+	h *wwise.HIRC,
 	sem chan struct{},
+	parsed *atomic.Uint32,
 ) {
-	hircObj := f(size, r)
-	c <- &parserResult{i, hircObj}
+	addHircObj(h, i, f(size, r))
+	parsed.Add(1)
 	<- sem
 }
 
