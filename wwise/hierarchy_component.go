@@ -1061,7 +1061,7 @@ func (r *RTPCItem) Encode() []byte {
 }
 
 func (r *RTPCItem) Size() uint32 {
-	return uint32(4 + 1 + 1 + 1 + 4 + 1 + 2 + len(r.RTPCGraphPoints) * SizeOfRtpcGraphPoint)
+	return uint32(4 + 1 + 1 + 1 + 4 + 1 + 2 + len(r.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
 }
 
 var RTPCInterp []string = []string{
@@ -1077,7 +1077,7 @@ var RTPCInterp []string = []string{
   "Constant",
 }
 
-const SizeOfRtpcGraphPoint = 12
+const SizeOfRTPCGraphPoint = 12
 type RTPCGraphPoint struct {
 	From float32 // f32 
 	To float32 // f32
@@ -1389,5 +1389,5 @@ func (l *LayerRTPC) Encode() []byte {
 }
 
 func (l *LayerRTPC) Size() uint32 {
-	return uint32(4 + 4 + len(l.RTPCGraphPoints) * SizeOfRtpcGraphPoint)
+	return uint32(4 + 4 + len(l.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
 }
