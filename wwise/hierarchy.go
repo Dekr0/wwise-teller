@@ -12,7 +12,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
-const MaxEncodeRoutine = 8
+const MaxEncodeRoutine = 0
 
 // # of hierarchy object (uint32)
 const SizeOfHIRCHeader = 4
@@ -21,15 +21,15 @@ type HircType uint8
 
 const (
 	HircTypeState           HircType = 0x01 // ???
-	HircTypeSound           HircType = 0x02 
+	HircTypeSound           HircType = 0x02
 	HircTypeAction          HircType = 0x03 // ???
 	HircTypeEvent           HircType = 0x04 // ???
-	HircTypeRanSeqCntr      HircType = 0x05 
-	HircTypeSwitchCntr      HircType = 0x06 
-	HircTypeActorMixer      HircType = 0x07 
+	HircTypeRanSeqCntr      HircType = 0x05
+	HircTypeSwitchCntr      HircType = 0x06
+	HircTypeActorMixer      HircType = 0x07
 	HircTypeBus             HircType = 0x08 // ???
-	HircTypeLayerCntr       HircType = 0x09 
-	HircTypeMusicSegment    HircType = 0x0a // ???
+	HircTypeLayerCntr       HircType = 0x09
+	HircTypeMusicSegment    HircType = 0x0a
 	HircTypeMusicTrack      HircType = 0x0b // ???
 	HircTypeMusicSwitchCntr HircType = 0x0c // ???
 	HircTypeMusicRanSeqCntr HircType = 0x0d // ???
@@ -51,13 +51,15 @@ var KnownHircType []HircType = []HircType{
 	HircTypeSwitchCntr,
 	HircTypeActorMixer,
 	HircTypeLayerCntr,
+	HircTypeMusicSegment,
+	HircTypeMusicTrack,
 }
 
 var ContainerHircType []HircType = []HircType{
 	HircTypeRanSeqCntr,
 	HircTypeSwitchCntr,
 	HircTypeActorMixer,
-	HircTypeLayerCntr ,
+	HircTypeLayerCntr,
 }
 
 var HircTypeName []string = []string{
@@ -77,44 +79,48 @@ var HircTypeName []string = []string{
 	"Music Random / Sequence Container",
 	"Attenuation",
 	"Dialogue Event",
-    "FX Share Set",
-    "FX Custom",
-    "Aux Bus",
-    "LFO Modulator",
-    "Envelope Modulator",
-    "Audio Device",
-    "Time Modulator",
+	"FX Share Set",
+	"FX Custom",
+	"Aux Bus",
+	"LFO Modulator",
+	"Envelope Modulator",
+	"Audio Device",
+	"Time Modulator",
 }
 
 type HIRC struct {
 	I uint8
 	T []byte
 
-	// Retain the tree structure that comes from the decoding with minimal 
+	// Retain the tree structure that comes from the decoding with minimal
 	// modification
 	HircObjs    []HircObj
 	HircObjsMap *sync.Map
-	
-	// Map for different types of hierarchy objects. Each object is a pointer 
+
+	// Map for different types of hierarchy objects. Each object is a pointer
 	// to a specific hierarchy object, which is also in `HircObjs`.
-	ActorMixers *sync.Map
-	LayerCntrs  *sync.Map
-	SwitchCntrs *sync.Map
-	RanSeqCntrs *sync.Map
-	Sounds      *sync.Map
+	ActorMixers   *sync.Map
+	LayerCntrs    *sync.Map
+	MusicSegments *sync.Map
+	MusicTracks   *sync.Map
+	SwitchCntrs   *sync.Map
+	RanSeqCntrs   *sync.Map
+	Sounds        *sync.Map
 }
 
 func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 	return &HIRC{
-		I: I,
-		T: T,
-		HircObjs: make([]HircObj, numHircItem),
-		HircObjsMap: &sync.Map{},
-		ActorMixers: &sync.Map{},
-		LayerCntrs:  &sync.Map{},
-		SwitchCntrs: &sync.Map{},
-		RanSeqCntrs: &sync.Map{},
-		Sounds:      &sync.Map{},
+		I:             I,
+		T:             T,
+		HircObjs:      make([]HircObj, numHircItem),
+		HircObjsMap:   &sync.Map{},
+		ActorMixers:   &sync.Map{},
+		LayerCntrs:    &sync.Map{},
+		MusicSegments: &sync.Map{},
+		MusicTracks:   &sync.Map{},
+		SwitchCntrs:   &sync.Map{},
+		RanSeqCntrs:   &sync.Map{},
+		Sounds:        &sync.Map{},
 	}
 }
 
@@ -131,15 +137,15 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 	c := make(chan *result, MaxEncodeRoutine)
 
 	// limit # of go routines running at the same time
-	sem := make(chan struct{} , MaxEncodeRoutine)
+	sem := make(chan struct{}, MaxEncodeRoutine)
 
 	done := 0
 	i := 0
 	for done < len(h.HircObjs) {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return nil, ctx.Err()
-		case r := <- c:
+		case r := <-c:
 			results[r.i] = r.b
 			done += 1
 		case sem <- struct{}{}:
@@ -147,8 +153,8 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 				j := i
 				go func() {
 					c <- &result{j, h.HircObjs[j].Encode()}
-					<- sem
-				}()	
+					<-sem
+				}()
 				i += 1
 			}
 		default:
@@ -159,7 +165,7 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 			}
 		}
 	}
-	
+
 	return bytes.Join(results, []byte{}), nil
 }
 
@@ -176,7 +182,7 @@ func (h *HIRC) Encode(ctx context.Context) ([]byte, error) {
 	w.Append(dataSize)
 	w.Append(uint32(len(h.HircObjs)))
 	w.AppendBytes(b)
-	return w.BytesAssert(int(size)), nil 
+	return w.BytesAssert(int(size)), nil
 }
 
 func (h *HIRC) Tag() []byte {
@@ -350,27 +356,27 @@ func (h *HIRC) TreeArrIdx(tid uint32) int {
 
 type HircObj interface {
 	Encode() []byte
-	BaseParameter() (*BaseParameter)
+	BaseParameter() *BaseParameter
 	HircID() (uint32, error)
-	HircType() HircType 
+	HircType() HircType
 	IsCntr() bool
 	NumLeaf() int
 	ParentID() uint32
-	// Modify DirectParentId, 
+	// Modify DirectParentId,
 	// pre condition: o.DirectParentId == 0
 	// post condition: o.DirectParentId == HircObj.HircID
-	AddLeaf(o HircObj) 
-	// Modify DirectParentId, 
+	AddLeaf(o HircObj)
+	// Modify DirectParentId,
 	// pre condition: o.DirectParentId == HircObj.HircID
 	// post condition: DirectParentId = 0
-	RemoveLeaf(o HircObj) 
+	RemoveLeaf(o HircObj)
 }
 
 const SizeOfHircObjHeader = 1 + 4
 
 type HircObjHeader struct {
 	Type HircType // U8x
-	Size uint32 // U32
+	Size uint32   // U32
 }
 
 type Unknown struct {
@@ -382,7 +388,7 @@ type Unknown struct {
 func NewUnknown(t HircType, s uint32, b []byte) *Unknown {
 	return &Unknown{
 		Header: &HircObjHeader{Type: t, Size: s},
-		Data: b,
+		Data:   b,
 	}
 }
 
@@ -394,12 +400,12 @@ func (u *Unknown) Encode() []byte {
 	)
 
 	bw := wio.NewWriter(uint64(SizeOfHircObjHeader + len(u.Data)))
-	
+
 	/* Header */
 	bw.Append(u.Header)
 	bw.AppendBytes(u.Data)
 
-	return bw.Bytes() 
+	return bw.Bytes()
 }
 
 func (u *Unknown) BaseParameter() *BaseParameter { return nil }
