@@ -7,7 +7,7 @@ import (
 type Sound struct {
 	HircObj
 	Id uint32
-	BankSourceData *BankSourceData
+	BankSourceData BankSourceData
 	BaseParam *BaseParameter
 }
 
