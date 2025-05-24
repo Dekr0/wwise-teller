@@ -11,7 +11,7 @@ import (
 )
 
 func TestRemoveActorMixerCntrChild2(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 8)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 	bnk, err := parser.ParseBank("./tests/st_bnk/content_audio_p2_peacemaker.st_bnk", ctx)
 	if err != nil {
@@ -59,15 +59,15 @@ func TestRemoveActorMixerCntrChild2(t *testing.T) {
 	if len(actorMixer.Container.Children) != 0 {
 		t.Fatalf("Actor mixer 662359126 still have children")
 	}
-	
+
 	if len(hirc.HircObjs) != l {
 		t.Fatalf("Expected: %d, Got: %d", l, len(hirc.HircObjs))
 	}
 
 	newIdx := slices.IndexFunc(hirc.HircObjs, func(h wwise.HircObj) bool {
 		return h.HircType() == 0x03
-	}) 
-	
+	})
+
 	if idx != newIdx {
 		t.Fatalf("Expected: %d, Got: %d", idx, newIdx)
 	}
@@ -97,13 +97,13 @@ func TestRemoveActorMixerCntrChild2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ref) - 8 != len(got) {
+	if len(ref)-8 != len(got) {
 		t.Fatalf("Expected: %d, Got: %d", len(ref), len(got))
 	}
 }
 
 func TestRemoveRanSeqCntrChild(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 8)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 	bnk, err := parser.ParseBank("./tests/st_bnk/content_audio_p2_peacemaker.st_bnk", ctx)
 	if err != nil {
@@ -166,8 +166,8 @@ func TestRemoveRanSeqCntrChild(t *testing.T) {
 
 	newIdx := slices.IndexFunc(hirc.HircObjs, func(h wwise.HircObj) bool {
 		return h.HircType() == 0x03
-	}) 
-	
+	})
+
 	if idx != newIdx {
 		t.Fatalf("Expected: %d, Got: %d", idx, newIdx)
 	}
@@ -190,13 +190,13 @@ func TestRemoveRanSeqCntrChild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ref) - (len(soundIDs) * 4 + (len(soundIDs) * (4 + 4))) != len(got) {
+	if len(ref)-(len(soundIDs)*4+(len(soundIDs)*(4+4))) != len(got) {
 		t.Fatalf("Expected: %d, Got: %d", len(ref), len(got))
 	}
 }
 
 func TestChangeSoundRoot(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 8)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 	bnk, err := parser.ParseBank("./tests/st_bnk/content_audio_p2_peacemaker.st_bnk", ctx)
 	if err != nil {
@@ -208,7 +208,7 @@ func TestChangeSoundRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	v, in := hirc.RanSeqCntrs.Load(uint32(862008135))
 	if !in {
 		t.Fatalf("%d does not have an associated random / sequence container", 862008135)
@@ -268,15 +268,15 @@ func TestChangeSoundRoot(t *testing.T) {
 			t.Fatalf("Expect %d, Got %d", newSeq.Id, sound.ParentID())
 		}
 	}
-	
+
 	if len(oldSeq.Container.Children) != 0 {
 		t.Fatalf("Expect %d, Got %d", 0, len(oldSeq.Container.Children))
 	}
 	if len(oldSeq.PlayListItems) != 0 {
 		t.Fatalf("Expect %d, Got %d", 0, len(oldSeq.PlayListItems))
 	}
-	if len(newSeq.Container.Children) != prevNewSeqNumLeaf + len(soundIDs) {
-		t.Fatalf("Expect %d, Got %d", prevNewSeqNumLeaf + len(soundIDs), len(newSeq.Container.Children))
+	if len(newSeq.Container.Children) != prevNewSeqNumLeaf+len(soundIDs) {
+		t.Fatalf("Expect %d, Got %d", prevNewSeqNumLeaf+len(soundIDs), len(newSeq.Container.Children))
 	}
 
 	newOldSeqIdx := slices.IndexFunc(hirc.HircObjs, func(h wwise.HircObj) bool {
@@ -287,7 +287,7 @@ func TestChangeSoundRoot(t *testing.T) {
 		return id == 862008135
 	})
 	if newOldSeqIdx != prevOldSeqIdx {
-		t.Fatalf("Expect %d, Got %d", prevOldSeqIdx - len(soundIDs), newOldSeqIdx)
+		t.Fatalf("Expect %d, Got %d", prevOldSeqIdx-len(soundIDs), newOldSeqIdx)
 	}
 
 	newNewSeqIdx := slices.IndexFunc(hirc.HircObjs, func(h wwise.HircObj) bool {
@@ -297,8 +297,8 @@ func TestChangeSoundRoot(t *testing.T) {
 		}
 		return id == 114819736
 	})
-	if newNewSeqIdx != prevNewSeqIdx + len(soundIDs) {
-		t.Fatalf("Expect %d, Got %d", prevNewSeqIdx + len(soundIDs), newNewSeqIdx)
+	if newNewSeqIdx != prevNewSeqIdx+len(soundIDs) {
+		t.Fatalf("Expect %d, Got %d", prevNewSeqIdx+len(soundIDs), newNewSeqIdx)
 	}
 
 	for i, soundID := range soundIDs {
@@ -307,8 +307,8 @@ func TestChangeSoundRoot(t *testing.T) {
 		}
 
 		idx := hirc.TreeArrIdx(soundID)
-		if oldSoundIdxs[i] - 1 != idx {
-			t.Fatalf("Expect %d, Got %d", oldSoundIdxs[i] - 1, idx)
+		if oldSoundIdxs[i]-1 != idx {
+			t.Fatalf("Expect %d, Got %d", oldSoundIdxs[i]-1, idx)
 		}
 	}
 
@@ -316,13 +316,13 @@ func TestChangeSoundRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ref) - len(soundIDs) * (4 + 4) != len(got) {
+	if len(ref)-len(soundIDs)*(4+4) != len(got) {
 		t.Fatalf("Expected: %d, Got: %d", len(ref), len(got))
 	}
 }
 
 func TestChangeSoundPartial(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 8)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 	bnk, err := parser.ParseBank("./tests/st_bnk/content_audio_p2_peacemaker.st_bnk", ctx)
 	if err != nil {
@@ -334,7 +334,7 @@ func TestChangeSoundPartial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	v, in := hirc.RanSeqCntrs.Load(uint32(862008135))
 	if !in {
 		t.Fatalf("%d does not have an associated random / sequence container", 862008135)
@@ -384,15 +384,15 @@ func TestChangeSoundPartial(t *testing.T) {
 			t.Fatalf("Expect %d, Got %d", newSeq.Id, sound.ParentID())
 		}
 	}
-	
+
 	if len(oldSeq.Container.Children) != 3 {
 		t.Fatalf("Expect %d, Got %d", 3, len(oldSeq.Container.Children))
 	}
 	if len(oldSeq.PlayListItems) != 3 {
 		t.Fatalf("Expect %d, Got %d", 3, len(oldSeq.PlayListItems))
 	}
-	if len(newSeq.Container.Children) != prevNewSeqNumLeaf + len(soundIDs) {
-		t.Fatalf("Expect %d, Got %d", prevNewSeqNumLeaf + len(soundIDs), len(newSeq.Container.Children))
+	if len(newSeq.Container.Children) != prevNewSeqNumLeaf+len(soundIDs) {
+		t.Fatalf("Expect %d, Got %d", prevNewSeqNumLeaf+len(soundIDs), len(newSeq.Container.Children))
 	}
 	for _, soundID := range soundIDs {
 		if !slices.Contains(newSeq.Container.Children, soundID) {
@@ -408,7 +408,7 @@ func TestChangeSoundPartial(t *testing.T) {
 		return id == 862008135
 	})
 	if newOldSeqIdx != prevOldSeqIdx {
-		t.Fatalf("Expect %d, Got %d", prevOldSeqIdx - len(soundIDs), newOldSeqIdx)
+		t.Fatalf("Expect %d, Got %d", prevOldSeqIdx-len(soundIDs), newOldSeqIdx)
 	}
 
 	newNewSeqIdx := slices.IndexFunc(hirc.HircObjs, func(h wwise.HircObj) bool {
@@ -418,19 +418,23 @@ func TestChangeSoundPartial(t *testing.T) {
 		}
 		return id == 114819736
 	})
-	if newNewSeqIdx != prevNewSeqIdx + len(soundIDs) {
-		t.Fatalf("Expect %d, Got %d", prevNewSeqIdx + len(soundIDs), newNewSeqIdx)
+	if newNewSeqIdx != prevNewSeqIdx+len(soundIDs) {
+		t.Fatalf("Expect %d, Got %d", prevNewSeqIdx+len(soundIDs), newNewSeqIdx)
 	}
 
 	got, err := bnk.Encode(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ref) - len(soundIDs) * (4 + 4) != len(got) {
+	if len(ref)-len(soundIDs)*(4+4) != len(got) {
 		t.Fatalf("Expected: %d, Got: %d", len(ref), len(got))
 	}
 }
 
 func TestChangeSoundMixerSeq(t *testing.T) {
-	
+
+}
+
+func TestMain(t *testing.T) {
+	main()
 }
