@@ -19,6 +19,7 @@ func (e *ENVS) Encode(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		panic(err)
 	}
+	encoded = append(encoded, e.B...)
 	return encoded, nil
 }
 

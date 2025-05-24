@@ -23,6 +23,7 @@ func (p *PLAT) Encode(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		panic(err)
 	}
+	encoded = append(encoded, p.B...)
 	return encoded, nil
 }
 

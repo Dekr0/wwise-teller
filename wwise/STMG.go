@@ -23,6 +23,7 @@ func (s *STMG) Encode(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		panic(err)
 	}
+	encoded = append(encoded, s.B...)
 	return encoded, nil
 }
 

@@ -23,6 +23,7 @@ func (f *FXPR) Encode(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		panic(err)
 	}
+	encoded = append(encoded, f.B...)
 	return encoded, nil
 }
 
