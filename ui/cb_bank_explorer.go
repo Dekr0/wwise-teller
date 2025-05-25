@@ -141,8 +141,8 @@ func HD2PatchFunc(
 					)
 					return
 				}
-				if err := helldivers.GenHelldiversPatch(
-					ctx, bnkData, meta.B, path,
+				if err := helldivers.GenHelldiversPatchStable(
+					bnkData, meta.B, path,
 				); err != nil {
 					slog.Error(fmt.Sprintf("Failed to write HD2 patch to %s", path))
 				} else {
