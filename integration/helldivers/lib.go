@@ -372,7 +372,8 @@ func GenHelldiversPatch(
 	if err := writeGameArchiveTypeHeader(ctx, w); err != nil {
 		return err
 	}
-	if err := writeAssetHeaders(ctx, w, bnkData, meta); err != nil {
+	bnkData, err = writeAssetHeaders(ctx, w, bnkData, meta)
+	if err != nil {
 		return err
 	}
 	pad := make([]byte, 8, 8)
@@ -472,43 +473,46 @@ func writeAssetHeaders(
 	w *wio.BinaryWriteHelper,
 	bnkData []byte,
 	meta *META,
-) error {
+) ([]byte, error) {
 	dataOffset := uint32(160 + w.Tell() + 8)
 
 	// File ID and Type ID should remain same
 	meta.SoundBankAssetHeader.Idx = 0
 	meta.SoundBankAssetHeader.DataSize = uint32(len(bnkData)) + 16
+ 	bnkData = utils.Pad16ByteAlign(bnkData)
 	meta.SoundBankAssetHeader.StreamSize = 0
 	meta.SoundBankAssetHeader.GPURsrcSize = 0
 	meta.SoundBankAssetHeader.DataOffset = uint64(dataOffset)
-	dataOffset += meta.SoundBankAssetHeader.DataSize
+	dataOffset += 16 + uint32(len(bnkData))
 	meta.SoundBankAssetHeader.StreamOffset = 0
 	meta.SoundBankAssetHeader.GPURsrcOffset = 0
 	data, err := binary.Append(nil, wio.ByteOrder, meta.SoundBankAssetHeader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := w.Bytes(data); err != nil {
-		return err
+		return nil, err
 	}
 
 	// File ID, Type ID, File Size should remain same
 	meta.WwiseDependencyHeader.Idx = 1
+	meta.WwiseDependencyHeader.DataSize = uint32(len(meta.WwiseDependencyData))
+	meta.WwiseDependencyData = utils.Pad16ByteAlign(meta.WwiseDependencyData)
 	meta.WwiseDependencyHeader.DataOffset = uint64(dataOffset)
 	meta.WwiseDependencyHeader.StreamSize = 0
 	meta.WwiseDependencyHeader.GPURsrcSize = 0
-	dataOffset += meta.WwiseDependencyHeader.DataSize
+	dataOffset += uint32(len(meta.WwiseDependencyData))
 	meta.WwiseDependencyHeader.StreamOffset = 0
 	meta.WwiseDependencyHeader.GPURsrcOffset = 0
 	data, err = binary.Append(nil, wio.ByteOrder, meta.WwiseDependencyHeader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := w.Bytes(data); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return bnkData, nil
 }
 
 func writeSoundBank(
@@ -531,7 +535,7 @@ func writeSoundBank(
 	bnkData[0x09] = meta.XOR[1]
 	bnkData[0x0A] = meta.XOR[2]
 	bnkData[0x0B] = meta.XOR[3]
-	if err := w.Bytes(utils.Pad16ByteAlign(bnkData)); err != nil {
+	if err := w.Bytes(bnkData); err != nil {
 		return err
 	}
 	return nil
