@@ -73,7 +73,6 @@ type DecodeResult struct {
 }
 
 func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
-
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -120,6 +119,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 	var size uint32
 	for err == nil {
 		tag, err = bankReader.FourCC()
+		slog.Info(string(tag))
 		if err != nil {
 			continue
 		}
@@ -127,12 +127,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		if bytes.Compare(tag, []byte{'B', 'K', 'H', 'D'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var reader *wio.Reader
 			reader, err = bankReader.NewBufferReader(uint64(size))
 			if err != nil {
-				continue
+				return nil, err
 			}
 			slog.Debug("Start parsing BKHD section...", "size", size)
 			go BKHDRoutine(ctx, reader, c, I, tag, size)
@@ -142,12 +142,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else if bytes.Compare(tag, []byte{'D', 'A', 'T', 'A'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if err := bnk.AddChunk(wwise.NewDATA(I, tag, blob)); err != nil {
 				return nil, err
@@ -157,12 +157,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else if bytes.Compare(tag, []byte{'D', 'I', 'D', 'X'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var reader *wio.Reader
 			reader, err = bankReader.NewBufferReader(uint64(size))
 			if err != nil {
-				continue
+				return nil, err
 			}
 			slog.Debug("Start parsing DIDX section...", "chunkSize", size)
 			go DIDXRoutine(ctx, reader, c, I, tag, size)
@@ -172,12 +172,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else if bytes.Compare(tag, []byte{'E', 'N', 'V', 'S'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if err := bnk.AddChunk(wwise.NewENVS(I, tag, blob)); err != nil {
 				return nil, err
@@ -187,12 +187,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else if bytes.Compare(tag, []byte{'F', 'X', 'P', 'R'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if err := bnk.AddChunk(wwise.NewFXPR(I, tag, blob)); err != nil {
 				return nil, err
@@ -207,7 +207,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			var reader *wio.Reader
 			reader, err = bankReader.NewBufferReader(uint64(size))
 			if err != nil {
-				continue
+				return nil, err
 			}
 			slog.Debug("Start parsing HIRC section...", "chunkSize", size)
 			go HIRCRoutine(ctx, reader, c, I, tag, size)
@@ -217,12 +217,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else if bytes.Compare(tag, []byte{'I', 'N', 'I', 'T'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if err := bnk.AddChunk(wwise.NewINIT(I, tag, blob)); err != nil {
 				return nil, err
@@ -232,12 +232,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else if bytes.Compare(tag, []byte{'P', 'L', 'A', 'T'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if err := bnk.AddChunk(wwise.NewPLAT(I, tag, blob)); err != nil {
 				return nil, err
@@ -247,12 +247,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else if bytes.Compare(tag, []byte{'S', 'T', 'I', 'D'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if err := bnk.AddChunk(wwise.NewSTID(I, tag, blob)); err != nil {
 				return nil, err
@@ -267,7 +267,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if err := bnk.AddChunk(wwise.NewSTMG(I, tag, blob)); err != nil {
 				return nil, err
@@ -277,12 +277,12 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else if bytes.Compare(tag, []byte{'M', 'E', 'T', 'A'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
-				continue
+				return nil, err
 			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if err := bnk.AddChunk(wwise.NewMETA(I, tag, blob)); err != nil {
 				return nil, err
@@ -292,7 +292,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		} else {
 			tagHex := uint32(0)
 			binary.Decode(tag, wio.ByteOrder, tagHex)
-			slog.Info("Unknown Chunk Tag", "Tag in hex", tagHex)
+			slog.Warn("Unknown Chunk Tag", "Tag in hex", tagHex)
 		}
 	}
 
@@ -320,7 +320,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 				return nil, err
 			}
 			pending -= 1
-			slog.Debug(fmt.Sprintf("Parsed %s section", res.c.Tag()))
+			slog.Info(fmt.Sprintf("Parsed %s section", res.c.Tag()))
 		}
 	}
 
