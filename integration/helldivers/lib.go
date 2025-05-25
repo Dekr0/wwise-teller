@@ -50,8 +50,8 @@ type AssetHeader struct {
 	DataOffset    uint64 `json:"dataOffset"`
 	StreamOffset  uint64 `json:"streamOffset"`
 	GPURsrcOffset uint64 `json:"gPURsrcOffset"`
-	UnknownU64B   uint64 `json:"unknownU64B"`
 	UnknownU64A   uint64 `json:"unknownU64A"`
+	UnknownU64B   uint64 `json:"unknownU64B"`
 	DataSize      uint32 `json:"dataSize"`
 	StreamSize    uint32 `json:"streamSize"`
 	GPURsrcSize   uint32 `json:"gPURsrcSize"`
@@ -238,9 +238,7 @@ func ExtractSoundBank(ctx context.Context, path string, dest string, dry bool) e
 					bnk.META[6] = encodedMetaSize[2]
 					bnk.META[7] = encodedMetaSize[3]
 
-					wf, err := os.OpenFile(
-						filepath.Join(dest, path), os.O_CREATE | os.O_WRONLY, 0666,
-					)
+					wf, err := os.OpenFile(filepath.Join(dest, path), IOCW, 0666)
 					if err != nil {
 						e <- err
 					}
