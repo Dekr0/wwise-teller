@@ -12,7 +12,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
-const MaxEncodeRoutine = 0
+const MaxEncodeRoutine = 6
 
 // # of hierarchy object (uint32)
 const SizeOfHIRCHeader = 4
@@ -53,6 +53,8 @@ var KnownHircType []HircType = []HircType{
 	HircTypeLayerCntr,
 	HircTypeMusicSegment,
 	HircTypeMusicTrack,
+	HircTypeMusicSwitchCntr,
+	HircTypeMusicRanSeqCntr,
 }
 
 var ContainerHircType []HircType = []HircType{
@@ -60,6 +62,9 @@ var ContainerHircType []HircType = []HircType{
 	HircTypeSwitchCntr,
 	HircTypeActorMixer,
 	HircTypeLayerCntr,
+	HircTypeMusicSegment,
+	HircTypeMusicRanSeqCntr,
+	HircTypeMusicSwitchCntr,
 }
 
 var HircTypeName []string = []string{
@@ -99,28 +104,32 @@ type HIRC struct {
 
 	// Map for different types of hierarchy objects. Each object is a pointer
 	// to a specific hierarchy object, which is also in `HircObjs`.
-	ActorMixers   *sync.Map
-	LayerCntrs    *sync.Map
-	MusicSegments *sync.Map
-	MusicTracks   *sync.Map
-	SwitchCntrs   *sync.Map
-	RanSeqCntrs   *sync.Map
-	Sounds        *sync.Map
+	ActorMixers     *sync.Map
+	LayerCntrs      *sync.Map
+	MusicSegments   *sync.Map
+	MusicTracks     *sync.Map
+	MusicRanSeqCntr *sync.Map
+	MusicSwitchCntr *sync.Map
+	SwitchCntrs     *sync.Map
+	RanSeqCntrs     *sync.Map
+	Sounds          *sync.Map
 }
 
 func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 	return &HIRC{
-		I:             I,
-		T:             T,
-		HircObjs:      make([]HircObj, numHircItem),
-		HircObjsMap:   &sync.Map{},
-		ActorMixers:   &sync.Map{},
-		LayerCntrs:    &sync.Map{},
-		MusicSegments: &sync.Map{},
-		MusicTracks:   &sync.Map{},
-		SwitchCntrs:   &sync.Map{},
-		RanSeqCntrs:   &sync.Map{},
-		Sounds:        &sync.Map{},
+		I:               I,
+		T:               T,
+		HircObjs:        make([]HircObj, numHircItem),
+		HircObjsMap:     &sync.Map{},
+		ActorMixers:     &sync.Map{},
+		LayerCntrs:      &sync.Map{},
+		MusicSegments:   &sync.Map{},
+		MusicTracks:     &sync.Map{},
+		MusicRanSeqCntr: &sync.Map{},
+		MusicSwitchCntr: &sync.Map{},
+		SwitchCntrs:     &sync.Map{},
+		RanSeqCntrs:     &sync.Map{},
+		Sounds:          &sync.Map{},
 	}
 }
 
