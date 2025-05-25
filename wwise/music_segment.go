@@ -6,15 +6,39 @@ type MusicSegment struct {
 	HircObj
 
 	Id             uint32
-	OverwriteFlags uint8
+	OverrideFlags uint8
 	BaseParam      BaseParameter
 	Children       Container
 	MeterInfo      MeterInfo
 	// NumStingers uint32
-	Stingers []Stinger
-	Duration float64
+	Stingers       []Stinger
+	Duration       float64
 	// NumMarkers  uint32
-	Markers []MusicSegmentMarker
+	Markers        []MusicSegmentMarker
+}
+
+func (h *MusicSegment) OverwriteParentMIDITempo() bool {
+	return wio.GetBit(h.OverrideFlags, 1)
+}
+
+func (h *MusicSegment) SetOverwriteParentMIDITempo(set bool) {
+	h.OverrideFlags = wio.SetBit(h.OverrideFlags, 1, set)
+}
+
+func (h *MusicSegment) OverwriteParentMIDITarget() bool {
+	return wio.GetBit(h.OverrideFlags, 2)
+}
+
+func (h *MusicSegment) SetOverwriteParentMIDITarget(set bool) {
+	h.OverrideFlags = wio.SetBit(h.OverrideFlags, 2, set)
+}
+
+func (h *MusicSegment) MidiTargetTypeBus() bool {
+	return wio.GetBit(h.OverrideFlags, 3)
+}
+
+func (h *MusicSegment) SetMidiTargetTypeBus(set bool) {
+	h.OverrideFlags = wio.SetBit(h.OverrideFlags, 3, set)
 }
 
 func (h *MusicSegment) Encode() []byte {
@@ -24,7 +48,7 @@ func (h *MusicSegment) Encode() []byte {
 	w.AppendByte(uint8(HircTypeMusicSegment))
 	w.Append(dataSize)
 	w.Append(h.Id)
-	w.AppendByte(h.OverwriteFlags)
+	w.AppendByte(h.OverrideFlags)
 	w.AppendBytes(h.BaseParam.Encode())
 	w.AppendBytes(h.Children.Encode())
 	w.Append(h.MeterInfo)
@@ -49,7 +73,7 @@ func (h *MusicSegment) Size() uint32 {
 	return dataSize
 }
 
-func (h *MusicSegment) BaseParameter() *BaseParameter { return nil }
+func (h *MusicSegment) BaseParameter() *BaseParameter { return &h.BaseParam }
 
 func (h *MusicSegment) HircType() HircType { return HircTypeMusicSegment }
 
