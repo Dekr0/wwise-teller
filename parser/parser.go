@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"sort"
@@ -125,12 +124,11 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			continue
 		}
 
-		size, err = bankReader.U32()
-		if err != nil {
-			continue
-		}
-
 		if bytes.Compare(tag, []byte{'B', 'K', 'H', 'D'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var reader *wio.Reader
 			reader, err = bankReader.NewBufferReader(uint64(size))
 			if err != nil {
@@ -142,6 +140,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			pending += 1
 			hasBKHD = true
 		} else if bytes.Compare(tag, []byte{'D', 'A', 'T', 'A'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
@@ -153,6 +155,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			I += 1
 			slog.Debug("Read DATA section", "size", size)
 		} else if bytes.Compare(tag, []byte{'D', 'I', 'D', 'X'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var reader *wio.Reader
 			reader, err = bankReader.NewBufferReader(uint64(size))
 			if err != nil {
@@ -164,6 +170,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			pending += 1
 			hasDIDX = true
 		} else if bytes.Compare(tag, []byte{'E', 'N', 'V', 'S'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
@@ -175,6 +185,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			I += 1
 			slog.Debug("Read ENVS section", "size", size)
 		} else if bytes.Compare(tag, []byte{'F', 'X', 'P', 'R'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
@@ -186,6 +200,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			I += 1
 			slog.Debug("Read FXPR section", "size", size)
 		} else if bytes.Compare(tag, []byte{'H', 'I', 'R', 'C'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var reader *wio.Reader
 			reader, err = bankReader.NewBufferReader(uint64(size))
 			if err != nil {
@@ -197,6 +215,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			pending += 1
 			hasHIRC = true
 		} else if bytes.Compare(tag, []byte{'I', 'N', 'I', 'T'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
@@ -208,6 +230,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			I += 1
 			slog.Debug("Read INIT section", "size", size)
 		} else if bytes.Compare(tag, []byte{'P', 'L', 'A', 'T'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
@@ -219,6 +245,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			I += 1
 			slog.Debug("Read PLAT section", "size", size)
 		} else if bytes.Compare(tag, []byte{'S', 'T', 'I', 'D'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
@@ -230,6 +260,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			I += 1
 			slog.Debug("Read STID section", "size", size)
 		} else if bytes.Compare(tag, []byte{'S', 'T', 'M', 'G'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
@@ -241,6 +275,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			I += 1
 			slog.Debug("Read STMG section", "size", size)
 		} else if bytes.Compare(tag, []byte{'M', 'E', 'T', 'A'}) == 0 {
+			size, err = bankReader.U32()
+			if err != nil {
+				continue
+			}
 			var blob []byte
 			blob, err = bankReader.ReadN(uint64(size), 0)
 			if err != nil {
@@ -251,11 +289,11 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			}
 			I += 1
 			slog.Debug("Read META section", "size", size)
+		} else {
+			tagHex := uint32(0)
+			binary.Decode(tag, wio.ByteOrder, tagHex)
+			slog.Info("Unknown Chunk Tag", "Tag in hex", tagHex)
 		}
-	}
-
-	if err != io.EOF {
-		return nil, err
 	}
 
 	if !hasBKHD {
