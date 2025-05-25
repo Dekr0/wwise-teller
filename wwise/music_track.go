@@ -1,8 +1,17 @@
 package wwise
 
 import (
+	"slices"
+
 	wio "github.com/Dekr0/wwise-teller/wio"
 )
+
+var TrackTypeName []string = []string{
+	"Normal",
+	"Random",
+	"Sequence",
+	"Switch",
+}
 
 type MusicTrack struct {
 	HircObj
@@ -25,6 +34,38 @@ type MusicTrack struct {
 	LookAheadTime   int32
 }
 
+func (h *MusicTrack) OverrideParentMIDITempo() bool {
+	return wio.GetBit(h.OverrideFlags, 1)
+}
+
+func (h *MusicTrack) SetOverrideParentMIDITempo(set bool) {
+	h.OverrideFlags = wio.SetBit(h.OverrideFlags, 1, set)
+}
+
+func (h *MusicTrack) OverrideParentMIDITarget() bool {
+	return wio.GetBit(h.OverrideFlags, 2)
+}
+
+func (h *MusicTrack) SetOverrideParentMIDITarget(set bool) {
+	h.OverrideFlags = wio.SetBit(h.OverrideFlags, 2, set)
+}
+
+func (h *MusicTrack) MidiTargetTypeBus() bool {
+	return wio.GetBit(h.OverrideFlags, 3)
+}
+
+func (h *MusicTrack) SetMidiTargetTypeBus(set bool) {
+	h.OverrideFlags = wio.SetBit(h.OverrideFlags, 3, set)
+}
+
+func (h *MusicTrack) AddNewAutomation() {
+	h.ClipAutomations = append(h.ClipAutomations, ClipAutomation{})
+}
+
+func (h *MusicTrack) RemoveAutomation(i int) {
+	h.ClipAutomations = slices.Delete(h.ClipAutomations, i, i + 1)
+}
+
 func (h *MusicTrack) Encode() []byte {
 	dataSize := h.DataSize()
 	size := SizeOfHircObjHeader + dataSize
@@ -45,8 +86,8 @@ func (h *MusicTrack) Encode() []byte {
 		w.Append(h.NumSubTrack)
 	}
 	w.Append(uint32(len(h.ClipAutomations)))
-	for _, c := range h.ClipAutomations {
-		w.AppendBytes(c.Encode())
+	for i, c := range h.ClipAutomations {
+		w.AppendBytes(c.Encode(uint32(i)))
 	}
 	w.AppendBytes(h.BaseParam.Encode())
 	w.AppendByte(h.TrackType)
@@ -79,7 +120,7 @@ func (h *MusicTrack) DataSize() uint32 {
 	return dataSize
 }
 
-func (h *MusicTrack) BaseParameter() *BaseParameter { return nil }
+func (h *MusicTrack) BaseParameter() *BaseParameter { return &h.BaseParam }
 
 func (h *MusicTrack) HircType() HircType { return HircTypeMusicTrack }
 
@@ -110,27 +151,49 @@ type MusicTrackPlayListItem struct {
 	SrcDuration     float64
 }
 
+var ClipAutomationTypeName []string = []string{
+  	"Volume",
+  	"LPF",
+  	"HPF",
+  	"FadeIn",
+  	"FadeOut",
+}
+
+
 type ClipAutomation struct {
-	ClipIndex       uint32
+	// ClipIndex       uint32
 	AutoType        uint32
 	// NumPoints       uint32
 	RTPCGraphPoints []RTPCGraphPoint
 }
 
-func (c *ClipAutomation) Encode() []byte {
+func (c *ClipAutomation) AddRTPCGraphPoint() {
+	c.RTPCGraphPoints = append(c.RTPCGraphPoints, RTPCGraphPoint{})
+}
+
+func (c *ClipAutomation) RemoveRTPCGraphPoint(i int) {
+	c.RTPCGraphPoints = slices.Delete(c.RTPCGraphPoints, i, i + 1)
+}
+
+func (c *ClipAutomation) Encode(i uint32) []byte {
 	dataSize := c.Size()
 	w := wio.NewWriter(uint64(dataSize))
-	w.Append(c.ClipIndex)
+	w.Append(i)
 	w.Append(c.AutoType)
 	w.Append(uint32(len(c.RTPCGraphPoints)))
 	for _, r := range c.RTPCGraphPoints {
-		w.Append(r)
+		w.AppendBytes(r.Enocde())
 	}
 	return w.BytesAssert(int(dataSize))
 }
 
 func (c *ClipAutomation) Size() uint16 {
 	return 4 + 4 + 4 + uint16(len(c.RTPCGraphPoints)) * SizeOfRTPCGraphPoint
+}
+
+var MusicSwitchGroupTypeName []string = []string{
+	"Switch",
+	"State",
 }
 
 type MusicTrackSwitchParam struct {
@@ -158,6 +221,19 @@ func (m *MusicTrackSwitchParam) Size() uint16 {
 	return 1 + 4 + 4 + 4 + uint16(len(m.SwitchAssociates)) * 4
 }
 
+var SyncTypeName []string = []string{
+  	"Immediate",
+  	"NextGrid",
+  	"NextBar",
+  	"NextBeat",
+  	"NextMarker",
+  	"NextUserMarker",
+  	"EntryMarker",
+  	"ExitMarker",
+  	"ExitNever",
+  	"LastExitPosition",
+}
+const NumSyncType = 10
 const SizeOfMusicTrackTransitionParam = 32
 type MusicTrackTransitionParam struct {
 	SrcTransitionTime  int32
