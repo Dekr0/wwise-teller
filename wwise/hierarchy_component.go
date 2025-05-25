@@ -1001,6 +1001,18 @@ type StateGroupItemState struct {
 	StateInstanceID uint32 // tid
 }
 
+var CurveInterpolationName []string = []string{
+  	"Log3",
+  	"Sine",
+  	"Log1",
+  	"InvSCurve",
+  	"Linear",
+  	"SCurve",
+  	"Exp1",
+  	"SineRecip",
+  	"Exp3",
+  	"Constant",
+}
 type RTPC struct {
 	// NumRTPC uint16 // u16
 	RTPCItems []*RTPCItem
@@ -1037,11 +1049,10 @@ type RTPCItem struct {
 	Scaling uint8 // U8x
 	// NumRTPCGraphPoints / ulSize uint16 // u16
 	RTPCGraphPoints []*RTPCGraphPoint 
-	SamplePoints []float32
 }
 
 func NewRTPCItem() *RTPCItem {
-	return &RTPCItem{0, 0, 0, 0, 0, 0, []*RTPCGraphPoint{}, []float32{}}
+	return &RTPCItem{0, 0, 0, 0, 0, 0, []*RTPCGraphPoint{}}
 }
 
 func (r *RTPCItem) Encode() []byte {
@@ -1055,7 +1066,7 @@ func (r *RTPCItem) Encode() []byte {
 	w.AppendByte(r.Scaling)
 	w.Append(uint16(len(r.RTPCGraphPoints)))
 	for _, i := range r.RTPCGraphPoints {
-		w.Append(i)
+		w.AppendBytes(i.Enocde())
 	}
 	return w.BytesAssert(int(size))
 }
@@ -1064,7 +1075,7 @@ func (r *RTPCItem) Size() uint32 {
 	return uint32(4 + 1 + 1 + 1 + 4 + 1 + 2 + len(r.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
 }
 
-var RTPCInterp []string = []string{
+var RTPCInterpName []string = []string{
   "Log3",
   "Sine",
   "Log1",
@@ -1076,12 +1087,27 @@ var RTPCInterp []string = []string{
   "Exp3", // "LastFadeCurve" define as 0x8 too in all versions
   "Constant",
 }
+const NumRTPCInterp = 10
+
+const RTPCInterpSampleRate = 128
 
 const SizeOfRTPCGraphPoint = 12
 type RTPCGraphPoint struct {
-	From float32 // f32 
-	To float32 // f32
-	Interp uint32 // U32
+	From           float32 // f32 
+	To             float32 // f32
+	Interp         uint32 // U32
+	SamplePointsX  []float32
+	SamplePointsY  []float32
+}
+
+func (r *RTPCGraphPoint) Sample() {}
+
+func (r *RTPCGraphPoint) Enocde() []byte {
+	w := wio.NewWriter(SizeOfRTPCGraphPoint)
+	w.Append(r.From)
+	w.Append(r.To)
+	w.Append(r.Interp)
+	return w.BytesAssert(SizeOfRTPCGraphPoint)
 }
 
 var SourceType []string = []string{
