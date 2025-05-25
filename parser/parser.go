@@ -119,7 +119,6 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 	var size uint32
 	for err == nil {
 		tag, err = bankReader.FourCC()
-		slog.Info(string(tag))
 		if err != nil {
 			continue
 		}
