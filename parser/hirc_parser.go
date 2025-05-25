@@ -20,7 +20,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-const MaxNumParseRoutine = 8
+const MaxNumParseRoutine = 6
 
 type ParserResult struct {
 	i   uint32
@@ -149,6 +149,26 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
+			case wwise.HircTypeMusicRanSeqCntr:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseMusicRanSeqCntr,
+					hirc,
+					sem,
+					&parsed,
+				)
+			case wwise.HircTypeMusicSwitchCntr:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseMusicSwitchCntr,
+					hirc,
+					sem,
+					&parsed,
+				)
 			default:
 				panic("Assertion Trap")
 			}
@@ -177,6 +197,10 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 				obj = ParseMusicSegment(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeMusicTrack:
 				obj = ParseMusicTrack(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeMusicRanSeqCntr:
+				obj = ParseMusicRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeMusicSwitchCntr:
+				obj = ParseMusicSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			default:
 				panic("Assertion Trap")
 			}
@@ -230,7 +254,15 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 		}
 	case wwise.HircTypeMusicTrack:
 		if _, in := h.MusicTracks.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate music segment object %d", id))
+			panic(fmt.Sprintf("Duplicate music track object %d", id))
+		}
+	case wwise.HircTypeMusicRanSeqCntr:
+		if _, in := h.MusicRanSeqCntr.LoadOrStore(id, obj); in {
+			panic(fmt.Sprintf("Duplicate music random sequence container object %d", id))
+		}
+	case wwise.HircTypeMusicSwitchCntr:
+		if _, in := h.MusicSwitchCntr.LoadOrStore(id, obj); in {
+			panic(fmt.Sprintf("Duplicate music switch container object %d", id))
 		}
 	default:
 		panic("Assertion Trap")
@@ -342,17 +374,11 @@ func ParseMusicSegment(size uint32, r *wio.Reader) *wwise.MusicSegment {
 	m := wwise.MusicSegment{}
 
 	m.Id = r.U32Unsafe()
-	m.OverwriteFlags = r.U8Unsafe()
+	m.OverrideFlags = r.U8Unsafe()
 	m.BaseParam = *ParseBaseParam(r)
 	m.Children = *ParseContainer(r)
-	m.MeterInfo.GridPeriod = r.F64Unsafe()
-	m.MeterInfo.GridOffset = r.F64Unsafe()
-	m.MeterInfo.Tempo = r.F32Unsafe()
-	m.MeterInfo.TimeSigNumBeatsBar = r.U8Unsafe()
-	m.MeterInfo.TimeSigBeatVal = r.U8Unsafe()
-	m.MeterInfo.MeterInfoFlag = r.U8Unsafe()
+	ParseMeterInfo(r, &m.MeterInfo)
 	m.Stingers = make([]wwise.Stinger, r.U32Unsafe())
-
 	ParseStingers(r, m.Stingers)
 
 	m.Duration = r.F64Unsafe()
@@ -368,6 +394,15 @@ func ParseMusicSegment(size uint32, r *wio.Reader) *wwise.MusicSegment {
 	)
 
 	return &m
+}
+
+func ParseMeterInfo(r *wio.Reader, m *wwise.MeterInfo) {
+	m.GridPeriod = r.F64Unsafe()
+	m.GridOffset = r.F64Unsafe()
+	m.Tempo = r.F32Unsafe()
+	m.TimeSigNumBeatsBar = r.U8Unsafe()
+	m.TimeSigBeatVal = r.U8Unsafe()
+	m.MeterInfoFlag = r.U8Unsafe()
 }
 
 func ParseStingers(r *wio.Reader, stingers []wwise.Stinger) {
@@ -445,7 +480,7 @@ func ParseMusicTrackPlayList(r *wio.Reader, p []wwise.MusicTrackPlayListItem) {
 
 func ParseClipAutomation(r *wio.Reader, cs []wwise.ClipAutomation) {
 	for i := range cs {
-		cs[i].ClipIndex = r.U32Unsafe()
+		r.U32Unsafe()
 		cs[i].AutoType = r.U32Unsafe()
 		cs[i].RTPCGraphPoints = make([]wwise.RTPCGraphPoint, r.U32Unsafe())
 		for j := range cs[i].RTPCGraphPoints {
@@ -476,6 +511,130 @@ func ParseMusicTrackTransitionParam(r *wio.Reader, t *wwise.MusicTrackTransition
 	t.DestTransitionTime = r.I32Unsafe()
 	t.DestFadeCurve = r.U32Unsafe()
 	t.DestFadeOffset = r.I32Unsafe()
+}
+
+func ParseMusicRanSeqCntr(size uint32, r *wio.Reader) *wwise.MusicRanSeqCntr {
+	assert.Equal(0, r.Pos(), "Random / Sequence container parser position doesn't start at position 0.")
+	begin := r.Pos()
+
+	m := wwise.MusicRanSeqCntr{}
+	m.Id = r.U32Unsafe()
+	m.OverwriteFlags = r.U8Unsafe()
+	m.BaseParam = *ParseBaseParam(r)
+	m.Children = *ParseContainer(r)
+	ParseMeterInfo(r, &m.MeterInfo)
+	m.Stingers = make([]wwise.Stinger, r.U32Unsafe())
+	ParseStingers(r, m.Stingers)
+	m.TransitionRules = make([]wwise.MusicTransitionRule, r.U32Unsafe())
+	ParseTransitionRules(r, m.TransitionRules)
+	totalNumPlayListNodes := r.U32Unsafe()
+	ParseMusicPlayListNodes(r, &m.PlayListNode, &totalNumPlayListNodes)
+	if totalNumPlayListNodes > 0 {
+		panic("Number play list node checker is not equal to zero")
+	}
+
+	end := r.Pos()
+	if begin >= end {
+		panic("Reader read zero bytes")
+	}
+	assert.Equal(size, uint32(end-begin),
+		"The amount of bytes reader consume doesn't equal to the size in hierarchy header",
+	)
+	return &m
+}
+
+func ParseTransitionRules(r *wio.Reader, rules []wwise.MusicTransitionRule) {
+	for i := range rules {
+		rule := &rules[i]
+		rule.SrcIDs = make([]uint32, r.U32Unsafe())
+		for j := range rule.SrcIDs {
+			rule.SrcIDs[j] = r.U32Unsafe()
+		}
+		rule.DestIDs = make([]uint32, r.U32Unsafe())
+		for j := range rule.DestIDs {
+			rule.DestIDs[j] = r.U32Unsafe()
+		}
+
+		rule.TransitionSourceRule.TransitionTime = r.I32Unsafe()
+		rule.TransitionSourceRule.FadeCurve = r.U32Unsafe()
+		rule.TransitionSourceRule.FadeOffset = r.U32Unsafe()
+		rule.TransitionSourceRule.SyncType = r.U32Unsafe()
+		rule.TransitionSourceRule.CueFilterHash = r.U32Unsafe()
+		rule.TransitionSourceRule.PlayPostExit = r.U8Unsafe()
+
+		rule.TransitionDestRule.TransitionTime = r.I32Unsafe()
+		rule.TransitionDestRule.FadeCurve = r.U32Unsafe()
+		rule.TransitionDestRule.FadeOffset = r.U32Unsafe()
+		rule.TransitionDestRule.CueFilterHash = r.U32Unsafe()
+		rule.TransitionDestRule.JumpToID = r.U32Unsafe()
+		rule.TransitionDestRule.JumpToType = r.U16Unsafe()
+		rule.TransitionDestRule.EntryType = r.U16Unsafe()
+		rule.TransitionDestRule.PlayPreEntry = r.U8Unsafe()
+		rule.TransitionDestRule.DestMatchSourceCueName = r.U8Unsafe()
+
+		rule.AllocTransitionObjFlag = r.U8Unsafe()
+		if rule.HasTransitionObj() {
+			rule.TransitionObj.SegmentID = r.U32Unsafe()
+
+			rule.TransitionObj.FadeInParam.TransitionTime = r.I32Unsafe()
+			rule.TransitionObj.FadeInParam.FadeCurve = r.U32Unsafe()
+			rule.TransitionObj.FadeInParam.FadeOffset = r.I32Unsafe()
+
+			rule.TransitionObj.FadeOutParam.TransitionTime = r.I32Unsafe()
+			rule.TransitionObj.FadeOutParam.FadeCurve = r.U32Unsafe()
+			rule.TransitionObj.FadeOutParam.FadeOffset = r.I32Unsafe()
+
+			rule.TransitionObj.PlayPreEntry = r.U8Unsafe()
+			rule.TransitionObj.PlayPostExit = r.U8Unsafe()
+		}
+	}
+}
+
+func ParseMusicPlayListNodes(
+	r *wio.Reader, p *wwise.MusicPlayListNode, totalNumPlayListNodes *uint32,
+) {
+	*totalNumPlayListNodes -= 1
+	p.SegmentID = r.U32Unsafe()
+	p.PlayListItemID = r.U32Unsafe()
+	p.PlayListLeafs = make([]wwise.MusicPlayListNode, r.U32Unsafe())
+	p.RSType = r.U32Unsafe()
+	p.Loop = r.I16Unsafe()
+	p.LoopMin = r.I16Unsafe()
+	p.LoopMax = r.I16Unsafe()
+	p.Weight = r.U32Unsafe()
+	p.AvoidRepeatCount = r.U16Unsafe()
+	p.UsingWeight = r.U8Unsafe()
+	p.Shuffle = r.U8Unsafe()
+	for i := range p.PlayListLeafs {
+		ParseMusicPlayListNodes(r, &p.PlayListLeafs[i], totalNumPlayListNodes)
+	}
+}
+
+func ParseMusicSwitchCntr(size uint32, r *wio.Reader) (m *wwise.MusicSwitchCntr) {
+	assert.Equal(0, r.Pos(), "Random / Sequence container parser position doesn't start at position 0.")
+	begin := r.Pos()
+
+	m = &wwise.MusicSwitchCntr{}
+	m.Id = r.U32Unsafe()
+	m.OverwriteFlags = r.U8Unsafe()
+	m.BaseParam = *ParseBaseParam(r)
+	m.Children = *ParseContainer(r)
+	ParseMeterInfo(r, &m.MeterInfo)
+	m.Stingers = make([]wwise.Stinger, r.U32Unsafe())
+	ParseStingers(r, m.Stingers)
+	m.TransitionRules = make([]wwise.MusicTransitionRule, r.U32Unsafe())
+	ParseTransitionRules(r, m.TransitionRules)
+	m.ContinuePlayBack = r.U8Unsafe()
+	m.DecisionTreeData = r.ReadAllUnsafe()
+
+	end := r.Pos()
+	if begin >= end {
+		panic("Reader read zero bytes")
+	}
+	assert.Equal(size, uint32(end-begin),
+		"The amount of bytes reader consume doesn't equal to the size in hierarchy header",
+	)
+	return m
 }
 
 func ParseRanSeqCntr(size uint32, r *wio.Reader) *wwise.RanSeqCntr {
