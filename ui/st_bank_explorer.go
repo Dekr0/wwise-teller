@@ -27,8 +27,10 @@ type bankTab struct {
 	typeQuery int32
 	parentIdQuery string
 	parentTypeQuery wwise.HircType
+	rewireSidQuery string
 	filtered []wwise.HircObj
 	filteredParent []wwise.HircObj
+	filteredMediaIndexs []*wwise.MediaIndex
 	// roots []*Node
 	storage *imgui.SelectionBasicStorage
 	activeHirc wwise.HircObj
@@ -62,16 +64,33 @@ func (b *bankTab) filter() {
 	hirc := b.bank.HIRC()
 	i := 0
 	old := len(b.filtered)
-	for _, d := range hirc.HircObjs {
-		if b.typeQuery > 0 && b.typeQuery != int32(d.HircType()) {
+	for _, h := range hirc.HircObjs {
+		// type filter
+		if b.typeQuery > 0 && b.typeQuery != int32(h.HircType()) {
 			continue
 		}
-		id, err := d.HircID()
+
+		// sid filter
+		sound := wwise.HircTypeSound == h.HircType()
+		filterSid := b.typeQuery == 0 || b.typeQuery == int32(wwise.HircTypeSound)
+		if filterSid && sound {
+			s := h.(*wwise.Sound)
+			if !fuzzy.Match(
+				b.sidQuery, 
+				strconv.FormatUint(uint64(s.BankSourceData.SourceID), 10),
+			) {
+				continue
+			}
+		}
+
+		// uid filter
+		id, err := h.HircID()
+		// Unused bypass
 		if err != nil {
 			if i < len(b.filtered) {
-				b.filtered[i] = d
+				b.filtered[i] = h
 			} else {
-				b.filtered = append(b.filtered, d)
+				b.filtered = append(b.filtered, h)
 			}
 			i += 1
 			continue
@@ -80,9 +99,9 @@ func (b *bankTab) filter() {
 			continue
 		}
 		if i < len(b.filtered) {
-			b.filtered[i] = d
+			b.filtered[i] = h
 		} else {
-			b.filtered = append(b.filtered, d)
+			b.filtered = append(b.filtered, h)
 		}
 		i += 1
 	}
@@ -132,6 +151,32 @@ func (b *bankTab) filterParent() {
 	}
 	if i < old {
 		b.filteredParent = slices.Delete(b.filteredParent, i, old)
+	}
+}
+
+func (b *bankTab) filterRewireQuery() {
+	if b.bank.DIDX() == nil {
+		return
+	}
+	if !utils.IsDigit(b.rewireSidQuery) {
+		return
+	}
+	didx := b.bank.DIDX()
+	i := 0
+	old := len(b.filteredMediaIndexs)
+	for _, m := range didx.MediaIndexs {
+		if !fuzzy.Match(b.rewireSidQuery, strconv.FormatUint(uint64(m.Sid), 10)) {
+			continue
+		}
+		if i < len(b.filteredMediaIndexs) {
+			b.filteredMediaIndexs[i] = m
+		} else {
+			b.filteredMediaIndexs = append(b.filteredMediaIndexs, m)
+		}
+		i += 1
+	}
+	if i < old {
+		b.filteredMediaIndexs = slices.Delete(b.filteredMediaIndexs, i, old)
 	}
 }
 
@@ -203,6 +248,15 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		}
 	}
 
+	filteredSid := []*wwise.MediaIndex{}
+	if bank.DIDX() != nil {
+		didx := bank.DIDX()
+		filteredSid = make([]*wwise.MediaIndex, len(didx.MediaIndexs))
+		for i, mediaIndex := range didx.MediaIndexs {
+			filteredSid[i] = mediaIndex
+		}
+	}
+
 	t := &bankTab{
 		writeLock: &atomic.Bool{},
 		bank: bank,
@@ -213,6 +267,7 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		parentTypeQuery: 0,
 		filtered: filtered,
 		filteredParent: filteredParent,
+		filteredMediaIndexs: filteredSid,
 		activeHirc: nil,
 		storage: imgui.NewSelectionBasicStorage(),
 		cntrStorage: imgui.NewSelectionBasicStorage(),
