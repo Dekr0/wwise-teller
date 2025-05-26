@@ -31,7 +31,7 @@ func renderMusicTrack(t *bankTab, o *wwise.MusicTrack) {
 	renderMusicTrackPlayList(t, o)
 	// renderClipAutomation(t, o)
 	renderBaseParam(t, o)
-	renderTransitionParam(&o.TransitionParam)
+	// renderTransitionParam(&o.TransitionParam)
 }
 
 func renderMusicTrackPlayList(t *bankTab, o *wwise.MusicTrack) {
@@ -65,26 +65,28 @@ func renderMusicTrackPlayList(t *bankTab, o *wwise.MusicTrack) {
 				imgui.TableSetColumnIndex(3)
 				imgui.SetNextItemWidth(-1)
 				playAt := float32(p.PlayAt)
-				if imgui.InputFloat(fmt.Sprintf("##%dPlayAt", o.Id), &playAt) {
+				if imgui.InputFloat(fmt.Sprintf("##%dPlayAt%d", o.Id, i), &playAt) {
 					p.PlayAt = float64(playAt)
 				}
 
 				imgui.TableSetColumnIndex(4)
 				imgui.SetNextItemWidth(-1)
 				beginTrimOffset := float32(p.BeginTrimOffset)
-				if imgui.InputFloat(fmt.Sprintf("##%dBeginTrimOffset", o.Id), &beginTrimOffset) {
+				if imgui.InputFloat(fmt.Sprintf("##%dBeginTrimOffset%d", o.Id, i), &beginTrimOffset) {
 					p.BeginTrimOffset = float64(beginTrimOffset)
 				}
 
 				imgui.TableSetColumnIndex(5)
 				imgui.SetNextItemWidth(-1)
 				endTrimOffset := float32(p.EndTrimOffset)
-				if imgui.InputFloat(fmt.Sprintf("##%dEndTrimOffset", o.Id), &endTrimOffset) {
+				if imgui.InputFloat(fmt.Sprintf("##%dEndTrimOffset%d", o.Id, i), &endTrimOffset) {
 					p.EndTrimOffset = float64(endTrimOffset)
 				}
 
 				imgui.TableSetColumnIndex(6)
+				imgui.PushIDStr(fmt.Sprintf("%dSrcDuration%d", o.Id, i))
 				imgui.Text(strconv.FormatFloat(p.SrcDuration, 'f', -1, 64))
+				imgui.PopID()
 			}
 			imgui.EndTable()
 		}
