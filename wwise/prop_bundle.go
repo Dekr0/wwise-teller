@@ -23,11 +23,11 @@ type PropBundle struct {
 	// CProps uint8 // u8i
 	// PIds []uint8 // CProps * u8i
 	// PValues [][]byte // CProps * (Union[tid, uni / float32])
-	PropValues []*PropValue
+	PropValues []PropValue
 }
 
 func NewPropBundle() *PropBundle {
-	return &PropBundle{[]*PropValue{}}
+	return &PropBundle{[]PropValue{}}
 }
 
 func (p *PropBundle) Encode() []byte {
@@ -66,7 +66,7 @@ func (p *PropBundle) UpdatePropBytes(pId uint8, b []byte) {
 	}
 	i, found := p.HasPid(pId)
 	if !found {
-		p.PropValues = slices.Insert(p.PropValues, i, &PropValue{pId, b})
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{pId, b})
 	} else {
 		p.PropValues[i].V = b
 	}
@@ -78,7 +78,7 @@ func (p *PropBundle) UpdatePropI32(pId uint8, v int32) {
 	w.Append(v)
 	b := w.BytesAssert(4)
 	if !found {
-		p.PropValues = slices.Insert(p.PropValues, i, &PropValue{pId, b})
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{pId, b})
 	} else {
 		p.PropValues[i].V = b
 	}
@@ -90,7 +90,7 @@ func (p *PropBundle) UpdatePropF32(pId uint8, v float32) {
 	w.Append(v)
 	b := w.BytesAssert(4)
 	if !found {
-		p.PropValues = slices.Insert(p.PropValues, i, &PropValue{pId, b})
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{pId, b})
 	} else {
 		p.PropValues[i].V = b
 	}
@@ -98,7 +98,7 @@ func (p *PropBundle) UpdatePropF32(pId uint8, v float32) {
 
 func (p *PropBundle) Sort() {
 	slices.SortFunc(p.PropValues, 
-		func(a *PropValue, b *PropValue) int {
+		func(a PropValue, b PropValue) int {
 			if a.P < b.P {
 				return -1
 			}
@@ -118,7 +118,7 @@ func (p *PropBundle) New() (uint8, error) {
 	}
 	// Mid point
 	if len(p.PropValues) == 0 {
-		p.PropValues = append(p.PropValues, &PropValue{
+		p.PropValues = append(p.PropValues, PropValue{
 			uint8(len(PropLabel_140) / 2), []byte{0, 0, 0, 0},
 		})
 		return p.PropValues[0].P, nil
@@ -129,19 +129,19 @@ func (p *PropBundle) New() (uint8, error) {
 	if PL > 0 || PR > 0 {
 		if PL >= PR {
 			p.PropValues = append(
-				[]*PropValue{{PL - 1, []byte{0, 0, 0, 0}}}, 
+				[]PropValue{{PL - 1, []byte{0, 0, 0, 0}}}, 
 				p.PropValues...
 				)
 			return PL - 1, nil
 		}
 		p.PropValues = append(
 			p.PropValues, 
-			&PropValue{right + 1, []byte{0, 0, 0, 0}}, 
+			PropValue{right + 1, []byte{0, 0, 0, 0}}, 
 		)
 		return right + 1, nil 
 	}
 	for i := range len(PropLabel_140) {
-		if !slices.ContainsFunc(p.PropValues, func(p *PropValue) bool {
+		if !slices.ContainsFunc(p.PropValues, func(p PropValue) bool {
 			return p.P == uint8(i)
 		}) {
 			p.UpdatePropBytes(uint8(i), []byte{0, 0, 0, 0})
@@ -172,11 +172,11 @@ func (p *PropBundle) DisplayProp() {
 type RangePropBundle struct {
 	// CProps uint8 // u8i
 	// PIds []uint8 // CProps * u8i
-	RangeValues []*RangeValue // CProps * sizeof(RangeValue)
+	RangeValues []RangeValue // CProps * sizeof(RangeValue)
 }
 
 func NewRangePropBundle() *RangePropBundle {
-	return &RangePropBundle{[]*RangeValue{}}
+	return &RangePropBundle{[]RangeValue{}}
 }
 
 func (r *RangePropBundle) Encode() []byte {
@@ -215,7 +215,7 @@ func (r *RangePropBundle) UpdatePropBytes(pId uint8, min []byte, max []byte) {
 	}
 	i, found := r.HasPid(pId)
 	if !found {
-		r.RangeValues = slices.Insert(r.RangeValues, i, &RangeValue{pId, min, max})
+		r.RangeValues = slices.Insert(r.RangeValues, i, RangeValue{pId, min, max})
 	} else {
 		r.RangeValues[i].Min = min
 		r.RangeValues[i].Max = max
@@ -231,7 +231,7 @@ func (r *RangePropBundle) UpdatePropF32(pId uint8, min float32, max float32) {
 	w.Append(min)
 	maxB := w.BytesAssert(4)
 	if !found {
-		r.RangeValues = slices.Insert(r.RangeValues, i, &RangeValue{pId, minB, maxB})
+		r.RangeValues = slices.Insert(r.RangeValues, i, RangeValue{pId, minB, maxB})
 	} else {
 		r.RangeValues[i].Min = minB
 		r.RangeValues[i].Max = maxB
@@ -247,7 +247,7 @@ func (r *RangePropBundle) UpdatePropI32(pId uint8, min int32, max int32) {
 	w.Append(min)
 	maxB := w.BytesAssert(4)
 	if !found {
-		r.RangeValues = slices.Insert(r.RangeValues, i, &RangeValue{pId, minB, maxB})
+		r.RangeValues = slices.Insert(r.RangeValues, i, RangeValue{pId, minB, maxB})
 	} else {
 		r.RangeValues[i].Min = minB
 		r.RangeValues[i].Max = maxB
@@ -260,7 +260,7 @@ func (r *RangePropBundle) New() (uint8, error) {
 	}
 	// Mid point
 	if len(r.RangeValues) == 0 {
-		r.RangeValues = append(r.RangeValues, &RangeValue{
+		r.RangeValues = append(r.RangeValues, RangeValue{
 			uint8(len(PropLabel_140) / 2),
 			[]byte{0, 0, 0, 0},
 			[]byte{0, 0, 0, 0},
@@ -273,19 +273,19 @@ func (r *RangePropBundle) New() (uint8, error) {
 	if PL > 0 || PR > 0 {
 		if PL >= PR {
 			r.RangeValues = append(
-				[]*RangeValue{{PL - 1, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}}}, 
+				[]RangeValue{{PL - 1, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}}}, 
 				r.RangeValues...
 			)
 			return PL - 1, nil
 		}
 		r.RangeValues= append(
 			r.RangeValues, 
-			&RangeValue{right + 1, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}}, 
+			RangeValue{right + 1, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}}, 
 		)
 		return right + 1, nil 
 	}
 	for i := range len(PropLabel_140) {
-		if !slices.ContainsFunc(r.RangeValues, func(r *RangeValue) bool {
+		if !slices.ContainsFunc(r.RangeValues, func(r RangeValue) bool {
 			return r.PId == uint8(i)
 		}) {
 			r.UpdatePropBytes(uint8(i), []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0})
@@ -306,7 +306,7 @@ func (r *RangePropBundle) Remove(pId uint8) error {
 
 func (r *RangePropBundle) Sort() {
 	slices.SortFunc(r.RangeValues, 
-		func(a *RangeValue, b *RangeValue) int {
+		func(a RangeValue, b RangeValue) int {
 			if a.PId < b.PId {
 				return -1
 			}
@@ -335,4 +335,3 @@ func (r *RangeValue) Encode() []byte {
 	)
 	return b
 }
-
