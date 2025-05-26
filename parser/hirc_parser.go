@@ -926,13 +926,11 @@ func ParseAdvanceSetting(r *wio.Reader) *wwise.AdvanceSetting {
 func ParseStateProp(r *wio.Reader) *wwise.StateProp {
 	s := wwise.NewStateProp()
 	NumStateProps := r.U8Unsafe()
-	s.StatePropItems = make([]*wwise.StatePropItem, NumStateProps)
+	s.StatePropItems = make([]wwise.StatePropItem, NumStateProps)
 	for i := range s.StatePropItems {
-		s.StatePropItems[i] = &wwise.StatePropItem{
-			PropertyId: r.U8Unsafe(),
-			AccumType:  r.U8Unsafe(),
-			InDb:       r.U8Unsafe(),
-		}
+		s.StatePropItems[i].PropertyId = r.U8Unsafe()
+		s.StatePropItems[i].AccumType = r.U8Unsafe()
+		s.StatePropItems[i].InDb = r.U8Unsafe()
 	}
 	return s
 }

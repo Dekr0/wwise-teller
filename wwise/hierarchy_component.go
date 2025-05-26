@@ -342,11 +342,11 @@ func (a *AdvanceSetting) SetEnableEnvelope(set bool) {
 
 type StateProp struct {
 	// NumStateProps uint8
-	StatePropItems []*StatePropItem
+	StatePropItems []StatePropItem
 }
 
 func NewStateProp() *StateProp {
-	return &StateProp{[]*StatePropItem{}}
+	return &StateProp{[]StatePropItem{}}
 }
 
 func (s *StateProp) Encode() []byte {
