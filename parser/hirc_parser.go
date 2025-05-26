@@ -876,30 +876,24 @@ func ParsePositioningParam(r *wio.Reader) *wwise.PositioningParam {
 	p.PathMode = r.U8Unsafe()
 	p.TransitionTime = r.I32Unsafe()
 	NumPositionVertices := r.U32Unsafe()
-	p.PositionVertices = make([]*wwise.PositionVertex, NumPositionVertices)
+	p.PositionVertices = make([]wwise.PositionVertex, NumPositionVertices)
 	for i := range p.PositionVertices {
-		p.PositionVertices[i] = &wwise.PositionVertex{
-			X:        r.F32Unsafe(),
-			Y:        r.F32Unsafe(),
-			Z:        r.F32Unsafe(),
-			Duration: r.I32Unsafe(),
-		}
+		p.PositionVertices[i].X = r.F32Unsafe()
+		p.PositionVertices[i].Y = r.F32Unsafe()
+		p.PositionVertices[i].Z = r.F32Unsafe()
+		p.PositionVertices[i].Duration = r.I32Unsafe()
 	}
 	NumPositionPlayListItem := r.U32Unsafe()
-	p.PositionPlayListItems = make([]*wwise.PositionPlayListItem, NumPositionPlayListItem)
+	p.PositionPlayListItems = make([]wwise.PositionPlayListItem, NumPositionPlayListItem)
 	for i := range p.PositionPlayListItems {
-		p.PositionPlayListItems[i] = &wwise.PositionPlayListItem{
-			UniqueVerticesOffset: r.U32Unsafe(),
-			INumVertices:         r.U32Unsafe(),
-		}
+		p.PositionPlayListItems[i].UniqueVerticesOffset = r.U32Unsafe()
+		p.PositionPlayListItems[i].INumVertices =  r.U32Unsafe()
 	}
-	p.Ak3DAutomationParams = make([]*wwise.Ak3DAutomationParam, NumPositionPlayListItem)
+	p.Ak3DAutomationParams = make([]wwise.Ak3DAutomationParam, NumPositionPlayListItem)
 	for i := range p.Ak3DAutomationParams {
-		p.Ak3DAutomationParams[i] = &wwise.Ak3DAutomationParam{
-			XRange: r.F32Unsafe(),
-			YRange: r.F32Unsafe(),
-			ZRange: r.F32Unsafe(),
-		}
+		p.Ak3DAutomationParams[i].XRange = r.F32Unsafe()
+		p.Ak3DAutomationParams[i].YRange = r.F32Unsafe()
+		p.Ak3DAutomationParams[i].ZRange = r.F32Unsafe()
 	}
 	return p
 }

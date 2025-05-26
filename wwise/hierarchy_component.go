@@ -175,18 +175,18 @@ type PositioningParam struct {
 	PathMode uint8 // U8x
 	TransitionTime int32 // s32
 	// NumPositionVertices uint32 // u32
-	PositionVertices []*PositionVertex // NumPositionVertices * sizeof(PositionVertex)
+	PositionVertices []PositionVertex // NumPositionVertices * sizeof(PositionVertex)
 	// NumPositionPlayListItem uint32 // u32
-	PositionPlayListItems []*PositionPlayListItem // NumPositionPlayListItem * sizeof(PositionPlayListItem)
-	Ak3DAutomationParams []*Ak3DAutomationParam // NumPositionPlayListItem * sizeof(Ak3DAutomationParams)
+	PositionPlayListItems []PositionPlayListItem // NumPositionPlayListItem * sizeof(PositionPlayListItem)
+	Ak3DAutomationParams []Ak3DAutomationParam // NumPositionPlayListItem * sizeof(Ak3DAutomationParams)
 }
 
 func NewPositioningParam() *PositioningParam {
 	return &PositioningParam{
 		0, 0, 0, 0, 
-		[]*PositionVertex{}, 
-		[]*PositionPlayListItem{},
-		[]*Ak3DAutomationParam{},
+		[]PositionVertex{}, 
+		[]PositionPlayListItem{},
+		[]Ak3DAutomationParam{},
 	}
 }
 
