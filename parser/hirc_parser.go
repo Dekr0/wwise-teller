@@ -480,7 +480,7 @@ func ParseMusicTrackPlayList(r *wio.Reader, p []wwise.MusicTrackPlayListItem) {
 
 func ParseClipAutomation(r *wio.Reader, cs []wwise.ClipAutomation) {
 	for i := range cs {
-		r.U32Unsafe()
+		cs[i].ClipIndex = r.U32Unsafe()
 		cs[i].AutoType = r.U32Unsafe()
 		cs[i].RTPCGraphPoints = make([]wwise.RTPCGraphPoint, r.U32Unsafe())
 		for j := range cs[i].RTPCGraphPoints {
@@ -839,9 +839,9 @@ func ParseFxChunkMetadata(r *wio.Reader) *wwise.FxChunkMetadata {
 func ParsePropBundle(r *wio.Reader) *wwise.PropBundle {
 	p := wwise.NewPropBundle()
 	CProps := r.U8Unsafe()
-	p.PropValues = make([]*wwise.PropValue, CProps)
+	p.PropValues = make([]wwise.PropValue, CProps)
 	for i := range CProps {
-		p.PropValues[i] = &wwise.PropValue{P: r.U8Unsafe()}
+		p.PropValues[i].P = r.U8Unsafe()
 	}
 	for i := range CProps {
 		p.PropValues[i].V = r.ReadNUnsafe(4, 0)
@@ -852,9 +852,9 @@ func ParsePropBundle(r *wio.Reader) *wwise.PropBundle {
 func ParseRangePropBundle(r *wio.Reader) *wwise.RangePropBundle {
 	p := wwise.NewRangePropBundle()
 	CProps := r.U8Unsafe()
-	p.RangeValues = make([]*wwise.RangeValue, CProps)
+	p.RangeValues = make([]wwise.RangeValue, CProps)
 	for i := range p.RangeValues {
-		p.RangeValues[i] = &wwise.RangeValue{PId: r.U8Unsafe()}
+		p.RangeValues[i].PId = r.U8Unsafe()
 	}
 	for i := range p.RangeValues {
 		p.RangeValues[i].Min = r.ReadNUnsafe(4, 0)
