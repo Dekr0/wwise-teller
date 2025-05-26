@@ -977,12 +977,11 @@ func ParseRTPC(r *wio.Reader) *wwise.RTPC {
 		item.RTPCCurveID = r.U32Unsafe()
 		item.Scaling = r.U8Unsafe()
 		NumRTPCGraphPoints := r.U16Unsafe()
-		item.RTPCGraphPoints = make([]*wwise.RTPCGraphPoint, NumRTPCGraphPoints, NumRTPCGraphPoints)
+		item.RTPCGraphPoints = make([]wwise.RTPCGraphPoint, NumRTPCGraphPoints, NumRTPCGraphPoints)
 		for j := range NumRTPCGraphPoints {
-			r := &wwise.RTPCGraphPoint{
-				From: r.F32Unsafe(), To: r.F32Unsafe(), Interp: r.U32Unsafe(),
-			}
-			item.RTPCGraphPoints[j] = r
+			item.RTPCGraphPoints[j].From = r.F32Unsafe()
+			item.RTPCGraphPoints[j].To = r.F32Unsafe()
+			item.RTPCGraphPoints[j].Interp = r.U32Unsafe()
 		}
 		// item.SamplePoints = computeRTPCSamplePoints(item.RTPCGraphPoints)
 		rtpc.RTPCItems[i] = item

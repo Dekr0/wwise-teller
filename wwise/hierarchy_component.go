@@ -642,11 +642,11 @@ type RTPCItem struct {
 	RTPCCurveID uint32 // sid
 	Scaling uint8 // U8x
 	// NumRTPCGraphPoints / ulSize uint16 // u16
-	RTPCGraphPoints []*RTPCGraphPoint 
+	RTPCGraphPoints []RTPCGraphPoint 
 }
 
 func NewRTPCItem() *RTPCItem {
-	return &RTPCItem{0, 0, 0, 0, 0, 0, []*RTPCGraphPoint{}}
+	return &RTPCItem{0, 0, 0, 0, 0, 0, []RTPCGraphPoint{}}
 }
 
 func (r *RTPCItem) Encode() []byte {
