@@ -42,7 +42,7 @@ func TestPropBundleAddFull(t *testing.T) {
 
 func TestPropBundleNewExist(t *testing.T) {
 	p := &PropBundle{
-		[]*PropValue{
+		[]PropValue{
 			{0, []byte{0, 0, 0, 0}},
 			{6, []byte{0, 0, 0, 0}},
 			{73, []byte{0, 0, 0, 0}},
