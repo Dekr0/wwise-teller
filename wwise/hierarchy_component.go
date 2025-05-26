@@ -7,20 +7,20 @@ import (
 
 type BaseParameter struct {
 	BitIsOverrideParentFx uint8
-	FxChunk *FxChunk
-	FxChunkMetadata *FxChunkMetadata
+	FxChunk FxChunk
+	FxChunkMetadata FxChunkMetadata
 	BitOverrideAttachmentParams uint8
 	OverrideBusId uint32
 	DirectParentId uint32
 	ByBitVectorA uint8
-	PropBundle *PropBundle
-	RangePropBundle *RangePropBundle
-	PositioningParam *PositioningParam
-	AuxParam *AuxParam
-	AdvanceSetting *AdvanceSetting
-	StateProp *StateProp
-	StateGroup *StateGroup
-	RTPC *RTPC
+	PropBundle PropBundle
+	RangePropBundle RangePropBundle
+	PositioningParam PositioningParam
+	AuxParam AuxParam
+	AdvanceSetting AdvanceSetting
+	StateProp StateProp
+	StateGroup StateGroup
+	RTPC RTPC
 }
 
 func (b *BaseParameter) Encode() []byte {
@@ -99,11 +99,11 @@ func (b *BaseParameter) SetMidiBreakLoopOnNoteOff(set bool) {
 type FxChunk struct {
 	// UniqueNumFx uint8
 	BitsFxByPass uint8
-	FxChunkItems []*FxChunkItem
+	FxChunkItems []FxChunkItem
 }
 
 func NewFxChunk() *FxChunk {
-	return &FxChunk{0, []*FxChunkItem{}}
+	return &FxChunk{0, []FxChunkItem{}}
 }
 
 func (f *FxChunk) Encode() []byte {
@@ -372,11 +372,11 @@ type StatePropItem struct {
 
 type StateGroup struct {
 	// NumStateGroups uint8
-	StateGroupItems []*StateGroupItem
+	StateGroupItems []StateGroupItem
 }
 
 func NewStateGroup() *StateGroup {
-	return &StateGroup{[]*StateGroupItem{}}
+	return &StateGroup{[]StateGroupItem{}}
 }
 
 func (s *StateGroup) Encode() []byte {
@@ -401,11 +401,11 @@ type StateGroupItem struct {
 	StateGroupID uint32 // tid
 	StateSyncType uint8 // U8x
 	// NumStates uint8 // var (assume at least 1 byte / 8 bits, can be more)
-	States []*StateGroupItemState // NumStates * sizeof(StateGroupItemState)
+	States []StateGroupItemState // NumStates * sizeof(StateGroupItemState)
 }
 
 func NewStateGroupItem() *StateGroupItem {
-	return &StateGroupItem{0, 0, []*StateGroupItemState{}}
+	return &StateGroupItem{0, 0, []StateGroupItemState{}}
 }
 
 func (s * StateGroupItem) Encode() []byte {
@@ -689,13 +689,13 @@ type SwitchParam struct {
 
 type Layer struct {
 	Id uint32 // tid
-	InitialRTPC *RTPC
+	InitialRTPC RTPC
 	RTPCId uint32 // tid
 	RTPCType uint8 // U8x
 
 	// NumAssoc uint32 // u32
 
-	LayerRTPCs []*LayerRTPC
+	LayerRTPCs []LayerRTPC
 }
 
 func (l *Layer) Encode() []byte {
@@ -725,7 +725,7 @@ type LayerRTPC struct {
 
 	// NumRTPCGraphPoints / CurveSize uint32 // u32
 
-	RTPCGraphPoints []*RTPCGraphPoint
+	RTPCGraphPoints []RTPCGraphPoint
 }
 
 func (l *LayerRTPC) Encode() []byte {

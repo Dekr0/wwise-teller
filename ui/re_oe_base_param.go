@@ -20,8 +20,8 @@ func renderBaseParam(t *bankTab, o wwise.HircObj) {
 		imgui.SameLine()
 		renderChangeParentListing(t)
 		renderByBitVec(b)
-		renderProp(b.PropBundle)
-		renderRangeProp(b.RangePropBundle)
+		renderProp(&b.PropBundle)
+		renderRangeProp(&b.RangePropBundle)
 		renderAdvSetting(b)
 		imgui.TreePop()
 	}

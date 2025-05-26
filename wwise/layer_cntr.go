@@ -14,7 +14,7 @@ type LayerCntr struct {
 
 	// NumLayers uint32 // u32
 	
-	Layers []*Layer
+	Layers []Layer
 	IsContinuousValidation uint8 // U8x
 }
 
