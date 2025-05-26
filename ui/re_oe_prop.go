@@ -39,7 +39,7 @@ func renderPropTable(p *wwise.PropBundle) {
 		imgui.TableHeadersRow()
 
 		for i := range p.PropValues {
-			v := p.PropValues[i]
+			v := &p.PropValues[i]
 			currP := v.P
 			currV := slices.Clone(v.V) // Performance disaster overtime?
 
@@ -156,7 +156,7 @@ func renderRangePropTable(r *wwise.RangePropBundle) {
 		var changeProp func() = nil
 
 		for i := range r.RangeValues {
-			v := r.RangeValues[i]
+			v := &r.RangeValues[i]
 			currP := v.PId
 			currMin := v.Min
 			currMax := v.Max
