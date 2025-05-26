@@ -18,11 +18,11 @@ var CurveInterpolationName []string = []string{
 }
 type RTPC struct {
 	// NumRTPC uint16 // u16
-	RTPCItems []*RTPCItem
+	RTPCItems []RTPCItem
 }
 
 func NewRTPC() *RTPC {
-	return &RTPC{[]*RTPCItem{}}
+	return &RTPC{[]RTPCItem{}}
 }
 
 func (r *RTPC) Encode() []byte {

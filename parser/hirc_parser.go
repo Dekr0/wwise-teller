@@ -967,9 +967,9 @@ func ParseStateGroup(r *wio.Reader) *wwise.StateGroup {
 func ParseRTPC(r *wio.Reader) *wwise.RTPC {
 	rtpc := wwise.NewRTPC()
 	NumRTPC := r.U16Unsafe()
-	rtpc.RTPCItems = make([]*wwise.RTPCItem, NumRTPC, NumRTPC)
+	rtpc.RTPCItems = make([]wwise.RTPCItem, NumRTPC, NumRTPC)
 	for i := range rtpc.RTPCItems {
-		item := wwise.NewRTPCItem()
+		item := &rtpc.RTPCItems[i]
 		item.RTPCID = r.U32Unsafe()
 		item.RTPCType = r.U8Unsafe()
 		item.RTPCAccum = r.U8Unsafe()
@@ -983,8 +983,6 @@ func ParseRTPC(r *wio.Reader) *wwise.RTPC {
 			item.RTPCGraphPoints[j].To = r.F32Unsafe()
 			item.RTPCGraphPoints[j].Interp = r.U32Unsafe()
 		}
-		// item.SamplePoints = computeRTPCSamplePoints(item.RTPCGraphPoints)
-		rtpc.RTPCItems[i] = item
 	}
 	return rtpc
 }
