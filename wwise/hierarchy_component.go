@@ -138,11 +138,11 @@ type FxChunkItem struct {
 type FxChunkMetadata struct {
 	BitIsOverrideParentMetadata uint8
 	// UniqueNumFxMetadata uint8
-	FxMetaDataChunkItems []*FxChunkMetadataItem
+	FxMetaDataChunkItems []FxChunkMetadataItem
 }
 
 func NewFxChunkMetadata() *FxChunkMetadata {
-	return &FxChunkMetadata{0, []*FxChunkMetadataItem{}}
+	return &FxChunkMetadata{0, []FxChunkMetadataItem{}}
 }
 
 func (f *FxChunkMetadata) Encode() []byte {
@@ -168,10 +168,10 @@ type FxChunkMetadataItem struct {
 }
 
 type AuxParam struct {
-	AuxBitVector uint8 // U8x
-	AuxIds []uint32 // 4 * tid
-	RestoreAuxIds []uint32
-	ReflectionAuxBus uint32 // tid
+	AuxBitVector     uint8    // U8x
+	AuxIds           []uint32 // 4 * tid
+	RestoreAuxIds    []uint32
+	ReflectionAuxBus uint32   // tid
 }
 
 func NewAuxParam() *AuxParam {

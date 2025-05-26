@@ -827,7 +827,7 @@ func ParseFxChunkMetadata(r *wio.Reader) *wwise.FxChunkMetadata {
 	f := wwise.NewFxChunkMetadata()
 	f.BitIsOverrideParentMetadata = r.U8Unsafe()
 	UniqueNumFxMetadata := r.U8Unsafe()
-	f.FxMetaDataChunkItems = make([]*wwise.FxChunkMetadataItem, UniqueNumFxMetadata)
+	f.FxMetaDataChunkItems = make([]wwise.FxChunkMetadataItem, UniqueNumFxMetadata)
 	for i := range f.FxMetaDataChunkItems {
 		f.FxMetaDataChunkItems[i].UniqueFxIndex = r.U8Unsafe()
 		f.FxMetaDataChunkItems[i].FxId = r.U32Unsafe()
