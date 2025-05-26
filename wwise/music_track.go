@@ -86,8 +86,8 @@ func (h *MusicTrack) Encode() []byte {
 		w.Append(h.NumSubTrack)
 	}
 	w.Append(uint32(len(h.ClipAutomations)))
-	for i, c := range h.ClipAutomations {
-		w.AppendBytes(c.Encode(uint32(i)))
+	for _, c := range h.ClipAutomations {
+		w.AppendBytes(c.Encode())
 	}
 	w.AppendBytes(h.BaseParam.Encode())
 	w.AppendByte(h.TrackType)
@@ -161,7 +161,7 @@ var ClipAutomationTypeName []string = []string{
 
 
 type ClipAutomation struct {
-	// ClipIndex       uint32
+	ClipIndex       uint32
 	AutoType        uint32
 	// NumPoints       uint32
 	RTPCGraphPoints []RTPCGraphPoint
@@ -175,10 +175,10 @@ func (c *ClipAutomation) RemoveRTPCGraphPoint(i int) {
 	c.RTPCGraphPoints = slices.Delete(c.RTPCGraphPoints, i, i + 1)
 }
 
-func (c *ClipAutomation) Encode(i uint32) []byte {
+func (c *ClipAutomation) Encode() []byte {
 	dataSize := c.Size()
 	w := wio.NewWriter(uint64(dataSize))
-	w.Append(i)
+	w.Append(c.ClipIndex)
 	w.Append(c.AutoType)
 	w.Append(uint32(len(c.RTPCGraphPoints)))
 	for _, r := range c.RTPCGraphPoints {
