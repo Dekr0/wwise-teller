@@ -144,6 +144,8 @@ func renderPlayListPendingTable(t *bankTab, r *wwise.RanSeqCntr) {
 			) {
 				continue
 			}
+			
+			imgui.TableNextRow()
 
 			imgui.TableSetColumnIndex(0)
 			imgui.PushIDStr(fmt.Sprintf("ToPlayList%d", i))
@@ -152,7 +154,6 @@ func renderPlayListPendingTable(t *bankTab, r *wwise.RanSeqCntr) {
 			}
 			imgui.PopID()
 
-			imgui.TableNextRow()
 			imgui.TableSetColumnIndex(1)
 			imgui.Text(strconv.FormatUint(uint64(child), 10))
 		}
