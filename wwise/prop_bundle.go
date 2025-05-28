@@ -2,7 +2,6 @@ package wwise
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"slices"
 	"sort"
@@ -13,8 +12,6 @@ import (
 
 const SizeOfPropValue = 4
 
-var ExceedMaxNumOfProperty = errors.New("Exceed max number of property.")
-
 type PropValue struct {
 	P uint8
 	V []byte
@@ -23,11 +20,8 @@ type PropBundle struct {
 	// CProps uint8 // u8i
 	// PIds []uint8 // CProps * u8i
 	// PValues [][]byte // CProps * (Union[tid, uni / float32])
+	
 	PropValues []PropValue
-}
-
-func NewPropBundle() *PropBundle {
-	return &PropBundle{[]PropValue{}}
 }
 
 func (p *PropBundle) Encode() []byte {
@@ -59,41 +53,11 @@ func (p *PropBundle) HasPid(pId uint8) (int, bool) {
 	})
 }
 
-func (p *PropBundle) UpdatePropBytes(pId uint8, b []byte) {
-	if len(b) != 4 {
-		panic("Inserting a property value using a byte slice with length " + 
-			"less than 4.")
+func (p *PropBundle) SetPropByIdxF32(idx int, v float32) {
+	if len(p.PropValues) <= 0 || idx >= len(p.PropValues) {
+		return
 	}
-	i, found := p.HasPid(pId)
-	if !found {
-		p.PropValues = slices.Insert(p.PropValues, i, PropValue{pId, b})
-	} else {
-		p.PropValues[i].V = b
-	}
-}
-
-func (p *PropBundle) UpdatePropI32(pId uint8, v int32) {
-	i, found := p.HasPid(pId)
-	w := wio.NewWriter(4)
-	w.Append(v)
-	b := w.BytesAssert(4)
-	if !found {
-		p.PropValues = slices.Insert(p.PropValues, i, PropValue{pId, b})
-	} else {
-		p.PropValues[i].V = b
-	}
-}
-
-func (p *PropBundle) UpdatePropF32(pId uint8, v float32) {
-	i, found := p.HasPid(pId)
-	w := wio.NewWriter(4)
-	w.Append(v)
-	b := w.BytesAssert(4)
-	if !found {
-		p.PropValues = slices.Insert(p.PropValues, i, PropValue{pId, b})
-	} else {
-		p.PropValues[i].V = b
-	}
+	binary.Encode(p.PropValues[idx].V, wio.ByteOrder, v)
 }
 
 func (p *PropBundle) Sort() {
@@ -110,54 +74,112 @@ func (p *PropBundle) Sort() {
 	)
 }
 
-// Add a new property. The new property ID will look for the one that is not in 
-// used.
-func (p *PropBundle) New() (uint8, error) {
-	if len(p.PropValues) == len(PropLabel_140) {
-		return 0, ExceedMaxNumOfProperty
-	}
-	// Mid point
-	if len(p.PropValues) == 0 {
-		p.PropValues = append(p.PropValues, PropValue{
-			uint8(len(PropLabel_140) / 2), []byte{0, 0, 0, 0},
-		})
-		return p.PropValues[0].P, nil
-	}
-	PL := p.PropValues[0].P
-	right := p.PropValues[len(p.PropValues) - 1].P
-	PR := uint8(len(PropLabel_140)) - right - 1
-	if PL > 0 || PR > 0 {
-		if PL >= PR {
-			p.PropValues = append(
-				[]PropValue{{PL - 1, []byte{0, 0, 0, 0}}}, 
-				p.PropValues...
-				)
-			return PL - 1, nil
-		}
-		p.PropValues = append(
-			p.PropValues, 
-			PropValue{right + 1, []byte{0, 0, 0, 0}}, 
-		)
-		return right + 1, nil 
-	}
-	for i := range len(PropLabel_140) {
-		if !slices.ContainsFunc(p.PropValues, func(p PropValue) bool {
-			return p.P == uint8(i)
-		}) {
-			p.UpdatePropBytes(uint8(i), []byte{0, 0, 0, 0})
-			return uint8(i), nil
+func (p *PropBundle) AddBaseProp() {
+	for _, t := range BasePropType {
+		if i, in := p.HasPid(t); !in {
+			p.PropValues = slices.Insert(p.PropValues, i, PropValue{t, []byte{0, 0, 0, 0}})
+			return
 		}
 	}
-	panic("Dead code path")
 }
 
-func (p *PropBundle) Remove(pId uint8) error {
+func (p *PropBundle) AddPriority() {
+	if i, in := p.HasPid(PropTypePriority); !in {
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypePriority, []byte{0, 0, 0, 0}})
+	}
+}
+
+func (p *PropBundle) AddPriorityApplyDistFactor() {
+	if i, in := p.HasPid(PropTypePriorityDistanceOffset); in {
+		return
+	} else {
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypePriorityDistanceOffset, []byte{0, 0, 0, 0}})
+	}
+}
+
+// TODO: Find a better way to do this
+func (p *PropBundle) ChangeBaseProp(idx int, nextPid uint8) {
+	if !slices.Contains(BasePropType, nextPid) {
+		return
+	}
+	if slices.ContainsFunc(p.PropValues, func(p PropValue) bool {
+		return p.P == nextPid
+	}) {
+		return
+	}
+	p.PropValues[idx].P = nextPid
+	for i := range 4 {
+		p.PropValues[idx].V[i] = 0
+	}
+	p.Sort()
+}
+
+func (p *PropBundle) AddUserAuxSendVolume() {
+	for _, t := range UserAuxSendVolumePropType {
+		if i, in := p.HasPid(t); !in {
+			p.PropValues = slices.Insert(p.PropValues, i, PropValue{t, []byte{0, 0, 0, 0}})
+			return
+		}
+	}
+}
+
+// TODO: better way to do this
+func (p *PropBundle) ChangeUserAuxSendVolumeProp(idx int, nextPid uint8) {
+	if !slices.Contains(UserAuxSendVolumePropType, nextPid) {
+		return
+	}
+	if slices.ContainsFunc(p.PropValues, func(p PropValue) bool {
+		return p.P == nextPid
+	}) {
+		return
+	}
+	p.PropValues[idx].P = nextPid
+	for i := range p.PropValues[idx].V {
+		p.PropValues[idx].V[i] = 0
+	}
+	p.Sort()
+}
+
+func (p *PropBundle) RemoveAllUserAuxSendVolumeProp() {
+	p.PropValues = slices.DeleteFunc(p.PropValues, func(p PropValue) bool {
+		return slices.Contains(UserAuxSendVolumePropType, p.P)
+	})
+}
+
+func (p *PropBundle) AddReflectionBusVolume() {
+	if i, in := p.HasPid(PropTypeReflectionBusVolume); !in {
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypeReflectionBusVolume, []byte{0, 0, 0, 0}})
+	}
+}
+
+func (p *PropBundle) ReflectionBusVolume() (int, *PropValue) {
+	if i, in := p.HasPid(PropTypeReflectionBusVolume); !in {
+		return -1, nil
+	} else {
+		return i, &p.PropValues[i]
+	}
+}
+
+func (p *PropBundle) AddHDRActiveRange() {
+	if i, in := p.HasPid(PropTypeHDRActiveRange); !in {
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypeHDRActiveRange, []byte{0, 0, 0, 0}})
+	}
+}
+
+func (p *PropBundle) HDRActiveRange() (int, *PropValue) {
+	if i, in := p.HasPid(PropTypeHDRActiveRange); !in {
+		return -1, nil
+	} else {
+		return i, &p.PropValues[i]
+	}
+}
+
+func (p *PropBundle) Remove(pId uint8) {
 	i, found := p.HasPid(pId)
 	if !found {
-		return fmt.Errorf("Failed to find property ID %d", pId)
+		return
 	}
 	p.PropValues = slices.Delete(p.PropValues, i, i + 1)
-	return nil
 }
 
 func (p *PropBundle) DisplayProp() {
@@ -168,15 +190,10 @@ func (p *PropBundle) DisplayProp() {
 		fmt.Println(p.PropValues[i].P, f)
 	}
 }
-
 type RangePropBundle struct {
 	// CProps uint8 // u8i
 	// PIds []uint8 // CProps * u8i
 	RangeValues []RangeValue // CProps * sizeof(RangeValue)
-}
-
-func NewRangePropBundle() *RangePropBundle {
-	return &RangePropBundle{[]RangeValue{}}
 }
 
 func (r *RangePropBundle) Encode() []byte {
@@ -184,7 +201,7 @@ func (r *RangePropBundle) Encode() []byte {
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(len(r.RangeValues)))
 	for _, i := range r.RangeValues {
-		w.AppendByte(i.PId)
+		w.AppendByte(i.P)
 	}
 	for _, i := range r.RangeValues {
 		w.AppendBytes(i.Encode())
@@ -198,9 +215,9 @@ func (r *RangePropBundle) Size() uint32 {
 
 func (r *RangePropBundle) HasPid(pID uint8) (int, bool) {
 	return sort.Find(len(r.RangeValues), func(i int) int {
-		if pID < r.RangeValues[i].PId {
+		if pID < r.RangeValues[i].P {
 			return -1
-		} else if pID == r.RangeValues[i].PId {
+		} else if pID == r.RangeValues[i].P {
 			return 0
 		} else {
 			return 1
@@ -208,91 +225,47 @@ func (r *RangePropBundle) HasPid(pID uint8) (int, bool) {
 	})
 }
 
-func (r *RangePropBundle) UpdatePropBytes(pId uint8, min []byte, max []byte) {
-	if len(min) != 4 || len(max) != 4 {
-		panic("Inserting a property value using a byte slice with length " + 
-			"less than 4.")
-	}
-	i, found := r.HasPid(pId)
-	if !found {
-		r.RangeValues = slices.Insert(r.RangeValues, i, RangeValue{pId, min, max})
-	} else {
-		r.RangeValues[i].Min = min
-		r.RangeValues[i].Max = max
-	}
-}
-
-func (r *RangePropBundle) UpdatePropF32(pId uint8, min float32, max float32) {
-	i, found := r.HasPid(pId)
-	w := wio.NewWriter(4)
-	w.Append(min)
-	minB := w.BytesAssert(4)
-	w = wio.NewWriter(4)
-	w.Append(min)
-	maxB := w.BytesAssert(4)
-	if !found {
-		r.RangeValues = slices.Insert(r.RangeValues, i, RangeValue{pId, minB, maxB})
-	} else {
-		r.RangeValues[i].Min = minB
-		r.RangeValues[i].Max = maxB
-	}
-}
-
-func (r *RangePropBundle) UpdatePropI32(pId uint8, min int32, max int32) {
-	i, found := r.HasPid(pId)
-	w := wio.NewWriter(4)
-	w.Append(min)
-	minB := w.BytesAssert(4)
-	w = wio.NewWriter(4)
-	w.Append(min)
-	maxB := w.BytesAssert(4)
-	if !found {
-		r.RangeValues = slices.Insert(r.RangeValues, i, RangeValue{pId, minB, maxB})
-	} else {
-		r.RangeValues[i].Min = minB
-		r.RangeValues[i].Max = maxB
-	}
-}
-
-func (r *RangePropBundle) New() (uint8, error) {
-	if len(r.RangeValues) == len(PropLabel_140) {
-		return 0, ExceedMaxNumOfProperty
-	}
-	// Mid point
-	if len(r.RangeValues) == 0 {
-		r.RangeValues = append(r.RangeValues, RangeValue{
-			uint8(len(PropLabel_140) / 2),
-			[]byte{0, 0, 0, 0},
-			[]byte{0, 0, 0, 0},
-		})
-		return r.RangeValues[0].PId, nil
-	}
-	PL := r.RangeValues[0].PId
-	right := r.RangeValues[len(r.RangeValues) - 1].PId
-	PR := uint8(len(PropLabel_140)) - right - 1
-	if PL > 0 || PR > 0 {
-		if PL >= PR {
-			r.RangeValues = append(
-				[]RangeValue{{PL - 1, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}}}, 
-				r.RangeValues...
+func (r *RangePropBundle) AddBaseProp() {
+	for _, t := range BaseRangePropType {
+		if i, in := r.HasPid(t); !in {
+			r.RangeValues = slices.Insert(
+				r.RangeValues, i, RangeValue{t, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}},
 			)
-			return PL - 1, nil
-		}
-		r.RangeValues= append(
-			r.RangeValues, 
-			RangeValue{right + 1, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}}, 
-		)
-		return right + 1, nil 
-	}
-	for i := range len(PropLabel_140) {
-		if !slices.ContainsFunc(r.RangeValues, func(r RangeValue) bool {
-			return r.PId == uint8(i)
-		}) {
-			r.UpdatePropBytes(uint8(i), []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0})
-			return uint8(i), nil
+			break
 		}
 	}
-	panic("Dead code path")
+}
+
+func (r *RangePropBundle) ChangeBaseProp(idx int, nextPid uint8) {
+	if !slices.Contains(BasePropType, nextPid) {
+		return
+	}
+	if slices.ContainsFunc(r.RangeValues, func(r RangeValue) bool {
+		return r.P == nextPid
+	}) {
+		return
+	}
+	r.RangeValues[idx].P = nextPid
+	for i := range 4 {
+		r.RangeValues[idx].Min[i] = 0
+		r.RangeValues[idx].Max[i] = 0
+	}
+	r.Sort()
+
+}
+
+func (r *RangePropBundle) SetPropMinByIdxF32(idx int, v float32) {
+	if len(r.RangeValues) <= 0 || idx >= len(r.RangeValues) {
+		return
+	}
+	binary.Encode(r.RangeValues[idx].Min, wio.ByteOrder, v)
+}
+
+func (r *RangePropBundle) SetPropMaxByIdxF32(idx int, v float32) {
+	if len(r.RangeValues) <= 0 || idx >= len(r.RangeValues) {
+		return
+	}
+	binary.Encode(r.RangeValues[idx].Max, wio.ByteOrder, v)
 }
 
 func (r *RangePropBundle) Remove(pId uint8) error {
@@ -307,10 +280,10 @@ func (r *RangePropBundle) Remove(pId uint8) error {
 func (r *RangePropBundle) Sort() {
 	slices.SortFunc(r.RangeValues, 
 		func(a RangeValue, b RangeValue) int {
-			if a.PId < b.PId {
+			if a.P < b.P {
 				return -1
 			}
-			if a.PId > b.PId {
+			if a.P > b.P {
 				return 1
 			}
 			return 0
@@ -320,7 +293,7 @@ func (r *RangePropBundle) Sort() {
 
 const SizeOfRangeValue = 8
 type RangeValue struct {
-	PId uint8
+	P uint8
 	Min []byte // Union[tid, uni / float32]
 	Max []byte // Union[tid, uni / float32]
 }
