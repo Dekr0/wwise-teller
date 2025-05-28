@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sort"
 	"sync/atomic"
 
@@ -837,7 +836,7 @@ func ParseRangePropBundle(r *wio.Reader, p *wwise.RangePropBundle) {
 	CProps := r.U8Unsafe()
 	p.RangeValues = make([]wwise.RangeValue, CProps)
 	for i := range p.RangeValues {
-		p.RangeValues[i].PId = r.U8Unsafe()
+		p.RangeValues[i].P = r.U8Unsafe()
 	}
 	for i := range p.RangeValues {
 		p.RangeValues[i].Min = r.ReadNUnsafe(4, 0)
@@ -881,14 +880,17 @@ func ParsePositioningParam(r *wio.Reader, p *wwise.PositioningParam) {
 func ParseAuxParam(r *wio.Reader, a *wwise.AuxParam) {
 	a.AuxBitVector = r.U8Unsafe()
 	if a.HasAux() {
-		a.AuxIds = make([]uint32, 4, 4)
 		a.AuxIds[0] = r.U32Unsafe()
 		a.AuxIds[1] = r.U32Unsafe()
 		a.AuxIds[2] = r.U32Unsafe()
 		a.AuxIds[3] = r.U32Unsafe()
-		a.RestoreAuxIds = slices.Clone(a.AuxIds)
+		a.RestoreAuxIds[0] = a.AuxIds[0]
+		a.RestoreAuxIds[1] = a.AuxIds[1]
+		a.RestoreAuxIds[2] = a.AuxIds[2]
+		a.RestoreAuxIds[3] = a.AuxIds[3]
 	}
 	a.ReflectionAuxBus = r.U32Unsafe()
+	a.RestoreReflectionAuxBus = a.ReflectionAuxBus
 }
 
 func ParseAdvanceSetting(r *wio.Reader, a *wwise.AdvanceSetting) {
