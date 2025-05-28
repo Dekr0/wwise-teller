@@ -25,7 +25,7 @@ func renderBaseParam(t *bankTab, o wwise.HircObj) {
 		renderAuxParam(t, o)
 		renderBaseProp(&b.PropBundle)
 		renderBaseRangeProp(&b.RangePropBundle)
-		renderAdvSetting(b.DirectParentId, &b.AdvanceSetting)
+		renderAdvSetting(b, &b.AdvanceSetting)
 		imgui.TreePop()
 	}
 }
@@ -233,13 +233,13 @@ func renderByBitVec(o *wwise.BaseParameter) {
 	}
 }
 
-func renderAdvSetting(parentID uint32, a *wwise.AdvanceSetting) {
+func renderAdvSetting(b *wwise.BaseParameter, a *wwise.AdvanceSetting) {
 	if imgui.TreeNodeExStr("Advance Setting") {
 		size := imgui.NewVec2(0, 128)
 		imgui.BeginChildStrV("PlaybackLimit", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
 		imgui.SeparatorText("Playback Limit")
 
-		imgui.BeginDisabledV(parentID == 0)
+		imgui.BeginDisabledV(b.DirectParentId == 0)
 		ignoreParentMaxLimit := a.IgnoreParentMaxNumInst()
 		if imgui.Checkbox("Ignore Parent", &ignoreParentMaxLimit) {
 			a.SetIgnoreParentMaxNumInst(ignoreParentMaxLimit)
@@ -248,7 +248,7 @@ func renderAdvSetting(parentID uint32, a *wwise.AdvanceSetting) {
 
 		// To set behavior of playback limiting, hierarchy object need to 
 		// enable "Ignore Parent"
-		imgui.BeginDisabledV(parentID != 0 && !a.IgnoreParentMaxNumInst())
+		imgui.BeginDisabledV(b.DirectParentId != 0 && !a.IgnoreParentMaxNumInst())
 		imgui.Text("Limit sound instances to:")
 		imgui.SameLine()
 		maxNumInstance := int32(a.MaxNumInstance)
@@ -321,7 +321,7 @@ func renderAdvSetting(parentID uint32, a *wwise.AdvanceSetting) {
 		size.Y = 112
 		imgui.BeginChildStrV("VirtualVovice", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
 		imgui.SeparatorText("Virtual Voice")
-		imgui.BeginDisabledV(parentID == 0)
+		imgui.BeginDisabledV(b.DirectParentId == 0)
 		overrideParentVVoice := a.OverrideParentVVoice()
 		if imgui.Checkbox("Override Parent", &overrideParentVVoice) {
 			a.SetVVoicesOptOverrideParent(overrideParentVVoice)
@@ -329,7 +329,7 @@ func renderAdvSetting(parentID uint32, a *wwise.AdvanceSetting) {
 		imgui.EndDisabled()
 		// Hierarchy object need to enable "Override Parent Virtual Voice" in 
 		// order to change virtual voice setting
-		imgui.BeginDisabledV(parentID != 0 && !a.OverrideParentVVoice())
+		imgui.BeginDisabledV(b.DirectParentId != 0 && !a.OverrideParentVVoice())
 		belowThreSholdBehavior := int32(a.BelowThresholdBehavior)
 		if imgui.ComboStrarr(
 			"Virtual Voice Behavior",
@@ -356,25 +356,36 @@ func renderAdvSetting(parentID uint32, a *wwise.AdvanceSetting) {
 
 		// HDR Setting
 		size.X = 0
-		size.Y = 72
+		size.Y = 80
 		imgui.BeginChildStrV("HDRSetting", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
-		imgui.BeginDisabledV(parentID == 0)
+		imgui.BeginDisabledV(b.DirectParentId == 0)
 		overrideHDREnvelope := a.OverrideHDREnvelope()
 		if imgui.Checkbox("Override Parent", &overrideHDREnvelope) {
 			a.SetOverrideHDREnvelope(overrideHDREnvelope)
 		}
 		imgui.EndDisabled()
 
-		imgui.BeginDisabledV(parentID != 0 && !a.OverrideHDREnvelope())
+		imgui.BeginDisabledV(b.DirectParentId != 0 && !a.OverrideHDREnvelope())
 		enabledEnvelope := a.EnableEnvelope()
 		if imgui.Checkbox("Enable Envelope", &enabledEnvelope) {
-			a.SetEnableEnvelope(enabledEnvelope)
+			b.SetEnableEnvelope(enabledEnvelope)
 		}
+		imgui.BeginDisabledV(!a.EnableEnvelope())
+		i, prop := b.PropBundle.HDRActiveRange()
+		if i != -1 {
+			var val float32
+			binary.Decode(prop.V, wio.ByteOrder, &val)
+			if imgui.InputFloat("HDR Active Range", &val) {
+				if val >= 0 && val <= 24 {
+					b.PropBundle.SetPropByIdxF32(i, val)	
+				}
+			}
+		}
+		imgui.EndDisabled()
 		imgui.EndDisabled()
 
 		imgui.EndChild()
 		// End of HDR Setting
 		imgui.TreePop()
-
 	}
 }
