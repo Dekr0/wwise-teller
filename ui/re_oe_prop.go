@@ -3,7 +3,6 @@ package ui
 import (
 	"encoding/binary"
 	"fmt"
-	"log/slog"
 	"slices"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -12,276 +11,418 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderProp(p *wwise.PropBundle) {
+func renderBaseProp(p *wwise.PropBundle) {
 	if imgui.TreeNodeExStr("Property") {
-		if imgui.Button("Add Property") {
-			if _, err := p.New(); err != nil {
-				slog.Info("Failed to add new property", "error", err)
-			}
+		if imgui.Button("Add Base Property") {
+			p.AddBaseProp()
 		}
-		renderPropTable(p)
+		renderBasePropTable(p)
 		imgui.TreePop()
 	}
 }
 
-func renderPropTable(p *wwise.PropBundle) {
+func renderBasePropTable(p *wwise.PropBundle) {
 	const flags = DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("PropTable", 4, flags, outerSize, 0) {
-		var deleteProp func() = nil
-		var changeProp func() = nil
+		var removeBaseProp func() = nil
+		var changeBaseProp func() = nil
 
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
-		imgui.TableSetupColumn("Property ID")
-		imgui.TableSetupColumn("Property Value (decimal view)")
-		imgui.TableSetupColumn("Property Value (integer view)")
+		imgui.TableSetupColumn("Property")
+		imgui.TableSetupColumn("Value (Slider)")
+		imgui.TableSetupColumn("Value (InputV)")
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
 		for i := range p.PropValues {
-			v := &p.PropValues[i]
-			currP := v.P
-			currV := slices.Clone(v.V) // Performance disaster overtime?
-
+			pid := p.PropValues[i].P
+			if !slices.Contains(wwise.BasePropType, pid) {
+				continue
+			}
 			imgui.TableNextRow()
-			imgui.TableSetColumnIndex(0)
-			imgui.SetNextItemWidth(40)
 			
-			imgui.PushIDStr(fmt.Sprintf("DeleteProperty_%d", i))
+			imgui.TableSetColumnIndex(0)
+			imgui.PushIDStr(fmt.Sprintf("RmBaseProp%d", i))
 			if imgui.Button("X") {
-				deleteProp = bindDeleteProp(p, currP)
+				removeBaseProp = bindRemoveProp(p, pid)
 			}
 			imgui.PopID()
 
 			imgui.TableSetColumnIndex(1)
 			imgui.SetNextItemWidth(-1)
+			preview := wwise.PropLabel_140[pid]
+			if imgui.BeginCombo(fmt.Sprintf("##ChangeBaseProp%d", i), preview) {
+				for _, t := range wwise.BasePropType {
+					selected := pid == t
 
-			stageP := int32(currP)
-			imgui.PushIDStr(fmt.Sprintf("PropertySelection_%d", i))
-
-			if imgui.ComboStrarr("", &stageP, wwise.PropLabel_140, int32(len(wwise.PropLabel_140))) {
-				if _, found := p.HasPid(uint8(stageP)); !found {
-					changeProp = bindChangeProp(p, v, stageP)
+					label := wwise.PropLabel_140[t]
+					if imgui.SelectableBoolPtr(label, &selected) {
+						changeBaseProp = bindChangeBaseProp(p, i, t)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
 				}
+				imgui.EndCombo()
 			}
 
-			imgui.PopID()
-
-			var stageVF float32
-			var stageVI int32
-
-			_, err := binary.Decode(currV, wio.ByteOrder, &stageVF)
-			if err != nil {
-				panic(err)
+			var val float32
+			binary.Decode(p.PropValues[i].V, wio.ByteOrder, &val)
+			switch pid {
+			case wwise.PropTypeVolume:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##VolumeSlider", &val, -96.0, 12.0) {
+					p.SetPropByIdxF32(i, val)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##VolumeInputV", &val) {
+					if val >= -96.0 && val <= 12.0 {
+						p.SetPropByIdxF32(i, val)
+					}
+				}
+			case wwise.PropTypePitch:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				intFloat := int32(val)
+				if imgui.SliderInt("##PitchSlider", &intFloat, -2400, 2400) {
+					p.SetPropByIdxF32(i, float32(intFloat))
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputInt("##PitchInputV", &intFloat) {
+					if intFloat >= -2400 && intFloat <= 2400 {
+						p.SetPropByIdxF32(i, float32(intFloat))
+					}
+				}
+			case wwise.PropTypeLPF:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				intFloat := int32(val)
+				if imgui.SliderInt("##LPFSlider", &intFloat, 0, 100) {
+					p.SetPropByIdxF32(i, float32(intFloat))
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputInt("##LPFInputV", &intFloat) {
+					if intFloat >= 0 && intFloat <= 100 {
+						p.SetPropByIdxF32(i, float32(intFloat))
+					}
+				}
+			case wwise.PropTypeHPF:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				intFloat := int32(val)
+				if imgui.SliderInt("##HPFSlider", &intFloat, 0, 100) {
+					p.SetPropByIdxF32(i, float32(intFloat))
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputInt("##HPFInputV", &intFloat) {
+					if intFloat >= 0 && intFloat <= 100 {
+						p.SetPropByIdxF32(i, float32(intFloat))
+					}
+				}
+			case wwise.PropTypeMakeUpGain:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##MakeUpGainSlider", &val, -96.0, 96.0) {
+					p.SetPropByIdxF32(i, val)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##MakeUpGainInputV", &val) {
+					if val >= -96.0 && val <= 96.0 {
+						p.SetPropByIdxF32(i, val)
+					}
+				}
+			case wwise.PropTypeGameAuxSendVolume:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##GameAuxSendVolumeSlider", &val, -96.0, 12.0) {
+					p.SetPropByIdxF32(i, val)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##GameAuxSendVolumeInputV", &val) {
+					if val >= -96.0 && val <= 12.0 {
+						p.SetPropByIdxF32(i, val)
+					}
+				}
+			case wwise.PropTypeInitialDelay:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##InitialDelaySlider", &val, 0, 60.0) {
+					p.SetPropByIdxF32(i, val)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##InitialDelayInputV", &val) {
+					if val >= 0 && val <= 60.0 {
+						p.SetPropByIdxF32(i, val)
+					}
+				}
+			default:
+				panic("Panic Trap")
 			}
-			_, err = binary.Decode(currV, wio.ByteOrder, &stageVI)
-			if err != nil {
-				panic(err)
-			}
-
-
-			imgui.TableSetColumnIndex(2)
-			imgui.SetNextItemWidth(-1)
-
-			imgui.PushIDStr(fmt.Sprintf("PropertyValueFloat_%d", i))
-
-			if imgui.InputFloat("", &stageVF) {
-				p.UpdatePropF32(currP, stageVF)
-			}
-
-			imgui.PopID()
-
-			imgui.TableSetColumnIndex(3)
-			imgui.SetNextItemWidth(-1)
-
-			imgui.PushIDStr(fmt.Sprintf("PropertyValueInt_%d", i))
-
-			if imgui.InputInt("", &stageVI) {
-				p.UpdatePropI32(currP, stageVI)
-			}
-
-			imgui.PopID()
 		}
 
 		imgui.EndTable()
 
-		if deleteProp != nil {
-			deleteProp()
+		if removeBaseProp != nil {
+			removeBaseProp()
 		}
-		if changeProp != nil {
-			changeProp()
+		if changeBaseProp != nil {
+			changeBaseProp()
 		}
 	}
 }
 
-func bindChangeProp(p *wwise.PropBundle, v *wwise.PropValue, pid int32) func() {
-	return func() {
-		v.P = uint8(pid)
-		p.Sort()
-	}
+func bindChangeBaseProp(p *wwise.PropBundle, idx int, nextPid uint8) func() {
+	return func() { p.ChangeBaseProp(idx, nextPid) }
 }
 
-func bindDeleteProp(p *wwise.PropBundle, pid uint8) func() {
+func bindRemoveProp(p *wwise.PropBundle, pid uint8) func() {
 	return func() {
 		p.Remove(pid)
 	}
 }
 
-func renderRangeProp(r *wwise.RangePropBundle) {
-	if imgui.TreeNodeExStr("Range Property") {
-		if imgui.Button("Add Range Property") {
-			if _, err := r.New(); err != nil {
-				slog.Info("Failed to add new range property", "error", err)
-			}
+func renderBaseRangeProp(r *wwise.RangePropBundle) {
+	if imgui.TreeNodeExStr("Base Range Property (Randomizer)") {
+		if imgui.Button("Add Base Range Property") {
+			r.AddBaseProp()
 		}
-		renderRangePropTable(r)
+		renderBaseRangePropTable(r)
 		imgui.TreePop()
 	}
 }
 
-func renderRangePropTable(r *wwise.RangePropBundle) {
+func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 	const flags = DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("RangePropTable", 6, flags, outerSize, 0) {
+	if imgui.BeginTableV("RangePropTableSlider", 6, flags, outerSize, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
-		imgui.TableSetupColumn("Property ID")
-		imgui.TableSetupColumn("Min (decimal view)")
-		imgui.TableSetupColumn("Min (integer view)")
-		imgui.TableSetupColumn("Max (decimal view)")
-		imgui.TableSetupColumn("Max (integer view)")
+		imgui.TableSetupColumn("Property")
+		imgui.TableSetupColumn("Min (Slider)")
+		imgui.TableSetupColumn("Min (Inputv)")
+		imgui.TableSetupColumn("Max (Slider)")
+		imgui.TableSetupColumn("Max (Inputv)")
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
-		var deleteProp func() = nil
-		var changeProp func() = nil
+		var removeBaseRangeProp func() = nil
+		var changeBaseRangeProp func() = nil
 
 		for i := range r.RangeValues {
-			v := &r.RangeValues[i]
-			currP := v.PId
-			currMin := v.Min
-			currMax := v.Max
-
+			pid := r.RangeValues[i].P
+			if !slices.Contains(wwise.BaseRangePropType, pid) {
+				continue
+			}
 			imgui.TableNextRow()
 
 			imgui.TableSetColumnIndex(0)
-			imgui.PushIDStr(fmt.Sprintf("DelRangProp%d", i))
-
+			imgui.PushIDStr(fmt.Sprintf("RmBaseRangeProp%d", i))
 			if imgui.Button("X") {
-				deleteProp = bindRemoveRangeProp(r, currP)
+				removeBaseRangeProp = bindRemoveBaseRangeProp(r, pid)
 			}
-
 			imgui.PopID()
 
 			imgui.TableSetColumnIndex(1)
 			imgui.SetNextItemWidth(-1)
+			preview := wwise.PropLabel_140[pid]
+			if imgui.BeginCombo(fmt.Sprintf("##ChangeBaseRangeProp%d", i), preview) {
+				for _, t := range wwise.BaseRangePropType {
+					selected := pid == t
+					label := wwise.PropLabel_140[t]
+					if imgui.SelectableBoolPtr(label, &selected) {
+						changeBaseRangeProp = bindChangeBaseRangeProp(r, i, t)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+				}
+				imgui.EndCombo()
+			}
 
-			stageP := int32(currP)
-
-			imgui.PushIDStr(fmt.Sprintf("RangePropertySelection_%d", i))
-			
-			if imgui.ComboStrarr(
-				"", &stageP, 
-				wwise.PropLabel_140, int32(len(wwise.PropLabel_140)),
-			) {
-				if _, found := r.HasPid(uint8(stageP)); !found {
-					changeProp = bindChangeRangeProp(r, v, uint8(stageP))
+			var valMin float32
+			var valMax float32
+			binary.Decode(r.RangeValues[i].Min, wio.ByteOrder, &valMin)
+			binary.Decode(r.RangeValues[i].Max, wio.ByteOrder, &valMax)
+			switch pid {
+			case wwise.PropTypeVolume:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##VolumeMinSlider", &valMin, -108.0, 0) {
+					r.SetPropMinByIdxF32(i, valMin)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##VolumeMinInputV", &valMin) {
+					if valMin >= -108.0 && valMin <= 0 {
+						r.SetPropMinByIdxF32(i, valMin)
+					}
+				}
+				imgui.TableSetColumnIndex(4)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##VolumeMaxSlider", &valMax, 0, 108.0) {
+					r.SetPropMaxByIdxF32(i, valMax)
+				}
+				imgui.TableSetColumnIndex(5)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##VolumeMaxInputV", &valMax) {
+					if valMax >= 0.0 && valMax <= 108.0 {
+						r.SetPropMaxByIdxF32(i, valMax)
+					}
+				}
+			case wwise.PropTypePitch:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##PitchMinSlider", &valMin, -4800, 0) {
+					r.SetPropMinByIdxF32(i, valMin)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##PitchMinInputV", &valMin) {
+					if valMin >= -4800.0 && valMin <= 0 {
+						r.SetPropMinByIdxF32(i, valMin)
+					}
+				}
+				imgui.TableSetColumnIndex(4)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##PitchMaxSlider", &valMax, 0, 4800) {
+					r.SetPropMaxByIdxF32(i, valMax)
+				}
+				imgui.TableSetColumnIndex(5)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##PitchMaxInputV", &valMax) {
+					if valMax >= 0.0 && valMax <= 4800 {
+						r.SetPropMaxByIdxF32(i, valMax)
+					}
+				}
+			case wwise.PropTypeLPF:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##LPFMinSlider", &valMin, -100.0, 0) {
+					r.SetPropMinByIdxF32(i, valMin)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##LPFMinInputV", &valMin) {
+					if valMin >= -100.0 && valMin <= 0 {
+						r.SetPropMinByIdxF32(i, valMin)
+					}
+				}
+				imgui.TableSetColumnIndex(4)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##LPFMaxSlider", &valMax, 0, 100.0) {
+					r.SetPropMaxByIdxF32(i, valMax)
+				}
+				imgui.TableSetColumnIndex(5)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##LPFMaxInputV", &valMax) {
+					if valMax >= 0.0 && valMax <= 100.0 {
+						r.SetPropMaxByIdxF32(i, valMax)
+					}
+				}
+			case wwise.PropTypeHPF:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##HPFMinSlider", &valMin, -100.0, 0) {
+					r.SetPropMinByIdxF32(i, valMin)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##HPFMinInputV", &valMin) {
+					if valMin >= -100.0 && valMin <= 0 {
+						r.SetPropMinByIdxF32(i, valMin)
+					}
+				}
+				imgui.TableSetColumnIndex(4)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##HPFMaxSlider", &valMax, 0, 100.0) {
+					r.SetPropMaxByIdxF32(i, valMax)
+				}
+				imgui.TableSetColumnIndex(5)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##HPFMaxInputV", &valMax) {
+					if valMax >= 0.0 && valMax <= 100.0 {
+						r.SetPropMaxByIdxF32(i, valMax)
+					}
+				}
+			case wwise.PropTypeMakeUpGain:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##MakeUpGainMinSlider", &valMin, -192.0, 0) {
+					r.SetPropMinByIdxF32(i, valMin)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##MakeUpGainMinInputV", &valMin) {
+					if valMin >= -192.0 && valMin <= 0 {
+						r.SetPropMinByIdxF32(i, valMin)
+					}
+				}
+				imgui.TableSetColumnIndex(4)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##MakeUpGainMaxSlider", &valMax, 0, 192.0) {
+					r.SetPropMaxByIdxF32(i, valMax)
+				}
+				imgui.TableSetColumnIndex(5)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##MakeUpGainMaxInputV", &valMax) {
+					if valMax >= 0.0 && valMax <= 192.0 {
+						r.SetPropMaxByIdxF32(i, valMax)
+					}
+				}
+			case wwise.PropTypeInitialDelay:
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##InitialDelayMinSlider", &valMin, -60.0, 0) {
+					r.SetPropMinByIdxF32(i, valMin)
+				}
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##InitialDelayMinInputV", &valMin) {
+					if valMin >= -60.0 && valMin <= 0 {
+						r.SetPropMinByIdxF32(i, valMin)
+					}
+				}
+				imgui.TableSetColumnIndex(4)
+				imgui.SetNextItemWidth(-1)
+				if imgui.SliderFloat("##InitialDelayMaxSlider", &valMax, 0, 60.0) {
+					r.SetPropMaxByIdxF32(i, valMax)
+				}
+				imgui.TableSetColumnIndex(5)
+				imgui.SetNextItemWidth(-1)
+				if imgui.InputFloat("##InitialDelayMaxInputV", &valMax) {
+					if valMax >= 0.0 && valMax <= 60.0 {
+						r.SetPropMaxByIdxF32(i, valMax)
+					}
 				}
 			}
-
-			imgui.PopID()
-
-			var stageMinF float32
-			var stageMaxF float32
-			var stageMinI int32
-			var stageMaxI int32
-
-			_, err := binary.Decode(currMin, wio.ByteOrder, &stageMinF)
-			if err != nil {
-				panic(err)
-			}
-			_, err = binary.Decode(currMax, wio.ByteOrder, &stageMaxF)
-			if err != nil {
-				panic(err)
-			}
-			_, err = binary.Decode(currMin, wio.ByteOrder, &stageMinI)
-			if err != nil {
-				panic(err)
-			}
-			_, err = binary.Decode(currMax, wio.ByteOrder, &stageMaxI)
-			if err != nil {
-				panic(err)
-			}
-
-			imgui.TableSetColumnIndex(2)
-			imgui.SetNextItemWidth(-1)
-
-			imgui.PushIDStr(fmt.Sprintf("RangePropertyMinF32_%d", i))
-
-			// Delay?
-			if imgui.InputFloat("", &stageMinF) {
-				r.UpdatePropF32(currP, stageMinF, stageMaxF)
-			}
-
-			imgui.PopID()
-
-			imgui.TableSetColumnIndex(3)
-			imgui.SetNextItemWidth(-1)
-
-			imgui.PushIDStr(fmt.Sprintf("RangePropertyMinI32_%d", i))
-
-			// Delay?
-			if imgui.InputInt("", &stageMinI) {
-				r.UpdatePropI32(currP, stageMinI, stageMaxI)
-			}
-
-			imgui.PopID()
-
-			imgui.TableSetColumnIndex(4)
-			imgui.SetNextItemWidth(-1)
-
-			imgui.PushIDStr(fmt.Sprintf("RangePropertyMaxF32_%d", i))
-
-			// Delay?
-			if imgui.InputFloat("", &stageMaxF) {
-				r.UpdatePropF32(currP, stageMinF, stageMaxF)
-			}
-
-			imgui.PopID()
-
-			imgui.TableSetColumnIndex(5)
-			imgui.SetNextItemWidth(-1)
-
-			imgui.PushIDStr(fmt.Sprintf("RangePropertyMaxI32_%d", i))
-
-			// Delay?
-			if imgui.InputInt("", &stageMaxI) {
-				r.UpdatePropI32(currP, stageMinI, stageMaxI)
-			}
-
-			imgui.PopID()
 		}
 		imgui.EndTable()
 
-		if deleteProp != nil {
-			deleteProp()
+		if removeBaseRangeProp != nil {
+			removeBaseRangeProp()
 		}
-		if changeProp != nil {
-			changeProp()
+		if changeBaseRangeProp != nil {
+			changeBaseRangeProp()
 		}
 	}
 }
 
-func bindRemoveRangeProp(r *wwise.RangePropBundle, p uint8) func() {
+func bindRemoveBaseRangeProp(r *wwise.RangePropBundle, p uint8) func() {
 	return func() {
 		r.Remove(p)
 	}
 }
 
-func bindChangeRangeProp(
-	r *wwise.RangePropBundle, v *wwise.RangeValue, p uint8,
-) func() {
+func bindChangeBaseRangeProp(r *wwise.RangePropBundle, idx int, nextPid uint8) func() {
 	return func() {
-		v.PId = p
-		r.Sort()
+		r.ChangeBaseProp(idx, nextPid)
 	}
 }
