@@ -5,8 +5,8 @@ import "github.com/Dekr0/wwise-teller/wio"
 type Event struct {
 	HircObj
 
-	Id   uint32
-	Data []byte
+	Id        uint32
+	ActionIDs []uint32
 }
 
 func (h *Event) Encode() []byte {
@@ -16,12 +16,15 @@ func (h *Event) Encode() []byte {
 	w.AppendByte(uint8(HircTypeEvent))
 	w.Append(dataSize)
 	w.Append(h.Id)
-	w.AppendBytes(h.Data)
+	w.Append(uint8(len(h.ActionIDs)))
+	for _, i := range h.ActionIDs {
+		w.Append(i)
+	}
 	return w.BytesAssert(int(size))
 }
 
 func (h *Event) DataSize() uint32 {
-	return uint32(4 + len(h.Data))
+	return 4 + 1 + 4 * uint32(len(h.ActionIDs))
 }
 
 func (h *Event) BaseParameter() *BaseParameter { return nil }
@@ -34,8 +37,8 @@ func (h *Event) IsCntr() bool { return false }
 
 func (h *Event) NumLeaf() int { return 0 }
 
-func (h *Event) ParentID() int { return 0 }
+func (h *Event) ParentID() uint32 { return 0 }
 
-func (h *Event) AddLeaf(o HircObj) { panic("") }
+func (h *Event) AddLeaf(o HircObj) { panic("Panic Trap") }
 
-func (h *Event) RemoveLeaf(o HircObj) { panic("") }
+func (h *Event) RemoveLeaf(o HircObj) { panic("Panic Trap") }

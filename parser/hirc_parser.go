@@ -88,6 +88,16 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
+			case wwise.HircTypeEvent:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseEvent,
+					hirc,
+					sem,
+					&parsed,
+				)
 			case wwise.HircTypeRanSeqCntr:
 				go ParserRoutine(
 					dwSectionSize,
@@ -184,6 +194,8 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 			switch wwise.HircType(eHircType) {
 			case wwise.HircTypeSound:
 				obj = ParseSound(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeEvent:
+				obj = ParseEvent(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeRanSeqCntr:
 				obj = ParseRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeSwitchCntr:
@@ -230,6 +242,10 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 	case wwise.HircTypeSound:
 		if _, in := h.Sounds.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate sound object %d", id))
+		}
+	case wwise.HircTypeEvent:
+		if _, in := h.Events.LoadOrStore(id, obj); in {
+			panic(fmt.Sprintf("Duplicate event object %d", id))
 		}
 	case wwise.HircTypeRanSeqCntr:
 		if _, in := h.RanSeqCntrs.LoadOrStore(id, obj); in {
@@ -315,6 +331,25 @@ func ParseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
 		"The amount of bytes reader consume does not equal size in the hierarchy header",
 	)
 	return a
+}
+
+func ParseEvent(size uint32, r *wio.Reader) *wwise.Event {
+	assert.Equal(0, r.Pos(), "Layer container parser position doesn't start at position 0.")
+	begin := r.Pos()
+	e := wwise.Event{}
+	e.Id = r.U32Unsafe()
+	e.ActionIDs = make([]uint32, r.U8Unsafe())
+	for i := range e.ActionIDs {
+		e.ActionIDs[i] = r.U32Unsafe()
+	}
+	end := r.Pos()
+	if begin >= end {
+		panic("Reader read zero bytes")
+	}
+	assert.Equal(size, uint32(end-begin),
+		"The amount of bytes reader consume doesn't equal to the size in hierarchy header",
+	)
+	return &e
 }
 
 func ParseLayerCntr(size uint32, r *wio.Reader) *wwise.LayerCntr {

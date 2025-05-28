@@ -47,6 +47,7 @@ const (
 var KnownHircType []HircType = []HircType{
 	0x00,
 	HircTypeSound,
+	HircTypeEvent,
 	HircTypeRanSeqCntr,
 	HircTypeSwitchCntr,
 	HircTypeActorMixer,
@@ -105,6 +106,7 @@ type HIRC struct {
 	// Map for different types of hierarchy objects. Each object is a pointer
 	// to a specific hierarchy object, which is also in `HircObjs`.
 	ActorMixers     *sync.Map
+	Events          *sync.Map
 	LayerCntrs      *sync.Map
 	MusicSegments   *sync.Map
 	MusicTracks     *sync.Map
@@ -122,6 +124,7 @@ func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 		HircObjs:        make([]HircObj, numHircItem),
 		HircObjsMap:     &sync.Map{},
 		ActorMixers:     &sync.Map{},
+		Events:          &sync.Map{},
 		LayerCntrs:      &sync.Map{},
 		MusicSegments:   &sync.Map{},
 		MusicTracks:     &sync.Map{},
