@@ -11,13 +11,11 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderPlayListSetting(t *bankTab, r *wwise.RanSeqCntr) {
-	if imgui.TreeNodeExStr("Play list setting") {
+func renderRanSeqPlayList(t *bankTab, r *wwise.RanSeqCntr) {
+	if imgui.TreeNodeExStr("Random / Sequence Container Playlist Setting") {
 		imgui.PushItemWidth(160)
 
-		renderPlayListValue(r.PlayListSetting)
-		renderPlayListMode(r.PlayListSetting)
-		renderPlayListMisc(r.PlayListSetting)
+		renderRanSeqPlayListSetting(r.PlayListSetting)
 
 		imgui.PopItemWidth()
 
@@ -54,76 +52,6 @@ func renderPlayListTableSet(t *bankTab, r *wwise.RanSeqCntr) {
 	}
 }
 
-func renderPlayListValue(p *wwise.PlayListSetting) {
-	if imgui.InputScalar("Loop Count", imgui.DataTypeU16, uintptr(utils.Ptr(&p.LoopCount)),
-	) {
-	}
-
-	if imgui.InputScalar("Loop Mod Min", imgui.DataTypeU16, uintptr(utils.Ptr(&p.LoopModMin)),
-	) {
-	}
-
-	if imgui.InputScalar("Loop Mod Max", imgui.DataTypeU16, uintptr(utils.Ptr(&p.LoopModMax)),
-	) {
-	}
-
-	if imgui.InputFloat("Transition Time", &p.TransitionTime) {
-	}
-
-	if imgui.InputFloat("Transition Time Mod Min", &p.TransitionTimeModMin) {
-	}
-
-	if imgui.InputFloat("Transition Time Mod Max", &p.TransitionTimeModMax) {
-	}
-
-	if imgui.InputScalar("Avoid Repeat Count", imgui.DataTypeU16, uintptr(utils.Ptr(&p.AvoidRepeatCount))) {
-	}
-}
-
-func renderPlayListMode(p *wwise.PlayListSetting) {
-	tMode := int32(p.TransitionMode)
-	if imgui.ComboStrarr("TransitionMode", &tMode, wwise.TransitionModeString, int32(len(wwise.TransitionModeString))) {
-		p.TransitionMode = uint8(tMode)
-	}
-
-	rMode := int32(p.RandomMode)
-	if imgui.ComboStrarr("Random Mode", &rMode, wwise.RandomModeString, int32(len(wwise.RandomModeString))) {
-		p.RandomMode = uint8(rMode)
-	}
-
-	mode := int32(p.Mode)
-	if imgui.ComboStrarr("Mode", &mode, wwise.PlayListModeString, int32(len(wwise.PlayListModeString))) {
-		p.Mode = uint8(mode)
-	}
-}
-
-func renderPlayListMisc(p *wwise.PlayListSetting) {
-	usingWeight := p.UsingWeight()
-	if imgui.Checkbox("Using Weight", &usingWeight) {
-		p.SetUsingWeight(usingWeight)
-	}
-
-	resetPlayListAtEachPlay := p.ResetPlayListAtEachPlay()
-	if imgui.Checkbox("Reset Playlist At Each Play", &resetPlayListAtEachPlay) {
-		p.SetResetPlayListAtEachPlay(resetPlayListAtEachPlay)
-	}
-
-	restartBackward := p.RestartBackward()
-	if imgui.Checkbox("Restart Backward", &restartBackward) {
-		p.SetRestartBackward(restartBackward)
-	}
-
-	continuous := p.Continuous()
-	if imgui.Checkbox("Continuous", &continuous) {
-		p.SetContinuous(continuous)
-	}
-
-	global := p.Global()
-	if imgui.Checkbox("Global", &global) {
-		p.SetGlobal(global)
-	}
-}
-
 func renderPlayListPendingTable(t *bankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLPendingCell")
 	const flags = DefaultTableFlags
@@ -148,6 +76,7 @@ func renderPlayListPendingTable(t *bankTab, r *wwise.RanSeqCntr) {
 			imgui.TableNextRow()
 
 			imgui.TableSetColumnIndex(0)
+			imgui.SetNextItemWidth(40)
 			imgui.PushIDStr(fmt.Sprintf("ToPlayList%d", i))
 			if imgui.Button(">") {
 				toPlayList = bindToPlayList(t, r, i)
@@ -318,4 +247,188 @@ func bindPendSelectPlayListItem(t *bankTab, r *wwise.RanSeqCntr) func() {
 		}
 		r.RemoveLeafsFromPlayList(tids)
 	}
+}
+
+func renderRanSeqPlayListSetting(p *wwise.PlayListSetting) {
+	size := imgui.NewVec2(0, 144)
+
+	imgui.BeginChildStrV("Play Type", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+
+	// Play Type (Random)
+	size.X = imgui.ContentRegionAvail().X * 0.5
+	size.Y = 0
+	imgui.BeginChildStrV("RandomMode", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+
+	if imgui.RadioButtonBool("Random", p.Random()) {
+		p.UseRandom()
+	}
+
+	imgui.Separator()
+	if imgui.RadioButtonBool("Standard", p.RandomModeNormal()) {
+		p.UseRandomModeNormal()
+	}
+	if imgui.RadioButtonBool("Shuffle", p.RandomModeShuffle()) {
+		p.UseRandomModeShuffle()
+	}
+
+	avoidRepeatCount := int32(p.AvoidRepeatCount)
+	imgui.Text("Avoid Reapting Last")
+	imgui.SetNextItemWidth(80)
+	if imgui.InputInt("##Avoidrepeatinglast", &avoidRepeatCount) {
+		if avoidRepeatCount >= 0 && avoidRepeatCount <= 999 {
+			p.AvoidRepeatCount = uint16(avoidRepeatCount)
+		}
+	}
+	imgui.SameLine()
+	imgui.Text("played")
+	imgui.EndChild()
+	// End Play Type (Random)
+
+	imgui.SameLine()
+
+	// Play Type (Sequence)
+	size.X = 0
+	size.Y = 0
+	imgui.BeginChildStrV("SequenceMode", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+
+	if imgui.RadioButtonBool("Sequence", p.Sequence()) {
+		p.UseSequence()
+	}
+
+	imgui.Separator()
+
+	imgui.Text("At end of playlist")
+	if imgui.RadioButtonBool("Restart", !p.RestartBackward()) {
+		p.SetRestartBackward(false)
+	}
+	if imgui.RadioButtonBool("Play in reverse order", p.RestartBackward()) {
+		p.SetRestartBackward(true)
+	}
+	imgui.EndChild()
+	// End Play Type (Sequence)
+	imgui.EndChild()
+	// End Play Type
+
+	// Play Mode
+	size.X = 0
+	size.Y = 256
+	imgui.BeginChildStrV("Play Mode", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+	if imgui.RadioButtonBool("Step", !p.Continuous()) {
+		p.SetContinuous(false)
+	}
+	imgui.SameLine()
+	if imgui.RadioButtonBool("Continuous", p.Continuous()) {
+		p.SetContinuous(true)
+	}
+
+	resetPlayList := p.ResetPlayListAtEachPlay()
+	if imgui.Checkbox("Always reset playlist", &resetPlayList) {
+		p.SetResetPlayListAtEachPlay(resetPlayList)
+	}
+
+	// Loop
+	size.X = imgui.ContentRegionAvail().X * 0.5
+	size.Y = 0
+	imgui.BeginChildStrV("Loop", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+
+	imgui.SeparatorText("Loop")
+	if imgui.Button("Use Infinite") {
+		p.UseInfiniteLoop()
+	}
+	count := int32(p.LoopCount)
+	countMin := int32(p.LoopModMin)
+	countMax := int32(p.LoopModMax)
+	imgui.SetNextItemWidth(96)
+	if imgui.InputInt("# of Loops", &count) {
+		if count >= 0 && count <= 32767 {
+			p.LoopCount = uint16(count)
+		}
+	}
+	imgui.SeparatorText("Loop Count Randomizer")
+	imgui.Text("Min (Negative)")
+	imgui.SetNextItemWidth(56)
+	if imgui.SliderInt("##LoopModMinSlider", &countMin, 0, 32766) {
+		p.LoopModMin = uint16(countMin)
+	}
+	imgui.SameLine()
+	imgui.SetNextItemWidth(96)
+	if imgui.InputInt("##LoopModMinInputV", &countMin) {
+		if countMin >= 0 && countMin <= 32766 {
+			p.LoopModMin = uint16(countMin)
+		}
+	}
+	imgui.Text("Max (Positive)")
+	imgui.SetNextItemWidth(56)
+	if imgui.SliderInt("##LoopModMaxSlider", &countMax, 0, 32766) {
+		p.LoopModMax = uint16(countMax)
+	}
+	imgui.SameLine()
+	imgui.SetNextItemWidth(96)
+	if imgui.InputInt("##LoopModMaxInputV", &countMax) {
+		if countMax >= 0 && countMax <= 32766 {
+			p.LoopModMax = uint16(countMax)
+		}
+	}
+	imgui.EndChild()
+	// End Of Loop
+
+	imgui.SameLine()
+
+	// Transition
+	size.X = 0
+	size.Y = 0
+	imgui.BeginChildStrV("Transition", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+
+	imgui.Text("Transition Type")
+	transitionMode := int32(p.TransitionMode)
+	if imgui.ComboStrarrV(
+		"##Transition Type",
+		&transitionMode,
+		wwise.TransitionModeString,
+		wwise.TransitionModeCount,
+		0,
+	) {
+		p.TransitionMode = uint8(transitionMode)
+	}
+	
+	imgui.Text("Duration")
+	imgui.SetNextItemWidth(72)
+	imgui.SliderFloat("##DurationSlide", &p.TransitionTime, 0, 10000.0)
+	prevTransitionTime := p.TransitionTime
+	imgui.SameLine()
+	imgui.SetNextItemWidth(72)
+	if imgui.InputFloat("##DurationInputV", &p.TransitionTime) {
+		if p.TransitionTime < 0.0 || p.TransitionTime > 10000.0 {
+			p.TransitionTime = prevTransitionTime
+		}
+	}
+
+	imgui.SeparatorText("Duration Randomizer")
+	imgui.Text("Min")
+	imgui.SetNextItemWidth(76)
+	imgui.SliderFloat("##TransitionTimeModMinSlider", &p.TransitionTimeModMin, -10000.0, 0)
+	imgui.SameLine()
+	imgui.SetNextItemWidth(76)
+	prevTransitionTimeModMin := p.TransitionTimeModMin
+	if imgui.InputFloat("##TransitionTimeModMinInputV", &p.TransitionTimeModMin) {
+		if p.TransitionTimeModMin < -10000.0 || p.TransitionTimeModMin > 0 {
+			p.TransitionTimeModMin = prevTransitionTimeModMin
+		}
+	}
+	imgui.Text("Max")
+	imgui.SetNextItemWidth(76)
+	imgui.SliderFloat("##TransitionTimeModMaxSlider", &p.TransitionTimeModMax, 0, 10000.0)
+	imgui.SameLine()
+	imgui.SetNextItemWidth(76)
+	prevTransitionTimeModMax := p.TransitionTimeModMax
+	if imgui.InputFloat("##TransitionTimeModMaxInputV", &p.TransitionTimeModMax) {
+		if p.TransitionTimeModMax < 0.0 || p.TransitionTimeModMax > 10000.0 {
+			p.TransitionTimeModMax = prevTransitionTimeModMax
+		}
+	}
+
+	imgui.EndChild()
+	// End Of Transition
+	imgui.EndChild()
+	// End Of Play Mode
 }
