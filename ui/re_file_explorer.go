@@ -34,6 +34,7 @@ func renderFileExplorerTab(fe *FileExplorer, modalQ *ModalQ) {
 	renderFileExplorerVol(fe)
 	imgui.SameLine()
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),)
+	imgui.SetNextItemWidth(160)
 	if imgui.InputTextWithHint("Query", "", &fe.fs.query, 0, nil) {
 		fe.filter()
 	}
