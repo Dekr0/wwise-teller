@@ -22,6 +22,7 @@ type BankManager struct {
 
 type bankTab struct {
 	bank *wwise.Bank
+	initBank *wwise.Bank
 	idQuery string
 	sidQuery string
 	typeQuery int32
