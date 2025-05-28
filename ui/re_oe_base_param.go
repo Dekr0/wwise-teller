@@ -1,10 +1,12 @@
 package ui
 
 import (
+	"encoding/binary"
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 
+	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
@@ -20,9 +22,10 @@ func renderBaseParam(t *bankTab, o wwise.HircObj) {
 		imgui.SameLine()
 		renderChangeParentListing(t)
 		renderByBitVec(b)
-		renderProp(&b.PropBundle)
-		renderRangeProp(&b.RangePropBundle)
-		renderAdvSetting(b)
+		renderAuxParam(t, o)
+		renderBaseProp(&b.PropBundle)
+		renderBaseRangeProp(&b.RangePropBundle)
+		renderAdvSetting(b.DirectParentId, &b.AdvanceSetting)
 		imgui.TreePop()
 	}
 }
@@ -102,7 +105,7 @@ func bindRemoveRoot(t *bankTab, hid, op uint32) func() {
 }
 
 func renderChangeParentListing(t *bankTab) {
-	size := imgui.NewVec2(0, 256)
+	size := imgui.NewVec2(0, 160)
 	imgui.BeginChildStrV("ChangeParentListing", size, 0, 0)
 
 	const flags = DefaultTableFlags
@@ -140,69 +143,240 @@ func renderChangeParentListing(t *bankTab) {
 
 func renderByBitVec(o *wwise.BaseParameter) {
 	if imgui.TreeNodeExStr("Override (Category 1)") {
+		size := imgui.NewVec2(0, 112)
+		imgui.BeginChildStrV("Playback Priority", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+
+		imgui.BeginDisabledV(o.DirectParentId == 0)
 		priorityOverrideParent := o.PriorityOverrideParent()
 		if imgui.Checkbox("Priority Override Parent", &priorityOverrideParent) {
 			o.SetPriorityOverrideParent(priorityOverrideParent)
 		}
+		imgui.EndDisabled()
 
+		if o.DirectParentId == 0 {
+			if imgui.Button("Add Playback Priorty Property") {
+				o.PropBundle.AddPriority()
+			}
+		}
+
+		if o.PriorityOverrideParent() || o.DirectParentId == 0 {
+			for i := range o.PropBundle.PropValues {
+				if o.PropBundle.PropValues[i].P == wwise.PropTypePriority {
+					var val float32
+					binary.Decode(o.PropBundle.PropValues[i].V, wio.ByteOrder, &val)
+					imgui.SetNextItemWidth(80)
+					if imgui.InputFloat("Priority", &val) {
+						if val >= 0.0 && val <= 100.0 {
+							o.PropBundle.SetPropByIdxF32(i, val)
+						}
+					}
+					break
+				}
+			}
+		}
+
+		imgui.BeginDisabledV(o.DirectParentId != 0 && !o.PriorityOverrideParent())
 		priorityApplyDistFactor := o.PriorityApplyDistFactor()
 		if imgui.Checkbox("Priority Apply Dist Factor", &priorityApplyDistFactor) {
 			o.SetPriorityApplyDistFactor(priorityApplyDistFactor)
 		}
+		imgui.EndDisabled()
 
+		if o.PriorityApplyDistFactor() {
+			for i := range o.PropBundle.PropValues {
+				if o.PropBundle.PropValues[i].P == wwise.PropTypePriorityDistanceOffset {
+					var val float32
+					binary.Decode(o.PropBundle.PropValues[i].V, wio.ByteOrder, &val)
+					intFloat := int32(val)
+					imgui.SetNextItemWidth(80)
+					if imgui.InputInt("Offset priority by", &intFloat) {
+						if intFloat >= -100 && intFloat <= 100 {
+							o.PropBundle.SetPropByIdxF32(i, float32(intFloat))
+						}
+					}
+					imgui.SameLine()
+					imgui.Text("at max distance")
+					break
+				}
+			}
+		}
+		imgui.EndChild()
+
+		imgui.BeginDisabledV(o.DirectParentId == 0)
 		overrideMidiEventsBehavior := o.OverrideMidiEventsBehavior()
 		if imgui.Checkbox("Override Midi Events Behavior", &overrideMidiEventsBehavior) {
 			o.SetOverrideMidiEventsBehavior(overrideMidiEventsBehavior)
 		}
+		imgui.EndDisabled()
 
+		imgui.BeginDisabledV(o.DirectParentId == 0)
 		overrideMidiNoteTracking := o.OverrideMidiNoteTracking()
 		if imgui.Checkbox("Override Midi Note Tracking", &overrideMidiNoteTracking) {
 			o.SetOverrideMidiNoteTracking(overrideMidiNoteTracking)
 		}
+		imgui.EndDisabled()
 
+		imgui.BeginDisabledV(o.DirectParentId == 0)
 		enableMidiNoteTracking := o.EnableMidiNoteTracking()
 		if imgui.Checkbox("Enable Midi Note Tracking", &enableMidiNoteTracking) {
 			o.SetEnableMidiNoteTracking(enableMidiNoteTracking)
 		}
+		imgui.EndDisabled()
 
+		imgui.BeginDisabledV(o.DirectParentId == 0)
 		midiBreakLoopOnNoteOff := o.MidiBreakLoopOnNoteOff()
 		if imgui.Checkbox("MIDI Break Loop On Note Off", &midiBreakLoopOnNoteOff) {
 			o.SetMidiBreakLoopOnNoteOff(midiBreakLoopOnNoteOff)
 		}
+		imgui.EndDisabled()
 		imgui.TreePop()
 	}
 }
 
-func renderAdvSetting(o *wwise.BaseParameter) {
-	if imgui.TreeNodeExStr("Advanced Setting") {
-		killNewest := o.AdvanceSetting.KillNewest()
-		if imgui.Checkbox("Kill Newest", &killNewest) {
-			o.AdvanceSetting.SetKillNewest(killNewest)
-		}
+func renderAdvSetting(parentID uint32, a *wwise.AdvanceSetting) {
+	if imgui.TreeNodeExStr("Advance Setting") {
+		size := imgui.NewVec2(0, 128)
+		imgui.BeginChildStrV("PlaybackLimit", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+		imgui.SeparatorText("Playback Limit")
 
-		useVirtualBehavior := o.AdvanceSetting.UseVirtualBehavior()
-		if imgui.Checkbox("Use virtual behavior", &useVirtualBehavior) {
-			o.AdvanceSetting.SetUseVirtualBehavior(useVirtualBehavior)
+		imgui.BeginDisabledV(parentID == 0)
+		ignoreParentMaxLimit := a.IgnoreParentMaxNumInst()
+		if imgui.Checkbox("Ignore Parent", &ignoreParentMaxLimit) {
+			a.SetIgnoreParentMaxNumInst(ignoreParentMaxLimit)
 		}
+		imgui.EndDisabled()
 
-		ignoreParentMaxNumInst := o.AdvanceSetting.IgnoreParentMaxNumInst()
-		if imgui.Checkbox("Ignore parent max number instance", &ignoreParentMaxNumInst) {
-			o.AdvanceSetting.SetIgnoreParentMaxNumInst(ignoreParentMaxNumInst)
-		}
-
-		isVVoicesOptOverrideParent := o.AdvanceSetting.IsVVoicesOptOverrideParent()
-		if imgui.Checkbox("Is Virtual Voices Opt Override Parent", &isVVoicesOptOverrideParent) {
-			o.AdvanceSetting.SetVVoicesOptOverrideParent(isVVoicesOptOverrideParent)
-		}
-
-		maxNumInstance := int32(o.AdvanceSetting.MaxNumInstance)
-		imgui.SetNextItemWidth(128.0)
-		if imgui.InputInt("Max number of instance", &maxNumInstance) {
-			if maxNumInstance >= 0 && maxNumInstance <= 0xFFFF {
-				o.AdvanceSetting.MaxNumInstance = uint16(maxNumInstance)
+		// To set behavior of playback limiting, hierarchy object need to 
+		// enable "Ignore Parent"
+		imgui.BeginDisabledV(parentID != 0 && !a.IgnoreParentMaxNumInst())
+		imgui.Text("Limit sound instances to:")
+		imgui.SameLine()
+		maxNumInstance := int32(a.MaxNumInstance)
+		imgui.SetNextItemWidth(96)
+		// Zero is no limiting
+		if imgui.InputInt("##MaxNumInstance", &maxNumInstance) {
+			if maxNumInstance >= 0 && maxNumInstance <= 1000 {
+				a.MaxNumInstance = uint16(maxNumInstance)
 			}
 		}
 
+		imgui.Text("When limit is reached:")
+		imgui.SameLine()
+		var preview string
+		if !a.UseVirtualBehavior() {
+			preview = "Kill voice"
+		} else {
+			preview = "Use virtual voice setting"
+		}
+		imgui.SetNextItemWidth(200)
+		if imgui.BeginCombo("##ReachPlaybackLimitBehavior", preview) {
+			selected := !a.UseVirtualBehavior()
+			if imgui.SelectableBoolPtr("Kill voice", &selected) {
+				a.SetUseVirtualBehavior(false)
+			}
+			if selected {
+				imgui.SetItemDefaultFocus()
+			}
+			selected = a.UseVirtualBehavior()
+			if imgui.SelectableBoolPtr("Use virtual voice setting", &selected) {
+				a.SetUseVirtualBehavior(true)
+			}
+			if selected {
+				imgui.SetItemDefaultFocus()
+			}
+			imgui.EndCombo()
+		}
+		imgui.SameLine()
+		imgui.Text("for lowest priroty")
+
+		imgui.Text("When priority is equal:")
+		imgui.SameLine()
+		if !a.KillNewest() {
+			preview = "Discard oldest instance"
+		} else {
+			preview = "Discard newest instance"
+		}
+		imgui.SetNextItemWidth(192)
+		if imgui.BeginCombo("##PriorityEqualBehavior", preview) {
+			selected := !a.KillNewest()
+			if imgui.SelectableBoolPtr("Discard oldest instance", &selected) {
+				a.SetKillNewest(false)
+			}
+			if selected {
+				imgui.SetItemDefaultFocus()
+			}
+			selected = a.KillNewest()
+			if imgui.SelectableBoolPtr("Discard newest instance", &selected) {
+				a.SetKillNewest(true)
+			}
+			if selected {
+				imgui.SetItemDefaultFocus()
+			}
+			imgui.EndCombo()
+		}
+		imgui.EndDisabled()
+		imgui.EndChild()
+
+		// Virtual Voice
+		size.Y = 112
+		imgui.BeginChildStrV("VirtualVovice", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+		imgui.SeparatorText("Virtual Voice")
+		imgui.BeginDisabledV(parentID == 0)
+		overrideParentVVoice := a.OverrideParentVVoice()
+		if imgui.Checkbox("Override Parent", &overrideParentVVoice) {
+			a.SetVVoicesOptOverrideParent(overrideParentVVoice)
+		}
+		imgui.EndDisabled()
+		// Hierarchy object need to enable "Override Parent Virtual Voice" in 
+		// order to change virtual voice setting
+		imgui.BeginDisabledV(parentID != 0 && !a.OverrideParentVVoice())
+		belowThreSholdBehavior := int32(a.BelowThresholdBehavior)
+		if imgui.ComboStrarr(
+			"Virtual Voice Behavior",
+			&belowThreSholdBehavior,
+			wwise.BelowThresholdBehaviorString,
+			wwise.BelowThresholdBehaviorCount,
+		) {
+			a.BelowThresholdBehavior = uint8(belowThreSholdBehavior)
+		}
+		imgui.BeginDisabledV(a.VirtualQueueBehaviorDisable())
+		virtualQueueBehavior := int32(a.VirtualQueueBehavior)
+		if imgui.ComboStrarr(
+			"On return to physical voice",
+			&virtualQueueBehavior,
+			wwise.VirtualQueueBehaviorString,
+			wwise.VirtualQueueBehaviorCount,
+		) {
+			a.VirtualQueueBehavior = uint8(virtualQueueBehavior)
+		}
+		imgui.EndDisabled()
+		imgui.EndDisabled()
+		imgui.EndChild()
+		// End of Virtual Voice
+
+		// HDR Setting
+		size.X = 0
+		size.Y = 72
+		imgui.BeginChildStrV("HDRSetting", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+		imgui.BeginDisabledV(parentID == 0)
+		overrideHDREnvelope := a.OverrideHDREnvelope()
+		if imgui.Checkbox("Override Parent", &overrideHDREnvelope) {
+			a.SetOverrideHDREnvelope(overrideHDREnvelope)
+		}
+		imgui.EndDisabled()
+
+		imgui.BeginDisabledV(parentID != 0 && !a.OverrideHDREnvelope())
+		enabledEnvelope := a.EnableEnvelope()
+		if imgui.Checkbox("Enable Envelope", &enabledEnvelope) {
+			a.SetEnableEnvelope(enabledEnvelope)
+		}
+		
+		imgui.EndDisabled()
+
+		imgui.EndChild()
+		// End of HDR Setting
 		imgui.TreePop()
+
 	}
+
 }
