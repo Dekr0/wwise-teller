@@ -47,6 +47,7 @@ const (
 var KnownHircType []HircType = []HircType{
 	0x00,
 	HircTypeSound,
+	HircTypeAction,
 	HircTypeEvent,
 	HircTypeRanSeqCntr,
 	HircTypeSwitchCntr,
@@ -106,6 +107,7 @@ type HIRC struct {
 	// Map for different types of hierarchy objects. Each object is a pointer
 	// to a specific hierarchy object, which is also in `HircObjs`.
 	ActorMixers     *sync.Map
+	Actions         *sync.Map
 	Events          *sync.Map
 	LayerCntrs      *sync.Map
 	MusicSegments   *sync.Map

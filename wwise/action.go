@@ -5,8 +5,8 @@ import "github.com/Dekr0/wwise-teller/wio"
 type Action struct {
 	HircObj
 
-	Id   uint32
-	Data []byte
+	Id      uint32
+	Data    []byte
 }
 
 func (a *Action) Encode() []byte {
@@ -36,6 +36,6 @@ func (a *Action) NumLeaf() int { return 0 }
 
 func (a *Action) ParentID() int { return 0 }
 
-func (a *Action) AddLeaf(o HircObj) { panic("") }
+func (a *Action) AddLeaf(o HircObj) { panic("Panic Trap") }
 
-func (a *Action) RemoveLeaf(o HircObj) { panic("") }
+func (a *Action) RemoveLeaf(o HircObj) { panic("Panic Trap") }

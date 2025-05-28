@@ -24,11 +24,15 @@
 
 ## UI & UX 
 
+- Display audio source ID in playlist setting.
 - Command palette should contain "save sound banks" option
     - It might be better put them into command palette that is dedicated for 
     bank explorer.
-- Input text for configuration
-- Object editor relies on bank explorer window being open.
+- For file explorer and file dialog, split a file path into individual segment.
+When clicking on a segment, it will jump to a specific file location.
+- Overhaul configuration setting
+- Object editor requires Bank explore to present so it can display all selected 
+hierarchy objects.
 
 # Performance
 
