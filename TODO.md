@@ -4,6 +4,8 @@
 
 ### Change parent of a hierarchy & Add / Remove child from a container
 
+- Update: this only works for node with no leafs!
+
 #### Change parent of a hierarchy
 
 - Flow:
@@ -20,6 +22,14 @@
     nothing.
     3. Arrange the tree index. Put the target hierarchy to free float.
 
+## UI & UX 
+
+- Command palette should contain "save sound banks" option
+    - It might be better put them into command palette that is dedicated for 
+    bank explorer.
+- Input text for configuration
+- Object editor relies on bank explorer window being open.
+
 # Performance
 
 ## Problems
@@ -28,7 +38,7 @@
 
 - Hierarchy `struct` should use value and value of `struct` instead of 
 pointer to `struct` and array of pointers to `struct`
-- P
+
 ## File IO
 
 - Buffer read
@@ -42,16 +52,6 @@ bytes slices of hierarchy section to avoid race condition.
 - There is no worker pool for hierarchy decoding go routines and hierarchy 
 encoding go routines.
 
-# UI & UX 
-
-- Command palette should contain "save sound banks" option
-    - It might be better put them into command palette that is dedicated for 
-    bank explorer.
-- Maintain what is being selected despite filter is applied
-- Input text for configuration
-- Input bugs for range properties
-- Object editor relies on bank explorer window being open.
-
 # Design
 
 - Callback chaining?
@@ -64,3 +64,4 @@ encoding go routines.
         - buses / streams transform into new types of buses / streams by applying 
         functional like primitives such as `map`, `buffer`, `reduce`, etc.
         - consumer consume data emitted from buses / streams
+
