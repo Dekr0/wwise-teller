@@ -112,6 +112,13 @@ func (b *BaseParameter) SetOverrideReflectionAuxBus(set bool) {
 	}
 }
 
+func (b *BaseParameter) SetEnableEnvelope(set bool) {
+	b.AdvanceSetting.SetEnableEnvelope(set)
+	if b.AdvanceSetting.EnableEnvelope() {
+		b.PropBundle.AddHDRActiveRange()
+	}
+}
+
 type FxChunk struct {
 	// UniqueNumFx uint8
 	BitsFxByPass uint8
