@@ -77,3 +77,105 @@ var PropLabel_140 = []string{
   "PAN_UD",
 }
 
+const (
+	PropTypeVolume uint8 = 0 
+	PropTypeLFE = 1 
+	PropTypePitch = 2 
+	PropTypeLPF = 3 
+	PropTypeHPF = 4 
+	PropTypeBusVolume = 5 
+	PropTypeMakeUpGain = 6 
+	PropTypePriority = 7 
+	PropTypePriorityDistanceOffset = 8 
+	PropTypeFeedbackVolumeUnused = 9 
+	PropTypeFeedbackLPFUnused = 10 
+	PropTypeMuteRatio = 11 
+	PropTypePANLR = 12 
+	PropTypePANFR = 13 
+	PropTypeCenterPCT = 14 
+	PropTypeDelayTime = 15 
+	PropTypeTransitionTime = 16 
+	PropTypeProbability = 17 
+	PropTypeDialogueMode = 18 
+	PropTypeUserAuxSendVolume0 = 19 
+	PropTypeUserAuxSendVolume1 = 20 
+	PropTypeUserAuxSendVolume2 = 21 
+	PropTypeUserAuxSendVolume3 = 22 
+	PropTypeGameAuxSendVolume = 23 
+	PropTypeOutputBusVolume = 24 
+	PropTypeOutputBusHPF = 25 
+	PropTypeOutputBusLPF = 26 
+	PropTypeHDRBusThreshold = 27 
+	PropTypeHDRBusRatio = 28 
+	PropTypeHDRBusReleaseTime = 29 
+	PropTypeHDRBusGameParam = 30 
+	PropTypeHDRBusGameParamMin = 31 
+	PropTypeHDRBusGameParamMax = 32 
+	PropTypeHDRActiveRange = 33 
+	PropTypeLoopStart = 34 
+	PropTypeLoopEnd = 35 
+	PropTypeTrimInTime = 36 
+	PropTypeTrimOutTime = 37 
+	PropTypeFadeInTime = 38 
+	PropTypeFadeOutTime = 39 
+	PropTypeFadeInCurve = 40 
+	PropTypeFadeOutCurve = 41 
+	PropTypeLoopCrossfadeDuration = 42 
+	PropTypeCrossfadeUpCurve = 43 
+	PropTypeCrossfadeDownCurve = 44 
+	PropTypeMidiTrackingRootNote = 45 
+	PropTypeMidiPlayOnNoteType = 46 
+	PropTypeMidiTransposition = 47 
+	PropTypeMidiVelocityOffset = 48 
+	PropTypeMidiKeyRangeMin = 49 
+	PropTypeMidiKeyRangeMax = 50 
+	PropTypeMidiVelocityRangeMin = 51 
+	PropTypeMidiVelocityRangeMax = 52 
+	PropTypeMidiChannelMask = 53 
+	PropTypePlaybackSpeed = 54 
+	PropTypeMidiTempoSource = 55 
+	PropTypeMidiTargetNode = 56 
+	PropTypeAttachedPluginFXID = 57 
+	PropTypeLoop = 58 
+	PropTypeInitialDelay = 59 
+	PropTypeUserAuxSendLPF0 = 60 
+	PropTypeUserAuxSendLPF1 = 61 
+	PropTypeUserAuxSendLPF2 = 62 
+	PropTypeUserAuxSendLPF3 = 63 
+	PropTypeUserAuxSendHPF0 = 64 
+	PropTypeUserAuxSendHPF1 = 65 
+	PropTypeUserAuxSendHPF2 = 66 
+	PropTypeUserAuxSendHPF3 = 67 
+	PropTypeGameAuxSendLPF = 68 
+	PropTypeGameAuxSendHPF = 69 
+	PropTypeAttenuationID = 70 
+	PropTypePositioningTypeBlend = 71 
+	PropTypeReflectionBusVolume = 72 
+	PropTypePAN_UD = 73 
+)
+
+var BasePropType []uint8 = []uint8{
+	PropTypeVolume,
+	PropTypePitch,
+	PropTypeLPF,
+	PropTypeHPF,
+	PropTypeMakeUpGain,
+	PropTypeGameAuxSendVolume,
+	PropTypeInitialDelay,
+}
+
+var BaseRangePropType []uint8 = []uint8 {
+	PropTypeVolume,
+	PropTypePitch,
+	PropTypeLPF,
+	PropTypeHPF,
+	PropTypeMakeUpGain,
+	PropTypeInitialDelay,
+}
+
+var UserAuxSendVolumePropType []uint8 = []uint8 {
+	PropTypeUserAuxSendVolume0,
+	PropTypeUserAuxSendVolume1,
+	PropTypeUserAuxSendVolume2,
+	PropTypeUserAuxSendVolume3,
+}
