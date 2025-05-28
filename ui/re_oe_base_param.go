@@ -370,7 +370,6 @@ func renderAdvSetting(parentID uint32, a *wwise.AdvanceSetting) {
 		if imgui.Checkbox("Enable Envelope", &enabledEnvelope) {
 			a.SetEnableEnvelope(enabledEnvelope)
 		}
-		
 		imgui.EndDisabled()
 
 		imgui.EndChild()
@@ -378,5 +377,4 @@ func renderAdvSetting(parentID uint32, a *wwise.AdvanceSetting) {
 		imgui.TreePop()
 
 	}
-
 }
