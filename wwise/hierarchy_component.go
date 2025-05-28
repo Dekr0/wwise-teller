@@ -1,6 +1,8 @@
 package wwise
 
 import (
+	"fmt"
+
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
 )
@@ -54,6 +56,7 @@ func (b *BaseParameter) PriorityOverrideParent() bool {
 
 func (b *BaseParameter) SetPriorityOverrideParent(set bool) {
 	b.ByBitVectorA = wio.SetBit(b.ByBitVectorA, 0, set) 
+	b.PropBundle.AddPriority()
 }
 
 func (b *BaseParameter) PriorityApplyDistFactor() bool {
@@ -62,6 +65,7 @@ func (b *BaseParameter) PriorityApplyDistFactor() bool {
 
 func (b *BaseParameter) SetPriorityApplyDistFactor(set bool) {
 	b.ByBitVectorA = wio.SetBit(b.ByBitVectorA, 1, set) 
+	b.PropBundle.AddPriorityApplyDistFactor()
 }
 
 func (b *BaseParameter) OverrideMidiEventsBehavior() bool {
@@ -94,6 +98,20 @@ func (b *BaseParameter) MidiBreakLoopOnNoteOff() bool {
 
 func (b *BaseParameter) SetMidiBreakLoopOnNoteOff(set bool) {
 	b.ByBitVectorA = wio.SetBit(b.ByBitVectorA, 5, set) 
+}
+
+func (b *BaseParameter) SetOverrideAuxSends(set bool) {
+	b.AuxParam.SetOverrideAuxSends(set)
+	if !b.AuxParam.OverrideAuxSends() {
+		b.PropBundle.RemoveAllUserAuxSendVolumeProp()
+	}
+}
+
+func (b *BaseParameter) SetOverrideReflectionAuxBus(set bool) {
+	b.AuxParam.SetOverrideReflectionAuxBus(set)
+	if !b.AuxParam.OverrideReflectionAuxBus() {
+		b.PropBundle.Remove(PropTypeReflectionBusVolume)
+	}
 }
 
 type FxChunk struct {
@@ -167,15 +185,23 @@ type FxChunkMetadataItem struct {
 	BitIsShareSet uint8 // U8x
 }
 
+// At decoding phase, the array of auxiliary bus IDs  must have four elements 
+// regardless whether if it uses user-definded auxiliary send. If it uses it, 
+// decode all the auxiliary bus IDs. Otherwise, it will zero out the entire 
+// array.
+// At encoding phase, if all auxiliary bus IDs are zero, that means it doesn't 
+// use user-defined auxiliary send. It needs to set the corresponding bit to 
+// zero.
 type AuxParam struct {
-	AuxBitVector     uint8    // U8x
-	AuxIds           []uint32 // 4 * tid
-	RestoreAuxIds    []uint32
-	ReflectionAuxBus uint32   // tid
+	AuxBitVector            uint8     // U8x
+	AuxIds                  [4]uint32 // 4 * tid
+	RestoreAuxIds           [4]uint32
+	ReflectionAuxBus        uint32    // tid
+	RestoreReflectionAuxBus uint32
 }
 
 func NewAuxParam() *AuxParam {
-	return &AuxParam{0, []uint32{}, []uint32{}, 0}
+	return &AuxParam{0, [4]uint32{0, 0, 0, 0}, [4]uint32{0, 0, 0, 0}, 0, 0}
 }
 
 func (a *AuxParam) OverrideAuxSends() bool {
@@ -184,19 +210,19 @@ func (a *AuxParam) OverrideAuxSends() bool {
 
 func (a *AuxParam) SetOverrideAuxSends(set bool) {
 	a.AuxBitVector = wio.SetBit(a.AuxBitVector, 2, set)
+	if !a.OverrideAuxSends() {
+		for i, aid := range a.RestoreAuxIds {
+			a.AuxIds[i] = aid
+		}
+	}
 }
 
 func (a *AuxParam) HasAux() bool {
-	return a.AuxBitVector & 0b00001000 != 0
+	return wio.GetBit(a.AuxBitVector, 3)
 }
 
-func (a *AuxParam) SetHasAux(set bool) {
+func (a *AuxParam) SetAux(set bool) {
 	a.AuxBitVector = wio.SetBit(a.AuxBitVector, 3, set)
-	if !a.HasAux() {
-		a.AuxIds = []uint32{}
-	} else {
-		a.AuxIds = []uint32{0, 0, 0, 0}
-	}
 }
 
 func (a *AuxParam) OverrideReflectionAuxBus() bool {
@@ -205,9 +231,22 @@ func (a *AuxParam) OverrideReflectionAuxBus() bool {
 
 func (a *AuxParam) SetOverrideReflectionAuxBus(set bool) {
 	a.AuxBitVector = wio.SetBit(a.AuxBitVector, 4, set)
+	if a.OverrideReflectionAuxBus() {
+		a.ReflectionAuxBus = a.RestoreReflectionAuxBus
+	}
 }
 
 func (a *AuxParam) Encode() []byte {
+	n := 0
+	for _, a := range a.AuxIds {
+		if a == 0 {
+			n += 1
+		}
+	}
+	if n == len(a.AuxIds) {
+		a.SetAux(false)
+	}
+
 	a.assert()
 
 	if !a.HasAux() {
@@ -236,23 +275,22 @@ func (a *AuxParam) Size() uint32 {
 
 func (a *AuxParam) assert() {
 	if !a.HasAux() {
-		assert.True(
-			len(a.AuxIds) <= 0, 
-			"Aux bit vector indicate there is no auxiliary send but # of Aux IDs" +
-			" is not equal to 0.",
-		)
+		for _, a := range a.AuxIds {
+			msg := fmt.Sprintf(
+				"Aux bit vector indicate user-defined auxiliary send is not " + 
+				"used but auxiliary bus %d has non-zero ID", a,
+			)
+			assert.True(a <= 0, msg)
+		}
 		return
 	}
-	assert.True(
-		len(a.AuxIds) == 4,
-		"Each auxiliary parameter should only have 4 auxiliary IDs",
-	)
 }
 
 const (
 	VirtualQueueBehaviorFromBeginning = 0
 	VirtualQueueBehaviorPlayFromElapsedTime = 1
 	VirtualQueueBehaviorResume = 2
+	VirtualQueueBehaviorCount = 3
 )
 var VirtualQueueBehaviorString []string = []string{
 	"From Beginning", "Play From Elapsed Time", "Resume",
@@ -262,9 +300,11 @@ const (
 	BelowThresholdBehaviorContinueToPlay = 0
 	BelowThresholdBehaviorKillVoice = 1
 	BelowThresholdBehaviorSendToVirtualVoice = 2
+	BelowThresholdBehaviorKillIfOneShotElseVirtual = 3
+	BelowThresholdBehaviorCount = 4
 )
 var BelowThresholdBehaviorString []string = []string{
-	"Continue To Play", "Kill Voice", "Send To Virtual Voice",
+	"Continue To Play", "Kill Voice", "Send To Virtual Voice", "Kill if finite else virtual",
 }
 
 const SizeOfAdvanceSetting = 6
@@ -290,6 +330,22 @@ func (a *AdvanceSetting) UseVirtualBehavior() bool {
 
 func (a *AdvanceSetting) SetUseVirtualBehavior(set bool) {
 	a.AdvanceSettingBitVector = wio.SetBit(a.AdvanceSettingBitVector, 1, set)
+	if !a.UseVirtualBehavior() {
+		a.BelowThresholdBehavior = BelowThresholdBehaviorContinueToPlay
+		a.VirtualQueueBehavior = VirtualQueueBehaviorPlayFromElapsedTime
+	} else {
+		if a.BelowThresholdBehavior == BelowThresholdBehaviorContinueToPlay {
+			a.BelowThresholdBehavior = BelowThresholdBehaviorSendToVirtualVoice
+		}
+		if a.VirtualQueueBehavior == VirtualQueueBehaviorPlayFromElapsedTime {
+			a.VirtualQueueBehavior = VirtualQueueBehaviorResume
+		}
+	}
+}
+
+func (a *AdvanceSetting) VirtualQueueBehaviorDisable() bool {
+	return a.BelowThresholdBehavior == BelowThresholdBehaviorContinueToPlay || 
+		   a.BelowThresholdBehavior == BelowThresholdBehaviorKillVoice
 }
 
 func (a *AdvanceSetting) IgnoreParentMaxNumInst() bool {
@@ -300,12 +356,21 @@ func (a *AdvanceSetting) SetIgnoreParentMaxNumInst(set bool) {
 	a.AdvanceSettingBitVector = wio.SetBit(a.AdvanceSettingBitVector, 3, set)
 }
 
-func (a *AdvanceSetting) IsVVoicesOptOverrideParent() bool {
+func (a *AdvanceSetting) OverrideParentVVoice() bool {
 	return wio.GetBit(a.AdvanceSettingBitVector, 4)
 }
 
 func (a *AdvanceSetting) SetVVoicesOptOverrideParent(set bool) {
 	a.AdvanceSettingBitVector = wio.SetBit(a.AdvanceSettingBitVector, 4, set)
+	if !a.OverrideParentVVoice() {
+		if a.IgnoreParentMaxNumInst() && a.UseVirtualBehavior() {
+			a.BelowThresholdBehavior = BelowThresholdBehaviorSendToVirtualVoice
+			a.VirtualQueueBehavior = VirtualQueueBehaviorResume
+		} else {
+			a.BelowThresholdBehavior = BelowThresholdBehaviorContinueToPlay
+			a.VirtualQueueBehavior = VirtualQueueBehaviorPlayFromElapsedTime
+		}
+	}
 }
 
 func (a *AdvanceSetting) OverrideHDREnvelope() bool {
@@ -556,103 +621,6 @@ func (c *Container) Encode() []byte {
 
 func (c *Container) Size() uint32 {
 	return uint32(4 + 4 * len(c.Children))
-}
-
-const SizeOfPlayListSetting = 24
-
-const (
-	TransitionModeDisable = 0
-	TransitionModeCrossFadeAmp = 1
-	TransitionModeCrossFadePower = 2
-	TransitionModeDelay = 3
-	TransitionModeSampleAccurate = 4
-	TransitionModeTriggerRate = 5
-)
-var TransitionModeString []string = []string{
-	"Disabled",
-	"Cross Fade Amp",
-	"Cross Fade Power",
-	"Delay",
-	"Sample Accurate",
-	"Trigger Rate",
-}
-
-const (
-	RandomModeNormal = 0
-	RandomModeShuffle = 1
-)
-var RandomModeString []string = []string{"Normal", "Shuffle"}
-
-const (
-	ModeRandom = 0
-	ModeSequence = 1
-)
-var PlayListModeString []string = []string{"Random", "Sequence"}
-
-type PlayListSetting struct {
-	LoopCount uint16 // u16
-	LoopModMin uint16 // u16
-	LoopModMax uint16 // u16
-	TransitionTime float32 // f32
-	TransitionTimeModMin float32 // f32
-	TransitionTimeModMax float32 // f32
-	AvoidRepeatCount uint16 // u16
-	TransitionMode uint8 // U8x
-	RandomMode uint8 // U8x
-	Mode uint8 // U8x
-
-	// _bIsUsingWeight
-	// bResetPlayListAtEachPlay
-	// bIsRestartBackward
-	// bIsContinuous
-	// bIsGlobal
-	PlayListBitVector uint8 // U8x
-}
-
-func (p *PlayListSetting) UsingWeight() bool {
-	return wio.GetBit(p.PlayListBitVector, 0)
-}
-
-func (p *PlayListSetting) SetUsingWeight(set bool) {
-	p.PlayListBitVector = wio.SetBit(p.PlayListBitVector, 0, set)
-}
-
-func (p *PlayListSetting) ResetPlayListAtEachPlay() bool {
-	return wio.GetBit(p.PlayListBitVector, 1)
-}
-
-func (p *PlayListSetting) SetResetPlayListAtEachPlay(set bool) {
-	p.PlayListBitVector = wio.SetBit(p.PlayListBitVector, 1, set)
-}
-
-func (p *PlayListSetting) RestartBackward() bool {
-	return wio.GetBit(p.PlayListBitVector, 2)
-}
-
-func (p *PlayListSetting) SetRestartBackward(set bool) {
-	p.PlayListBitVector = wio.SetBit(p.PlayListBitVector, 2, set)
-}
-
-func (p *PlayListSetting) Continuous() bool {
-	return wio.GetBit(p.PlayListBitVector, 3)
-}
-
-func (p *PlayListSetting) SetContinuous(set bool) {
-	p.PlayListBitVector = wio.SetBit(p.PlayListBitVector, 3, set)
-}
-
-func (p *PlayListSetting) Global() bool {
-	return wio.GetBit(p.PlayListBitVector, 4)
-}
-
-func (p *PlayListSetting) SetGlobal(set bool) {
-	p.PlayListBitVector = wio.SetBit(p.PlayListBitVector, 4, set)
-}
-
-const SizeOfPlayListItem = 8
-type PlayListItem struct {
-	UniquePlayID uint32 // tid
-	Weight int32 // s32
 }
 
 type SwitchGroupItem struct {
