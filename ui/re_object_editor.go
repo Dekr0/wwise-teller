@@ -99,7 +99,7 @@ func renderLayerCntr(t *bankTab, o *wwise.LayerCntr) {
 func renderRanSeqCntr(t *bankTab, o *wwise.RanSeqCntr) {
 	renderBaseParam(t, o)
 	renderContainer(t, o.Id, o.Container)
-	renderPlayListSetting(t, o)
+	renderRanSeqPlayList(t, o)
 }
 
 func renderSwitchCntr(t *bankTab, o *wwise.SwitchCntr) {
