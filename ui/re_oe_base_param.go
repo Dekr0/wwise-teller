@@ -31,7 +31,7 @@ func renderBaseParam(t *bankTab, o wwise.HircObj) {
 }
 
 func renderChangeParentQuery(t *bankTab, b *wwise.BaseParameter, hid uint32, disable bool) {
-	size := imgui.NewVec2(imgui.ContentRegionAvail().X * 0.40, 256)
+	size := imgui.NewVec2(imgui.ContentRegionAvail().X * 0.40, 160)
 	imgui.BeginChildStrV("ChangeParentQuery", size, 0, 0)
 
 	var filter func() = nil
@@ -143,7 +143,7 @@ func renderChangeParentListing(t *bankTab) {
 
 func renderByBitVec(o *wwise.BaseParameter) {
 	if imgui.TreeNodeExStr("Override (Category 1)") {
-		size := imgui.NewVec2(0, 112)
+		size := imgui.NewVec2(0, 136)
 		imgui.BeginChildStrV("Playback Priority", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
 
 		imgui.BeginDisabledV(o.DirectParentId == 0)
@@ -160,17 +160,15 @@ func renderByBitVec(o *wwise.BaseParameter) {
 		}
 
 		if o.PriorityOverrideParent() || o.DirectParentId == 0 {
-			for i := range o.PropBundle.PropValues {
-				if o.PropBundle.PropValues[i].P == wwise.PropTypePriority {
-					var val float32
-					binary.Decode(o.PropBundle.PropValues[i].V, wio.ByteOrder, &val)
-					imgui.SetNextItemWidth(80)
-					if imgui.InputFloat("Priority", &val) {
-						if val >= 0.0 && val <= 100.0 {
-							o.PropBundle.SetPropByIdxF32(i, val)
-						}
+			i, p := o.PropBundle.Priority()
+			if i != -1 {
+				var val float32
+				binary.Decode(p.V, wio.ByteOrder, &val)
+				imgui.SetNextItemWidth(80)
+				if imgui.InputFloat("Priority", &val) {
+					if val >= 0.0 && val <= 100.0 {
+						o.PropBundle.SetPropByIdxF32(i, val)
 					}
-					break
 				}
 			}
 		}
@@ -183,21 +181,19 @@ func renderByBitVec(o *wwise.BaseParameter) {
 		imgui.EndDisabled()
 
 		if o.PriorityApplyDistFactor() {
-			for i := range o.PropBundle.PropValues {
-				if o.PropBundle.PropValues[i].P == wwise.PropTypePriorityDistanceOffset {
-					var val float32
-					binary.Decode(o.PropBundle.PropValues[i].V, wio.ByteOrder, &val)
-					intFloat := int32(val)
-					imgui.SetNextItemWidth(80)
-					if imgui.InputInt("Offset priority by", &intFloat) {
-						if intFloat >= -100 && intFloat <= 100 {
-							o.PropBundle.SetPropByIdxF32(i, float32(intFloat))
-						}
+			i, p := o.PropBundle.PriorityApplyDistFactor()
+			if i != -1 {
+				var val float32
+				binary.Decode(p.V, wio.ByteOrder, &val)
+				intFloat := int32(val)
+				imgui.SetNextItemWidth(80)
+				if imgui.InputInt("Offset priority by", &intFloat) {
+					if intFloat >= -100 && intFloat <= 100 {
+						o.PropBundle.SetPropByIdxF32(i, float32(intFloat))
 					}
-					imgui.SameLine()
-					imgui.Text("at max distance")
-					break
 				}
+				imgui.SameLine()
+				imgui.Text("at max distance")
 			}
 		}
 		imgui.EndChild()

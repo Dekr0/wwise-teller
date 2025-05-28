@@ -10,6 +10,8 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
+// Refactor the getter to a single get prop value using PropTypeEnum
+
 const SizeOfPropValue = 4
 
 type PropValue struct {
@@ -89,11 +91,27 @@ func (p *PropBundle) AddPriority() {
 	}
 }
 
+func (p *PropBundle) Priority() (int, *PropValue) {
+	if i, in := p.HasPid(PropTypePriority); in {
+		return i, &p.PropValues[i]
+	} else {
+		return -1, nil
+	}
+}
+
 func (p *PropBundle) AddPriorityApplyDistFactor() {
 	if i, in := p.HasPid(PropTypePriorityDistanceOffset); in {
 		return
 	} else {
 		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypePriorityDistanceOffset, []byte{0, 0, 0, 0}})
+	}
+}
+
+func (p *PropBundle) PriorityApplyDistFactor() (int, *PropValue) {
+	if i, in := p.HasPid(PropTypePriorityDistanceOffset); in  {
+		return i, &p.PropValues[i]
+	} else {
+		return -1, nil
 	}
 }
 
