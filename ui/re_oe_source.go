@@ -35,7 +35,7 @@ func renderBankSourceData(t *bankTab, o *wwise.Sound) {
 }
 
 func renderChangeSourceQuery(t *bankTab, bsd *wwise.BankSourceData) {
-	size := imgui.NewVec2(imgui.ContentRegionAvail().X * 0.30, 128)
+	size := imgui.NewVec2(imgui.ContentRegionAvail().X * 0.45, 128)
 	imgui.BeginChildStrV("ChangeSourceChild", size, 0, 0)
 
 	imgui.Text("Filtered by source ID")
@@ -74,7 +74,8 @@ func bindChangeSource(bsd *wwise.BankSourceData, sid, inMemorySize uint32) func(
 }
 
 func renderChangeSourceTable(t *bankTab) {
-	imgui.BeginChildStr("ChangeSourceChildTable")
+	size := imgui.NewVec2(0, 256)
+	imgui.BeginChildStrV("ChangeSourceChildTable", size, 0, 0)
 
 	const flags = DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
