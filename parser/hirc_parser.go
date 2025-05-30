@@ -19,7 +19,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-const MaxNumParseRoutine = 6
+const MaxNumParseRoutine = 0
 
 type ParserResult struct {
 	i   uint32
@@ -84,6 +84,16 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
 					ParseSound,
+					hirc,
+					sem,
+					&parsed,
+				)
+			case wwise.HircTypeAction:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseAction,
 					hirc,
 					sem,
 					&parsed,
@@ -194,6 +204,8 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 			switch wwise.HircType(eHircType) {
 			case wwise.HircTypeSound:
 				obj = ParseSound(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeAction:
+				obj = ParseAction(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeEvent:
 				obj = ParseEvent(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeRanSeqCntr:
@@ -242,6 +254,10 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 	case wwise.HircTypeSound:
 		if _, in := h.Sounds.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate sound object %d", id))
+		}
+	case wwise.HircTypeAction:
+		if _, in := h.Actions.LoadOrStore(id, obj); in {
+			panic(fmt.Sprintf("Duplicate action object %d", id))
 		}
 	case wwise.HircTypeEvent:
 		if _, in := h.Events.LoadOrStore(id, obj); in {
