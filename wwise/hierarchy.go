@@ -125,6 +125,7 @@ func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 		T:               T,
 		HircObjs:        make([]HircObj, numHircItem),
 		HircObjsMap:     &sync.Map{},
+		Actions:         &sync.Map{},
 		ActorMixers:     &sync.Map{},
 		Events:          &sync.Map{},
 		LayerCntrs:      &sync.Map{},
