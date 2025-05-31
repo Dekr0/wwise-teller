@@ -16,8 +16,8 @@ import (
 )
 
 type BankManager struct {
-	banks sync.Map
-	writeLock *atomic.Bool
+	Banks sync.Map
+	WriteLock *atomic.Bool
 }
 
 type bankTab struct {
@@ -221,7 +221,7 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 
 	c := make(chan *result, 1)
 
-	if _, in := b.banks.Load(path); in {
+	if _, in := b.Banks.Load(path); in {
 		return fmt.Errorf("Sound bank %s is already open", path)
 	}
 	
@@ -241,7 +241,7 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		return ctx.Err()
 	}
 
-	if _, in := b.banks.Load(path); in {
+	if _, in := b.Banks.Load(path); in {
 		return fmt.Errorf("Sound bank %s is already open", path)
 	}
 
@@ -291,13 +291,13 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 	// t.buildTree()
 	t.writeLock.Store(false)
 
-	b.banks.Store(path, t)
+	b.Banks.Store(path, t)
 
 	return nil
 }
 
 func (b *BankManager) closeBank(del string) {
-	b.banks.Delete(del)
+	b.Banks.Delete(del)
 }
 
 // type Node struct {

@@ -67,8 +67,8 @@ func Run() error {
 	slog.Info("Created event loop")
 	modalQ := NewModalQ()
 
-	bnkMngr := &BankManager{writeLock: &atomic.Bool{}}
-	bnkMngr.writeLock.Store(false)
+	bnkMngr := &BankManager{WriteLock: &atomic.Bool{}}
+	bnkMngr.WriteLock.Store(false)
 	slog.Info("Created bank manager")
 
 	dockMngr := NewDockManager()

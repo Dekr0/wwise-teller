@@ -26,7 +26,7 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 		     imgui.TabBarFlagsTabListPopupButton | 
 	         imgui.TabBarFlagsFittingPolicyScroll
 	if imgui.BeginTabBarV("BankExplorerTabBar", flags) {
-		bnkMngr.banks.Range(func(key any, value any) bool {
+		bnkMngr.Banks.Range(func(key any, value any) bool {
 			base := filepath.Base(key.(string))
 			open := true
 			if imgui.BeginTabItemV(base, &open, 0) {
@@ -64,8 +64,8 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, 
 	}
 
 	if imgui.BeginMenu("File") {
-		if imgui.BeginMenuV("Save", !bnkMngr.writeLock.Load()) {
-			bnkMngr.banks.Range(func(key, value any) bool {
+		if imgui.BeginMenuV("Save", !bnkMngr.WriteLock.Load()) {
+			bnkMngr.Banks.Range(func(key, value any) bool {
 				if imgui.MenuItemBool(key.(string)) {
 					saveTab = value.(*bankTab)
 					saveName = key.(string)
@@ -76,8 +76,8 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, 
 			imgui.EndMenu()
 		}
 		if imgui.BeginMenu("Integration") {
-			if imgui.BeginMenuV("Helldivers 2", !bnkMngr.writeLock.Load()) {
-				bnkMngr.banks.Range(func(key, value any) bool {
+			if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
+				bnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
 						saveTab = value.(*bankTab)
 						saveName = key.(string)

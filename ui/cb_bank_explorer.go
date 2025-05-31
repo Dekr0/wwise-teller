@@ -73,7 +73,7 @@ func saveSoundBankFunc(
 			func (ctx context.Context) {
 				slog.Info(onProcMsg)
 
-				bnkMngr.writeLock.Store(true)
+				bnkMngr.WriteLock.Store(true)
 
 				if data, err := saveTab.encode(ctx); err != nil {
 					slog.Error(
@@ -94,7 +94,7 @@ func saveSoundBankFunc(
 						slog.Info(onDoneMsg)
 					}
 				}
-				bnkMngr.writeLock.Store(false)
+				bnkMngr.WriteLock.Store(false)
 			},
 		); err != nil {
 			slog.Error(fmt.Sprintf("Failed to save sound bank to %s", path),
@@ -123,8 +123,8 @@ func HD2PatchFunc(
 		if err := loop.QTask(timeout, cancel, onProcMsg, onDoneMsg, 
 			func(ctx context.Context) {
 				slog.Info(onProcMsg)
-				bnkMngr.writeLock.Store(true)
-				defer bnkMngr.writeLock.Store(false)
+				bnkMngr.WriteLock.Store(true)
+				defer bnkMngr.WriteLock.Store(false)
 				bnkData, err := saveTab.encode(ctx)
 				if err != nil {
 					slog.Error(
