@@ -233,10 +233,11 @@ func renderHircTTable(t *bankTab) {
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
-		hircObjs := t.bank.HIRC().HircObjs
+		hirc := t.bank.HIRC()
+		hircObjs := hirc.HircObjs
 
 		c := imgui.NewListClipper()
-		c.Begin(int32(len(hircObjs)))
+		c.Begin(int32(len(hircObjs)) - int32(hirc.ActionCount.Load()) - int32(hirc.EventCount.Load()))
 
 		treeIdx := 0 
 		drawIdx := int32(0)
@@ -261,6 +262,10 @@ func renderHircNode(
 ) bool {
 	l := len(hircObjs)
 	o := hircObjs[l - *treeIdx - 1]
+	if o.HircType() == wwise.HircTypeAction || o.HircType() == wwise.HircTypeEvent {
+		*treeIdx += 1
+		return true
+	}
 	visible := *drawIdx >= c.DisplayStart() && *drawIdx < c.DisplayEnd()
 	*drawIdx += 1
 	*treeIdx += 1

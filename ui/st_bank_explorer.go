@@ -66,6 +66,11 @@ func (b *bankTab) filter() {
 	i := 0
 	old := len(b.filtered)
 	for _, h := range hirc.HircObjs {
+		// filter out Event and Action
+		if h.HircType() == wwise.HircTypeAction || h.HircType() == wwise.HircTypeEvent {
+			continue
+		}
+
 		// type filter
 		if b.typeQuery > 0 && b.typeQuery != int32(h.HircType()) {
 			continue
@@ -122,6 +127,11 @@ func (b *bankTab) filterParent() {
 	i := 0
 	old := len(b.filteredParent)
 	for _, d := range hirc.HircObjs {
+		// filter out Event and Action
+		if d.HircType() == wwise.HircTypeAction || d.HircType() == wwise.HircTypeEvent {
+			continue
+		}
+
 		if !slices.Contains(wwise.ContainerHircType, d.HircType()) {
 			continue
 		}
@@ -239,9 +249,13 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 	filteredParent := []wwise.HircObj{}
 	if bank.HIRC() != nil {
 		hirc := bank.HIRC()
-		filtered = make([]wwise.HircObj, len(hirc.HircObjs))
+		filtered = make([]wwise.HircObj, len(hirc.HircObjs) - int(hirc.ActionCount.Load()) - int(hirc.EventCount.Load()))
 		filteredParent = make([]wwise.HircObj, 0, len(hirc.HircObjs) / 2)
 		for i, o := range hirc.HircObjs {
+			// filter out Event and Action
+			if o.HircType() == wwise.HircTypeAction || o.HircType() == wwise.HircTypeEvent {
+				continue
+			}
 			filtered[i] = o
 			if slices.Contains(wwise.ContainerHircType, o.HircType()) {
 				filteredParent = append(filteredParent, o)
