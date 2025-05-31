@@ -69,7 +69,7 @@ func (r *RTPCItem) Encode() []byte {
 	w.AppendByte(r.Scaling)
 	w.Append(uint16(len(r.RTPCGraphPoints)))
 	for _, i := range r.RTPCGraphPoints {
-		w.AppendBytes(i.Enocde())
+		w.AppendBytes(i.Encode())
 	}
 	return w.BytesAssert(int(size))
 }
@@ -105,7 +105,7 @@ type RTPCGraphPoint struct {
 
 func (r *RTPCGraphPoint) Sample() {}
 
-func (r *RTPCGraphPoint) Enocde() []byte {
+func (r *RTPCGraphPoint) Encode() []byte {
 	w := wio.NewWriter(SizeOfRTPCGraphPoint)
 	w.Append(r.From)
 	w.Append(r.To)

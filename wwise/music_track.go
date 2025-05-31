@@ -182,7 +182,7 @@ func (c *ClipAutomation) Encode() []byte {
 	w.Append(c.AutoType)
 	w.Append(uint32(len(c.RTPCGraphPoints)))
 	for _, r := range c.RTPCGraphPoints {
-		w.AppendBytes(r.Enocde())
+		w.AppendBytes(r.Encode())
 	}
 	return w.BytesAssert(int(dataSize))
 }
