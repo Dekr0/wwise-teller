@@ -19,7 +19,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-const MaxNumParseRoutine = 0
+const MaxNumParseRoutine = 6
 
 type ParserResult struct {
 	i   uint32
@@ -168,6 +168,16 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
+			case wwise.HircTypeMusicSwitchCntr:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseMusicSwitchCntr,
+					hirc,
+					sem,
+					&parsed,
+				)
 			case wwise.HircTypeMusicRanSeqCntr:
 				go ParserRoutine(
 					dwSectionSize,
@@ -178,12 +188,12 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
-			case wwise.HircTypeMusicSwitchCntr:
+			case wwise.HircTypeAttenuation:
 				go ParserRoutine(
 					dwSectionSize,
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
-					ParseMusicSwitchCntr,
+					ParseAttenuation,
 					hirc,
 					sem,
 					&parsed,
@@ -220,10 +230,12 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 				obj = ParseMusicSegment(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeMusicTrack:
 				obj = ParseMusicTrack(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
-			case wwise.HircTypeMusicRanSeqCntr:
-				obj = ParseMusicRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeMusicSwitchCntr:
 				obj = ParseMusicSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeMusicRanSeqCntr:
+				obj = ParseMusicRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeAttenuation:
+				obj = ParseAttenuation(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			default:
 				panic("Assertion Trap")
 			}
@@ -259,10 +271,12 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 		if _, in := h.Actions.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate action object %d", id))
 		}
+		h.ActionCount.Add(1)
 	case wwise.HircTypeEvent:
 		if _, in := h.Events.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate event object %d", id))
 		}
+		h.EventCount.Add(1)
 	case wwise.HircTypeRanSeqCntr:
 		if _, in := h.RanSeqCntrs.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate random / sequence container object %d", id))
@@ -287,14 +301,19 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 		if _, in := h.MusicTracks.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate music track object %d", id))
 		}
-	case wwise.HircTypeMusicRanSeqCntr:
-		if _, in := h.MusicRanSeqCntr.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate music random sequence container object %d", id))
-		}
 	case wwise.HircTypeMusicSwitchCntr:
 		if _, in := h.MusicSwitchCntr.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate music switch container object %d", id))
 		}
+	case wwise.HircTypeMusicRanSeqCntr:
+		if _, in := h.MusicRanSeqCntr.LoadOrStore(id, obj); in {
+			panic(fmt.Sprintf("Duplicate music random sequence container object %d", id))
+		}
+	case wwise.HircTypeAttenuation:
+		if _, in := h.Attenuations.LoadOrStore(id, obj); in {
+			panic(fmt.Sprintf("Duplicate attenuation object %d", id))
+		}
+		h.AttenuationCount.Add(1)
 	default:
 		panic("Assertion Trap")
 	}
@@ -557,7 +576,7 @@ func ParseMusicTrackTransitionParam(r *wio.Reader, t *wwise.MusicTrackTransition
 }
 
 func ParseMusicRanSeqCntr(size uint32, r *wio.Reader) *wwise.MusicRanSeqCntr {
-	assert.Equal(0, r.Pos(), "Random / Sequence container parser position doesn't start at position 0.")
+	assert.Equal(0, r.Pos(), "Muisc random / sequence container parser position doesn't start at position 0.")
 	begin := r.Pos()
 
 	m := wwise.MusicRanSeqCntr{}
@@ -654,7 +673,7 @@ func ParseMusicPlayListNodes(
 }
 
 func ParseMusicSwitchCntr(size uint32, r *wio.Reader) (m *wwise.MusicSwitchCntr) {
-	assert.Equal(0, r.Pos(), "Random / Sequence container parser position doesn't start at position 0.")
+	assert.Equal(0, r.Pos(), "Music switch container parser position doesn't start at position 0.")
 	begin := r.Pos()
 
 	m = &wwise.MusicSwitchCntr{}
@@ -735,10 +754,10 @@ func ParseSound(size uint32, r *wio.Reader) *wwise.Sound {
 	s.BaseParam = ParseBaseParam(r)
 	end := r.Pos()
 	if begin >= end {
-		panic("Reader consumes zero byte")
+		panic("reader consumes zero byte")
 	}
 	assert.Equal(uint64(size), end-begin,
-		"The amount of bytes reader consume doesn't equal size in the hierarchy header",
+		"the amount of bytes reader consume doesn't equal size in the hierarchy header",
 	)
 	return s
 }
@@ -991,11 +1010,7 @@ func ParseRTPC(r *wio.Reader, rtpc *wwise.RTPC) {
 		item.Scaling = r.U8Unsafe()
 		NumRTPCGraphPoints := r.U16Unsafe()
 		item.RTPCGraphPoints = make([]wwise.RTPCGraphPoint, NumRTPCGraphPoints, NumRTPCGraphPoints)
-		for j := range NumRTPCGraphPoints {
-			item.RTPCGraphPoints[j].From = r.F32Unsafe()
-			item.RTPCGraphPoints[j].To = r.F32Unsafe()
-			item.RTPCGraphPoints[j].Interp = r.U32Unsafe()
-		}
+		ParseRTPCGraphPoints(r, item.RTPCGraphPoints)
 	}
 }
 
@@ -1040,4 +1055,57 @@ func ParseContainer(r *wio.Reader) *wwise.Container {
 		c.Children[i] = r.U32Unsafe()
 	}
 	return c
+}
+
+func ParseAttenuation(size uint32, r *wio.Reader) *wwise.Attenuation {
+	assert.Equal(0, r.Pos(), "Attenuation parser position doesn't start at position 0.")
+	begin := r.Pos()
+
+	a := wwise.Attenuation{
+		Id: r.U32Unsafe(),
+		IsHeightSpreadEnabled: r.U8Unsafe(),
+		IsConeEnabled: r.U8Unsafe(),
+		Curves: [7]int8(make([]int8, 7)),
+	}
+
+	if a.ConeEnabled() {
+		a.InsideDegrees = r.F32Unsafe()
+		a.OutsideDegrees = r.F32Unsafe()
+		a.OutsideVolume = r.F32Unsafe()
+		a.LoPass = r.F32Unsafe()
+		a.HiPass = r.F32Unsafe()
+	}
+
+	for i := range a.Curves {
+		a.Curves[i] = r.I8Unsafe()
+	}
+
+	a.AttenuationConversionTables = make([]wwise.AttenuationConversionTable, r.U8Unsafe())
+	ParseAttenuationConversionTables(r, a.AttenuationConversionTables)
+	ParseRTPC(r, &a.RTPC)
+
+	end := r.Pos()
+	if begin >= end {
+		panic("Reader read zero bytes")
+	}
+	assert.Equal(size, uint32(end-begin),
+		"The amount of bytes reader consume doesn't equal to the size in hierarchy header",
+	)
+	return &a
+}
+
+func ParseAttenuationConversionTables(r *wio.Reader, t []wwise.AttenuationConversionTable) {
+	for i := range t {
+		t[i].EnumScaling = r.U8Unsafe()
+		t[i].RTPCGraphPoints = make([]wwise.RTPCGraphPoint, r.U16Unsafe())
+		ParseRTPCGraphPoints(r, t[i].RTPCGraphPoints)
+	}
+}
+
+func ParseRTPCGraphPoints(r *wio.Reader, pts []wwise.RTPCGraphPoint) {
+	for i := range pts {
+		pts[i].From = r.F32Unsafe()
+		pts[i].To = r.F32Unsafe()
+		pts[i].Interp = r.U32Unsafe()
+	}
 }

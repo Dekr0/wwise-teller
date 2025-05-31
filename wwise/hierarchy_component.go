@@ -487,7 +487,7 @@ func (l *LayerRTPC) Encode() []byte {
 	w.Append(l.AssociatedChildID)
 	w.Append(uint32(len(l.RTPCGraphPoints)))
 	for _, i := range l.RTPCGraphPoints {
-		w.Append(i.Enocde())
+		w.Append(i.Encode())
 	}
 	return w.BytesAssert(int(size))
 }

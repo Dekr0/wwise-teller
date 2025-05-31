@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
@@ -57,6 +58,7 @@ var KnownHircType []HircType = []HircType{
 	HircTypeMusicTrack,
 	HircTypeMusicSwitchCntr,
 	HircTypeMusicRanSeqCntr,
+	HircTypeAttenuation,
 }
 
 var ContainerHircType []HircType = []HircType{
@@ -67,6 +69,12 @@ var ContainerHircType []HircType = []HircType{
 	HircTypeMusicSegment,
 	HircTypeMusicRanSeqCntr,
 	HircTypeMusicSwitchCntr,
+}
+
+var NonHircType []HircType = []HircType{
+	HircTypeAction,
+	HircTypeEvent,
+	HircTypeAttenuation,
 }
 
 var HircTypeName []string = []string{
@@ -106,17 +114,21 @@ type HIRC struct {
 
 	// Map for different types of hierarchy objects. Each object is a pointer
 	// to a specific hierarchy object, which is also in `HircObjs`.
-	ActorMixers     *sync.Map
-	Actions         *sync.Map
-	Events          *sync.Map
-	LayerCntrs      *sync.Map
-	MusicSegments   *sync.Map
-	MusicTracks     *sync.Map
-	MusicRanSeqCntr *sync.Map
-	MusicSwitchCntr *sync.Map
-	SwitchCntrs     *sync.Map
-	RanSeqCntrs     *sync.Map
-	Sounds          *sync.Map
+	ActorMixers      *sync.Map
+	Actions          *sync.Map
+	ActionCount      *atomic.Uint32
+	Attenuations     *sync.Map
+	AttenuationCount *atomic.Uint32
+	Events           *sync.Map
+	EventCount       *atomic.Uint32
+	LayerCntrs       *sync.Map
+	MusicSegments    *sync.Map
+	MusicTracks      *sync.Map
+	MusicRanSeqCntr  *sync.Map
+	MusicSwitchCntr  *sync.Map
+	SwitchCntrs      *sync.Map
+	RanSeqCntrs      *sync.Map
+	Sounds           *sync.Map
 }
 
 func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
@@ -126,8 +138,12 @@ func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 		HircObjs:        make([]HircObj, numHircItem),
 		HircObjsMap:     &sync.Map{},
 		Actions:         &sync.Map{},
+		ActionCount:     &atomic.Uint32{},
 		ActorMixers:     &sync.Map{},
+		Attenuations:    &sync.Map{},
+		AttenuationCount:&atomic.Uint32{},
 		Events:          &sync.Map{},
+		EventCount:      &atomic.Uint32{},
 		LayerCntrs:      &sync.Map{},
 		MusicSegments:   &sync.Map{},
 		MusicTracks:     &sync.Map{},
