@@ -21,6 +21,7 @@ const SizeOfHIRCHeader = 4
 type HircType uint8
 
 const (
+	HircTypeAll             HircType = 0x00
 	HircTypeState           HircType = 0x01 // ???
 	HircTypeSound           HircType = 0x02
 	HircTypeAction          HircType = 0x03 // ???
@@ -43,9 +44,10 @@ const (
 	HircEnvelopeModulator   HircType = 0x14 // ???
 	HircAudioDevice         HircType = 0x15 // ???
 	HircTimeModulator       HircType = 0x16 // ???
+	HircTypeCount                    = 0x17
 )
 
-var KnownHircType []HircType = []HircType{
+var KnownHircTypes []HircType = []HircType{
 	0x00,
 	HircTypeSound,
 	HircTypeAction,
@@ -61,7 +63,7 @@ var KnownHircType []HircType = []HircType{
 	HircTypeAttenuation,
 }
 
-var ContainerHircType []HircType = []HircType{
+var ContainerHircTypes []HircType = []HircType{
 	HircTypeRanSeqCntr,
 	HircTypeSwitchCntr,
 	HircTypeActorMixer,
@@ -71,10 +73,20 @@ var ContainerHircType []HircType = []HircType{
 	HircTypeMusicSwitchCntr,
 }
 
-var NonHircType []HircType = []HircType{
-	HircTypeAction,
-	HircTypeEvent,
-	HircTypeAttenuation,
+func ContainerHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeRanSeqCntr      ||
+		   t == HircTypeSwitchCntr      ||
+		   t == HircTypeActorMixer      ||
+		   t == HircTypeLayerCntr       ||
+		   t == HircTypeMusicSegment    ||
+		   t == HircTypeMusicRanSeqCntr ||
+		   t == HircTypeMusicSwitchCntr
+}
+
+func NonHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeAction || t == HircTypeEvent || t == HircTypeAttenuation
 }
 
 var HircTypeName []string = []string{
@@ -222,6 +234,15 @@ func (h *HIRC) Tag() []byte {
 
 func (h *HIRC) Idx() uint8 {
 	return h.I
+}
+
+// NumHirc return the number of hierarchy objects excluding the following types 
+// of hierarchy objects:
+//   - Action
+//   - Attenuation
+//   - Event
+func (h *HIRC) NumHirc() uint32 {
+	return uint32(len(h.HircObjs)) - h.AttenuationCount.Load() - h.ActionCount.Load() - h.EventCount.Load()
 }
 
 func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
