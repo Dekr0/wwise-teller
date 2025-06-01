@@ -439,7 +439,7 @@ func ParseDIDX(r *wio.Reader, I uint8, T []byte, size uint32) (
 		if err != nil {
 			return nil, err
 		}
-		didx.MediaIndexs = append(didx.MediaIndexs, &wwise.MediaIndex{
+		didx.MediaIndexs = append(didx.MediaIndexs, wwise.MediaIndex{
 			Sid:    sid,
 			Offset: offset,
 			Size:   size,

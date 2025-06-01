@@ -10,11 +10,11 @@ import (
 type DIDX struct {
 	I uint8
 	T []byte
-	MediaIndexs []*MediaIndex
+	MediaIndexs []MediaIndex
 }
 
 func NewDIDX(I uint8, T []byte, num uint32) *DIDX {
-	return &DIDX{I, T, make([]*MediaIndex, 0, num)}
+	return &DIDX{I, T, make([]MediaIndex, 0, num)}
 }
 
 func (d *DIDX) Encode(ctx context.Context) ([]byte, error) {
