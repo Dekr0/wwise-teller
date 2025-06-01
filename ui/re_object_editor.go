@@ -9,14 +9,14 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderObjEditor(t *bankTab) {
+func renderObjEditor(t *BankTab) {
 	imgui.Begin("Object Editor")
 
 	if t == nil {
 		imgui.End()
 		return
 	}
-	if t.writeLock.Load() {
+	if t.WriteLock.Load() {
 		imgui.End()
 		return
 	}
@@ -31,12 +31,12 @@ func renderObjEditor(t *bankTab) {
 		imgui.TabBarFlagsTabListPopupButton | imgui.TabBarFlagsFittingPolicyScroll,
 	) {
 		s := []wwise.HircObj{}
-		for _, h := range t.bank.HIRC().HircObjs {
+		for _, h := range t.Bank.HIRC().HircObjs {
 			id, err := h.HircID()
 			if err != nil {
 				continue
 			}
-			if t.storage.Contains(imgui.ID(id)) {
+			if t.LinearStorage.Contains(imgui.ID(id)) {
 				s = append(s, h)
 			}
 		}
@@ -51,7 +51,7 @@ func renderObjEditor(t *bankTab) {
 	imgui.End()
 }
 
-func renderHircTab(t *bankTab, i int, h wwise.HircObj) {
+func renderHircTab(t *BankTab, i int, h wwise.HircObj) {
 	var label string
 	switch h.(type) {
 	case *wwise.Unknown:
@@ -62,11 +62,11 @@ func renderHircTab(t *bankTab, i int, h wwise.HircObj) {
 	}
 
 	if imgui.BeginTabItem(label) {
-		if t.activeHirc != h {
-			t.cntrStorage.Clear()
-			t.playListStorage.Clear()
+		if t.ActiveHirc != h {
+			t.CntrStorage.Clear()
+			t.RanSeqPlaylistStorage.Clear()
 		}
-		t.activeHirc = h
+		t.ActiveHirc = h
 		switch h.(type) {
 		case *wwise.ActorMixer:
 			renderActorMixer(t, h.(*wwise.ActorMixer))
@@ -87,26 +87,26 @@ func renderHircTab(t *bankTab, i int, h wwise.HircObj) {
 	}
 }
 
-func renderActorMixer(t *bankTab, o *wwise.ActorMixer) {
+func renderActorMixer(t *BankTab, o *wwise.ActorMixer) {
 	renderBaseParam(t, o)
 	renderContainer(t, o.Id, o.Container)
 }
 
-func renderLayerCntr(t *bankTab, o *wwise.LayerCntr) {
+func renderLayerCntr(t *BankTab, o *wwise.LayerCntr) {
 	renderBaseParam(t, o)
 }
 
-func renderRanSeqCntr(t *bankTab, o *wwise.RanSeqCntr) {
+func renderRanSeqCntr(t *BankTab, o *wwise.RanSeqCntr) {
 	renderBaseParam(t, o)
 	renderContainer(t, o.Id, o.Container)
 	renderRanSeqPlayList(t, o)
 }
 
-func renderSwitchCntr(t *bankTab, o *wwise.SwitchCntr) {
+func renderSwitchCntr(t *BankTab, o *wwise.SwitchCntr) {
 	renderBaseParam(t, o)
 }
 
-func renderSound(t *bankTab, o *wwise.Sound) {
+func renderSound(t *BankTab, o *wwise.Sound) {
 	renderBankSourceData(t, o)
 	renderBaseParam(t, o)
 }
@@ -120,7 +120,7 @@ func renderUnknown(o *wwise.Unknown) {
 	)
 }
 
-func renderContainer(t *bankTab, id uint32, cntr *wwise.Container) {
+func renderContainer(t *BankTab, id uint32, cntr *wwise.Container) {
 	if imgui.TreeNodeExStr("Container") {
 		if imgui.Button("Add New Children") {
 		}

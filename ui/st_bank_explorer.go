@@ -138,9 +138,9 @@ func (f *MediaIndexFilter) Filter(indices []wwise.MediaIndex) {
 	}
 }
 
-type bankTab struct {
-	bank *wwise.Bank
-	initBank *wwise.Bank
+type BankTab struct {
+	Bank *wwise.Bank
+	InitBank *wwise.Bank
 	idQuery string
 	sidQuery string
 	typeQuery int32
@@ -150,37 +150,39 @@ type bankTab struct {
 	filtered []wwise.HircObj
 	filteredParent []wwise.HircObj
 	filteredMediaIndexs []*wwise.MediaIndex
-	// roots []*Node
-	storage *imgui.SelectionBasicStorage
-	activeHirc wwise.HircObj
-	cntrStorage *imgui.SelectionBasicStorage
-	playListStorage *imgui.SelectionBasicStorage
+
+	// Storage
+	LinearStorage         *imgui.SelectionBasicStorage
+	ActiveHirc             wwise.HircObj
+	CntrStorage           *imgui.SelectionBasicStorage
+	RanSeqPlaylistStorage *imgui.SelectionBasicStorage
+
 	// Sync
-	writeLock *atomic.Bool
+	WriteLock             *atomic.Bool
 }
 
-func (b *bankTab) changeRoot(hid, np, op uint32) {
-	b.bank.HIRC().ChangeRoot(hid, np, op)
+func (b *BankTab) changeRoot(hid, np, op uint32) {
+	b.Bank.HIRC().ChangeRoot(hid, np, op)
 	b.filter()
-	b.cntrStorage.Clear()
-	b.playListStorage.Clear()
+	b.CntrStorage.Clear()
+	b.RanSeqPlaylistStorage.Clear()
 }
 
-func (b *bankTab) removeRoot(hid, op uint32) {
-	b.bank.HIRC().RemoveRoot(hid, op)
+func (b *BankTab) removeRoot(hid, op uint32) {
+	b.Bank.HIRC().RemoveRoot(hid, op)
 	b.filter()
-	b.cntrStorage.Clear()
-	b.playListStorage.Clear()
+	b.CntrStorage.Clear()
+	b.RanSeqPlaylistStorage.Clear()
 }
 
-func (b *bankTab) filter() {
-	if b.bank.HIRC() == nil {
+func (b *BankTab) filter() {
+	if b.Bank.HIRC() == nil {
 		return
 	}
 	if !utils.IsDigit(b.idQuery) {
 		return
 	}
-	hirc := b.bank.HIRC()
+	hirc := b.Bank.HIRC()
 	i := 0
 	old := len(b.filtered)
 	for _, h := range hirc.HircObjs {
@@ -234,14 +236,14 @@ func (b *bankTab) filter() {
 	}
 }
 
-func (b *bankTab) filterParent() {
-	if b.bank.HIRC() == nil {
+func (b *BankTab) filterParent() {
+	if b.Bank.HIRC() == nil {
 		return
 	}
 	if !utils.IsDigit(b.parentIdQuery) {
 		return
 	}
-	hirc := b.bank.HIRC()
+	hirc := b.Bank.HIRC()
 	i := 0
 	old := len(b.filteredParent)
 	for _, d := range hirc.HircObjs {
@@ -283,14 +285,14 @@ func (b *bankTab) filterParent() {
 	}
 }
 
-func (b *bankTab) filterRewireQuery() {
-	if b.bank.DIDX() == nil {
+func (b *BankTab) filterRewireQuery() {
+	if b.Bank.DIDX() == nil {
 		return
 	}
 	if !utils.IsDigit(b.rewireSidQuery) {
 		return
 	}
-	didx := b.bank.DIDX()
+	didx := b.Bank.DIDX()
 	i := 0
 	old := len(b.filteredMediaIndexs)
 	for _, m := range didx.MediaIndexs {
@@ -309,16 +311,16 @@ func (b *bankTab) filterRewireQuery() {
 	}
 }
 
-func (b *bankTab) encode(ctx context.Context) ([]byte, error) {
-	b.writeLock.Store(true)
-	defer b.writeLock.Store(false)
+func (b *BankTab) encode(ctx context.Context) ([]byte, error) {
+	b.WriteLock.Store(true)
+	defer b.WriteLock.Store(false)
 	type result struct {
 		data []byte
 		err  error
 	}
 	c := make(chan *result)
 	go func() {
-		data, err := b.bank.Encode(ctx)
+		data, err := b.Bank.Encode(ctx)
 		c <- &result{data, err}
 	}()
 
@@ -390,9 +392,9 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		}
 	}
 
-	t := &bankTab{
-		writeLock: &atomic.Bool{},
-		bank: bank,
+	t := &BankTab{
+		WriteLock: &atomic.Bool{},
+		Bank: bank,
 		idQuery: "",
 		sidQuery: "",
 		typeQuery: 0,
@@ -401,13 +403,13 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		filtered: filtered,
 		filteredParent: filteredParent,
 		filteredMediaIndexs: filteredSid,
-		activeHirc: nil,
-		storage: imgui.NewSelectionBasicStorage(),
-		cntrStorage: imgui.NewSelectionBasicStorage(),
-		playListStorage: imgui.NewSelectionBasicStorage(),
+		ActiveHirc: nil,
+		LinearStorage: imgui.NewSelectionBasicStorage(),
+		CntrStorage: imgui.NewSelectionBasicStorage(),
+		RanSeqPlaylistStorage: imgui.NewSelectionBasicStorage(),
 	}
 	// t.buildTree()
-	t.writeLock.Store(false)
+	t.WriteLock.Store(false)
 
 	b.Banks.Store(path, t)
 

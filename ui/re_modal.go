@@ -105,7 +105,7 @@ func pushSaveSoundBankModal(
 	loop *async.EventLoop,
 	conf *config.Config,
 	bnkMngr *BankManager,
-	saveTab *bankTab,
+	saveTab *BankTab,
 	saveName string,
 ) {
 	onSave := saveSoundBankFunc(loop, bnkMngr, saveTab, saveName)
@@ -132,7 +132,7 @@ func pushHD2PatchModal(
 	loop *async.EventLoop,
 	conf *config.Config,
 	bnkMngr *BankManager,
-	saveTab *bankTab,
+	saveTab *BankTab,
 	saveName string,
 ) {
 	onSave := HD2PatchFunc(loop, bnkMngr, saveTab, saveName)

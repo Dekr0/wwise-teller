@@ -11,9 +11,9 @@ import (
 )
 
 func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
-	*bankTab, string, *bankTab, string, int,
+	*BankTab, string, *BankTab, string, int,
 ) {
-	var activeTab *bankTab = nil
+	var activeTab *BankTab = nil
 	activeName := ""
 	closedTab := "" 
 
@@ -30,8 +30,8 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 			base := filepath.Base(key.(string))
 			open := true
 			if imgui.BeginTabItemV(base, &open, 0) {
-				renderHircLTable(value.(*bankTab))
-				activeTab = value.(*bankTab)
+				renderHircLTable(value.(*BankTab))
+				activeTab = value.(*BankTab)
 				activeName = key.(string)
 				imgui.EndTabItem()
 			}
@@ -55,8 +55,8 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 	return activeTab, closedTab, savedTab, savedName, iType
 }
 
-func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, int) {
-	var saveTab *bankTab = nil
+func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, int) {
+	var saveTab *BankTab = nil
 	saveName := ""
 
 	if !imgui.BeginMenuBar() {
@@ -67,7 +67,7 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, 
 		if imgui.BeginMenuV("Save", !bnkMngr.WriteLock.Load()) {
 			bnkMngr.Banks.Range(func(key, value any) bool {
 				if imgui.MenuItemBool(key.(string)) {
-					saveTab = value.(*bankTab)
+					saveTab = value.(*BankTab)
 					saveName = key.(string)
 					itype = -1
 				}
@@ -79,7 +79,7 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, 
 			if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
 				bnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
-						saveTab = value.(*bankTab)
+						saveTab = value.(*BankTab)
 						saveName = key.(string)
 						itype = int(helldivers.IntegrationTypeHelldivers2)
 					}
@@ -96,7 +96,7 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*bankTab, string, 
 	return saveTab, saveName, itype
 }
 
-func renderHircLTable(b *bankTab) {
+func renderHircLTable(b *BankTab) {
 	focusTable := false
 
 	useViUp()
@@ -149,7 +149,7 @@ func renderHircLTable(b *bankTab) {
 			imgui.SetKeyboardFocusHere()
 		}
 
-		storage := b.storage
+		storage := b.LinearStorage
 		hircObjs := b.filtered
 
 		flags := imgui.MultiSelectFlagsClearOnEscape | 
@@ -210,7 +210,7 @@ func renderHircLTable(b *bankTab) {
 	}
 }
 
-func renderHircTree(t *bankTab)  {
+func renderHircTree(t *BankTab)  {
 	imgui.Begin("Hierarchy View")
 	if t == nil {
 		imgui.End()
@@ -220,7 +220,7 @@ func renderHircTree(t *bankTab)  {
 	imgui.End()
 }
 
-func renderHircTTable(t *bankTab) {
+func renderHircTTable(t *BankTab) {
 	tableFlags := imgui.TableFlagsResizable   | 
 				  imgui.TableFlagsReorderable | 
 			      imgui.TableFlagsRowBg       | 
@@ -233,7 +233,7 @@ func renderHircTTable(t *bankTab) {
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
-		hirc := t.bank.HIRC()
+		hirc := t.Bank.HIRC()
 		hircObjs := hirc.HircObjs
 
 		c := imgui.NewListClipper()

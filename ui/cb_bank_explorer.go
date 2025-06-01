@@ -57,7 +57,7 @@ func dispatchOpenSoundBank(
 func saveSoundBankFunc(
 	loop *async.EventLoop,
 	bnkMngr *BankManager,
-	saveTab *bankTab,
+	saveTab *BankTab,
 	saveName string,
 ) func(string) {
 	return func(path string) {
@@ -107,7 +107,7 @@ func saveSoundBankFunc(
 func HD2PatchFunc(
 	loop *async.EventLoop,
 	bnkMngr *BankManager,
-	saveTab *bankTab,
+	saveTab *BankTab,
 	saveName string,
 ) func(string) {
 	return func(path string) {
@@ -133,7 +133,7 @@ func HD2PatchFunc(
 					)
 					return
 				}
-				meta := saveTab.bank.META()
+				meta := saveTab.Bank.META()
 				if meta == nil {
 					slog.Error(
 						fmt.Sprintf("Sound bank %s is missing integration data.",

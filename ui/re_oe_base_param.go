@@ -10,7 +10,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBaseParam(t *bankTab, o wwise.HircObj) {
+func renderBaseParam(t *BankTab, o wwise.HircObj) {
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyB))
 	if imgui.TreeNodeExStr("Base Parameter") {
 		hid, err := o.HircID()
@@ -30,7 +30,7 @@ func renderBaseParam(t *bankTab, o wwise.HircObj) {
 	}
 }
 
-func renderChangeParentQuery(t *bankTab, b *wwise.BaseParameter, hid uint32, disable bool) {
+func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, disable bool) {
 	size := imgui.NewVec2(imgui.ContentRegionAvail().X * 0.40, 160)
 	imgui.BeginChildStrV("ChangeParentQuery", size, 0, 0)
 
@@ -92,19 +92,19 @@ func renderChangeParentQuery(t *bankTab, b *wwise.BaseParameter, hid uint32, dis
 	imgui.EndChild()
 }
 
-func bindChangeRoot(t *bankTab, hid, np, op uint32) func() {
+func bindChangeRoot(t *BankTab, hid, np, op uint32) func() {
 	return func() {
 		t.changeRoot(hid, np, op)
 	}
 }
 
-func bindRemoveRoot(t *bankTab, hid, op uint32) func() {
+func bindRemoveRoot(t *BankTab, hid, op uint32) func() {
 	return func() {
 		t.removeRoot(hid, op)
 	}
 }
 
-func renderChangeParentListing(t *bankTab) {
+func renderChangeParentListing(t *BankTab) {
 	size := imgui.NewVec2(0, 160)
 	imgui.BeginChildStrV("ChangeParentListing", size, 0, 0)
 

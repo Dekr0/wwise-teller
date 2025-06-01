@@ -11,7 +11,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderRanSeqPlayList(t *bankTab, r *wwise.RanSeqCntr) {
+func renderRanSeqPlayList(t *BankTab, r *wwise.RanSeqCntr) {
 	if imgui.TreeNodeExStr("Random / Sequence Container Playlist Setting") {
 		imgui.PushItemWidth(160)
 
@@ -25,7 +25,7 @@ func renderRanSeqPlayList(t *bankTab, r *wwise.RanSeqCntr) {
 	}
 }
 
-func renderPlayListTableSet(t *bankTab, r *wwise.RanSeqCntr) {
+func renderPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("PLTransfer", 3, 0, outerSize, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthStretch, 0, 0)
@@ -42,7 +42,7 @@ func renderPlayListTableSet(t *bankTab, r *wwise.RanSeqCntr) {
 			for i := range r.Container.Children {
 				r.AddLeafToPlayList(i)
 			}
-			t.playListStorage.Clear()
+			t.RanSeqPlaylistStorage.Clear()
 		}
 
 		imgui.TableSetColumnIndex(2)
@@ -52,7 +52,7 @@ func renderPlayListTableSet(t *bankTab, r *wwise.RanSeqCntr) {
 	}
 }
 
-func renderPlayListPendingTable(t *bankTab, r *wwise.RanSeqCntr) {
+func renderPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLPendingCell")
 	const flags = DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
@@ -96,14 +96,14 @@ func renderPlayListPendingTable(t *bankTab, r *wwise.RanSeqCntr) {
 	imgui.EndChild()
 }
 
-func bindToPlayList(t *bankTab, r *wwise.RanSeqCntr, i int) func() {
+func bindToPlayList(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
 	return func() {
 		r.AddLeafToPlayList(i)
-		t.playListStorage.Clear()
+		t.RanSeqPlaylistStorage.Clear()
 	}
 }
 
-func renderPlayListTable(t *bankTab, r *wwise.RanSeqCntr) {
+func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLCell")
 	const flags = DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
@@ -120,10 +120,10 @@ func renderPlayListTable(t *bankTab, r *wwise.RanSeqCntr) {
 		var delSel func() = nil
 
 		flags := imgui.MultiSelectFlagsClearOnEscape | imgui.MultiSelectFlagsBoxSelect2d
-		storageSize := t.playListStorage.Size()
+		storageSize := t.RanSeqPlaylistStorage.Size()
 		itemCount := int32(len(r.PlayListItems))
 		msIO := imgui.BeginMultiSelectV(flags, storageSize, itemCount)
-		t.playListStorage.ApplyRequests(msIO)
+		t.RanSeqPlaylistStorage.ApplyRequests(msIO)
 
 		for i, p := range r.PlayListItems {
 			imgui.TableNextRow()
@@ -147,7 +147,7 @@ func renderPlayListTable(t *bankTab, r *wwise.RanSeqCntr) {
 			imgui.TableSetColumnIndex(2)
 			imgui.SetNextItemWidth(-1)
 
-			selected := t.playListStorage.Contains(imgui.ID(i))
+			selected := t.RanSeqPlaylistStorage.Contains(imgui.ID(i))
 			label := strconv.FormatUint(uint64(p.UniquePlayID), 10)
 			const flags = DefaultTableSelFlags
 			imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(i))
@@ -166,7 +166,7 @@ func renderPlayListTable(t *bankTab, r *wwise.RanSeqCntr) {
 		}
 
 		imgui.EndMultiSelect()
-		t.playListStorage.ApplyRequests(msIO)
+		t.RanSeqPlaylistStorage.ApplyRequests(msIO)
 
 		if move != nil { 
 			move()
@@ -205,7 +205,7 @@ func renderPlayListItemOrderCombo(i int, r *wwise.RanSeqCntr) func() {
 	return move
 }
 
-func renderPlayListTableCtxMenu(t *bankTab, r *wwise.RanSeqCntr) func() {
+func renderPlayListTableCtxMenu(t *BankTab, r *wwise.RanSeqCntr) func() {
 	var delSel func() = nil
 
 	if imgui.BeginPopupContextItem() {
@@ -225,25 +225,25 @@ func bindChangePlayListItemOrder(i, j int, r *wwise.RanSeqCntr) func() {
 	}
 }
 
-func bindPendPlayListItem(t *bankTab, r *wwise.RanSeqCntr, i int) func() {
+func bindPendPlayListItem(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
 	return func() {
 		r.RemoveLeafFromPlayList(i)
-		t.playListStorage.Clear()
+		t.RanSeqPlaylistStorage.Clear()
 	}
 }
 
-func bindPendSelectPlayListItem(t *bankTab, r *wwise.RanSeqCntr) func() {
+func bindPendSelectPlayListItem(t *BankTab, r *wwise.RanSeqCntr) func() {
 	return func() {
 		mut := false
 		tids := []uint32{}
 		for i, p := range r.PlayListItems {
-			if t.playListStorage.Contains(imgui.ID(i)) {
+			if t.RanSeqPlaylistStorage.Contains(imgui.ID(i)) {
 				tids = append(tids, p.UniquePlayID)
 				mut = true
 			}
 		}
 		if mut {
-			t.playListStorage.Clear()
+			t.RanSeqPlaylistStorage.Clear()
 		}
 		r.RemoveLeafsFromPlayList(tids)
 	}

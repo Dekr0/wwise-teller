@@ -9,7 +9,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderMusicTrack(t *bankTab, o *wwise.MusicTrack) {
+func renderMusicTrack(t *BankTab, o *wwise.MusicTrack) {
 	if imgui.TreeNodeExStr("Music Override Flags") {
 		overrideParentMIDITempo := o.OverrideParentMIDITempo()
 		if imgui.Checkbox("Override Parent MIDI Tempo", &overrideParentMIDITempo) {
@@ -34,7 +34,7 @@ func renderMusicTrack(t *bankTab, o *wwise.MusicTrack) {
 	// renderTransitionParam(&o.TransitionParam)
 }
 
-func renderMusicTrackPlayList(t *bankTab, o *wwise.MusicTrack) {
+func renderMusicTrackPlayList(t *BankTab, o *wwise.MusicTrack) {
 	if imgui.TreeNodeExStr("Music Track Play List") {
 		const flags = DefaultTableFlags
 		outerSize := imgui.NewVec2(0, 0)
@@ -95,7 +95,7 @@ func renderMusicTrackPlayList(t *bankTab, o *wwise.MusicTrack) {
 	}
 }
 
-func renderClipAutomation(t *bankTab, o *wwise.MusicTrack) {
+func renderClipAutomation(t *BankTab, o *wwise.MusicTrack) {
 	if imgui.TreeNodeExStr("Clip Automations") {
 		if imgui.Button("Add New Automation") {
 			o.AddNewAutomation()
