@@ -160,8 +160,7 @@ func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 			imgui.TableSetColumnIndex(3)
 			imgui.SetNextItemWidth(-1)
 			imgui.PushIDStr(fmt.Sprintf("PLWeight%d", i))
-			if imgui.InputScalar("", imgui.DataTypeU32, uintptr(utils.Ptr(&p.Weight))) {
-			}
+			imgui.InputScalar("", imgui.DataTypeU32, uintptr(utils.Ptr(&p.Weight)))
 			imgui.PopID()
 		}
 
