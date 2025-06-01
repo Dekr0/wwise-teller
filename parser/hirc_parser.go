@@ -325,11 +325,11 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 }
 
 func SkipHircObjType(t wwise.HircType) bool {
-	_, find := sort.Find(len(wwise.KnownHircType), func(i int) int {
-		if t < wwise.KnownHircType[i] {
+	_, find := sort.Find(len(wwise.KnownHircTypes), func(i int) int {
+		if t < wwise.KnownHircTypes[i] {
 			return -1
 		}
-		if t == wwise.KnownHircType[i] {
+		if t == wwise.KnownHircTypes[i] {
 			return 0
 		}
 		return 1
