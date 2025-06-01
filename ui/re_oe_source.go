@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/AllenDang/cimgui-go/utils"
 
 	"github.com/Dekr0/wwise-teller/wwise"
 )
@@ -39,8 +40,8 @@ func renderChangeSourceQuery(t *BankTab, bsd *wwise.BankSourceData) {
 	imgui.BeginChildStrV("ChangeSourceChild", size, 0, 0)
 
 	imgui.Text("Filtered by source ID")
-	if imgui.InputTextWithHint("##Filtered by source ID", "", &t.rewireSidQuery, 0, nil) {
-		t.filterRewireQuery()
+	if imgui.InputScalar("##FilteredBySID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.MediaIndexFilter.Sid))) {
+		t.FilterMediaIndices()
 	}
 
 	imgui.Text("Source ID")
@@ -48,7 +49,7 @@ func renderChangeSourceQuery(t *BankTab, bsd *wwise.BankSourceData) {
 	var changeSource func() = nil
 	preview := strconv.FormatUint(uint64(bsd.SourceID), 10)
 	if imgui.BeginComboV("##SourceIDCombo", preview, 0) {
-		for _, m := range t.filteredMediaIndexs {
+		for _, m := range t.MediaIndexFilter.MediaIndices {
 			selected := bsd.SourceID == m.Sid
 			preview := strconv.FormatUint(uint64(m.Sid), 10)
 			if imgui.SelectableBoolPtr(preview, &selected) {
@@ -86,10 +87,10 @@ func renderChangeSourceTable(t *BankTab) {
 		imgui.TableHeadersRow()
 
 		clipper:= imgui.NewListClipper()
-		clipper.Begin(int32(len(t.filteredMediaIndexs)))
+		clipper.Begin(int32(len(t.MediaIndexFilter.MediaIndices)))
 		for clipper.Step() {
 			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-				m := t.filteredMediaIndexs[n]
+				m := t.MediaIndexFilter.MediaIndices[n]
 				
 				imgui.TableNextRow()
 

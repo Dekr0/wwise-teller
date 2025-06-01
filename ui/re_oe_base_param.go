@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/AllenDang/cimgui-go/utils"
 
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
@@ -36,19 +37,19 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 
 	var filter func() = nil
 	imgui.Text("Filtered parent by ID")
-	if imgui.InputTextWithHint("##Filtered parent by ID", "", &t.parentIdQuery, 0, nil) {
-		filter = t.filterParent
+	if imgui.InputScalar("##FilteredParentByID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.HircRootFilter.Id))) {
+		filter = t.FilterRoot
 	}
 
-	preview := wwise.HircTypeName[t.parentTypeQuery]
+	preview := wwise.HircTypeName[t.HircRootFilter.Type]
 	imgui.Text("Filtered by hierarchy type")
-	if imgui.BeginComboV("##Filtered by hierarchy type", preview, 0) {
-		for _, ht := range wwise.ContainerHircType {
-			selected := t.parentTypeQuery == ht
-			preview = wwise.HircTypeName[ht]
+	if imgui.BeginComboV("##FilteredByHierarchyType", preview, 0) {
+		for _, _type := range wwise.ContainerHircTypes {
+			selected := t.HircRootFilter.Type == _type
+			preview = wwise.HircTypeName[_type]
 			if imgui.SelectableBoolPtr(preview, &selected) {
-				t.parentTypeQuery = ht
-				filter = t.filterParent
+				t.HircRootFilter.Type = _type
+				filter = t.FilterRoot
 			}
 			if selected {
 				imgui.SetItemDefaultFocus()
@@ -58,7 +59,7 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 	}
 
 	if filter != nil {
-		t.filterParent()
+		filter()
 	}
 
 	preview = strconv.FormatUint(uint64(b.DirectParentId), 10)
@@ -67,7 +68,7 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 	if imgui.BeginComboV("##Direct Parent ID", preview, 0) {
 		var changeParent func() = nil
 
-		for _, p := range t.filteredParent {
+		for _, p := range t.HircRootFilter.HircObjs {
 			id, err := p.HircID()
 			if err != nil {
 				continue
@@ -117,10 +118,10 @@ func renderChangeParentListing(t *BankTab) {
 		imgui.TableHeadersRow()
 
 		clipper := imgui.NewListClipper()
-		clipper.Begin(int32(len(t.filteredParent)))
+		clipper.Begin(int32(len(t.HircRootFilter.HircObjs)))
 		for clipper.Step() {
 			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-				o := t.filteredParent[n]
+				o := t.HircRootFilter.HircObjs[n]
 
 				imgui.TableNextRow()
 
