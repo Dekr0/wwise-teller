@@ -83,7 +83,7 @@ func (f *HircRootFilter) Filter(objs []wwise.HircObj) {
 		if wwise.NonHircType(obj) {
 			continue
 		}
-		if wwise.ContainerHircType(obj) {
+		if !wwise.ContainerHircType(obj) {
 			continue
 		}
 		if f.Type > 0 && f.Type != obj.HircType() {
