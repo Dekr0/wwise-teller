@@ -12,11 +12,9 @@ import (
 )
 
 func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
-	*BankTab, string, *BankTab, string, int,
+	string, *BankTab, string, int,
 ) {
-	var activeTab *BankTab = nil
-	activeName := ""
-	closedTab := "" 
+	closedPath := "" 
 
 	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
 
@@ -28,18 +26,25 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 	         imgui.TabBarFlagsFittingPolicyScroll
 	if imgui.BeginTabBarV("BankExplorerTabBar", flags) {
 		bnkMngr.Banks.Range(func(key any, value any) bool {
-			base := filepath.Base(key.(string))
 			open := true
-			if imgui.BeginTabItemV(base, &open, 0) {
-				renderHircLTable(value.(*BankTab))
-				activeTab = value.(*BankTab)
-				activeName = key.(string)
+			path := key.(string)
+			tab := value.(*BankTab)
+
+			imgui.PushIDStr(path)
+			if imgui.BeginTabItemV(filepath.Base(path), &open, 0) {
+				renderHircLTable(path, value.(*BankTab))
+				bnkMngr.ActiveBank = tab
+				bnkMngr.ActivePath = path
 				imgui.EndTabItem()
 			}
+			imgui.PopID()
 
 			if !open {
-				activeTab = nil
-				closedTab = key.(string)
+				if bnkMngr.ActiveBank == tab {
+					bnkMngr.ActiveBank = nil
+					bnkMngr.ActivePath = ""
+				}
+				closedPath = path
 			}
 
 			return true
@@ -48,12 +53,13 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 	}
 	imgui.End()
 
+
 	if saveActive {
-		savedTab = activeTab
-		savedName = activeName
+		savedTab = bnkMngr.ActiveBank
+		savedName = bnkMngr.ActivePath
 	}
 
-	return activeTab, closedTab, savedTab, savedName, iType
+	return closedPath, savedTab, savedName, iType
 }
 
 func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, int) {
@@ -97,13 +103,15 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, 
 	return saveTab, saveName, itype
 }
 
-func renderHircLTable(b *BankTab) {
+func renderHircLTable(path string, b *BankTab) {
 	focusTable := false
 
 	useViUp()
 	useViShiftUp()
 	useViDown()
 	useViShiftDown()
+
+	imgui.Text("Sound bank: " + path)
 
 	imgui.SeparatorText("Filter")
 

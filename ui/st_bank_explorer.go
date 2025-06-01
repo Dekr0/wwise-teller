@@ -15,8 +15,10 @@ import (
 )
 
 type BankManager struct {
-	Banks sync.Map
-	WriteLock *atomic.Bool
+	Banks        sync.Map
+	ActiveBank  *BankTab
+	ActivePath   string
+	WriteLock    atomic.Bool
 }
 
 type HircFilter struct {
@@ -153,7 +155,7 @@ type BankTab struct {
 	RanSeqPlaylistStorage *imgui.SelectionBasicStorage
 
 	// Sync
-	WriteLock             *atomic.Bool
+	WriteLock              atomic.Bool
 }
 
 func (b *BankTab) changeRoot(hid, np, op uint32) {
@@ -272,7 +274,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	}
 
 	t := &BankTab{
-		WriteLock: &atomic.Bool{},
+		WriteLock: atomic.Bool{},
 		Bank: bank,
 
 		HircFilter: HircFilter{

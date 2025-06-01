@@ -67,7 +67,7 @@ func Run() error {
 	slog.Info("Created event loop")
 	modalQ := NewModalQ()
 
-	bnkMngr := &BankManager{WriteLock: &atomic.Bool{}}
+	bnkMngr := &BankManager{WriteLock: atomic.Bool{}}
 	bnkMngr.WriteLock.Store(false)
 	slog.Info("Created bank manager")
 
@@ -208,7 +208,7 @@ func createLoop(
 
 		renderFileExplorer(fileExplorer, modalQ)
 
-		activeTab, closeTab, saveTab, saveName, iType := renderBankExplorerL(
+		closeTab, saveTab, saveName, iType := renderBankExplorerL(
 			bnkMngr, saveActive, iType,
 		)
 		if saveTab != nil {
@@ -220,9 +220,9 @@ func createLoop(
 			}
 		}
 
-		renderHircTree(activeTab)
+		renderHircTree(bnkMngr.ActiveBank)
 
-		renderObjEditor(activeTab)
+		renderObjEditor(bnkMngr.ActiveBank)
 
 		renderNotfiy(nQ)
 
