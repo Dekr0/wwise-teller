@@ -133,14 +133,9 @@ func renderHircLTable(b *BankTab) {
 		imgui.SetKeyboardFocusHere()
 	}
 
-	tableFlags := imgui.TableFlagsResizable   |
-			      imgui.TableFlagsReorderable |
-		          imgui.TableFlagsRowBg       |
-		          imgui.TableFlagsBordersH    |
-				  imgui.TableFlagsBordersV    |
-		          imgui.TableFlagsScrollY
+	flags := DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("LinearTable", 2, tableFlags, outerSize, 0) {
+	if imgui.BeginTableV("LinearTable", 2, flags, outerSize, 0) {
 		imgui.TableSetupColumn("Hierarchy ID")
 		imgui.TableSetupColumn("Hierarchy Type")
 		imgui.TableSetupScrollFreeze(0, 1)
