@@ -38,7 +38,7 @@ func dispatchOpenSoundBank(
 		onProcMsg, onDoneMsg,
 		func (ctx context.Context) {
 			slog.Info(onProcMsg)
-			err := bnkMngr.openBank(ctx, path)
+			err := bnkMngr.OpenBank(ctx, path)
 			if err != nil {
 				slog.Error(
 					fmt.Sprintf("Failed to load sound bank %s", base),

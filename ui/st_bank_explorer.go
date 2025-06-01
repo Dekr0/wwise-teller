@@ -271,7 +271,7 @@ func (b *BankTab) encode(ctx context.Context) ([]byte, error) {
 	}
 }
 
-func (b *BankManager) openBank(ctx context.Context, path string) error {
+func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	type result struct {
 		bank *wwise.Bank
 		err error
