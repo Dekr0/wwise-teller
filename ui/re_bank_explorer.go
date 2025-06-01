@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/AllenDang/cimgui-go/utils"
 	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
@@ -107,25 +108,21 @@ func renderHircLTable(b *BankTab) {
 	imgui.SeparatorText("Filter")
 
 	imgui.SetNextItemShortcut(DefaultSearchSC)
-	if imgui.InputTextWithHint(
-		"Filter by hierarchy object ID", "", &b.idQuery, 0, nil,
-	) {
-		b.filter()
+	if imgui.InputScalar("Filter by hierarchy object ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Id))) {
+		b.Filter()
 	}
 
-	imgui.BeginDisabledV(b.typeQuery != 0 && b.typeQuery != int32(wwise.HircTypeSound))
-	if imgui.InputTextWithHint("Filter by source ID", "", &b.sidQuery, 0, nil) {
-		b.filter()
+	imgui.BeginDisabledV(b.HircFilter.Type != wwise.HircTypeAll && b.HircFilter.Type != wwise.HircTypeSound)
+	if imgui.InputScalar("Filter by source ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Sid))) {
+		b.Filter()
 	}
 	imgui.EndDisabled()
 
-	if imgui.ComboStrarr(
-		"Filter by hierarchy object type",
-		&b.typeQuery,
-		wwise.HircTypeName,
-		int32(len(wwise.HircTypeName)),
+	typeFilter := int32(b.HircFilter.Type)
+	if imgui.ComboStrarr("Filter by hierarchy object type", &typeFilter, wwise.HircTypeName, int32(len(wwise.HircTypeName)),
 	) {
-		b.filter()
+		b.HircFilter.Type = wwise.HircType(typeFilter)
+		b.Filter()
 	}
 
 	if imgui.Shortcut(UnFocusQuerySC) {
@@ -145,22 +142,21 @@ func renderHircLTable(b *BankTab) {
 		}
 
 		storage := b.LinearStorage
-		hircObjs := b.filtered
 
 		flags := imgui.MultiSelectFlagsClearOnEscape | 
 		         imgui.MultiSelectFlagsBoxSelect2d
-		msIO := imgui.BeginMultiSelectV(flags, storage.Size(), int32(len(hircObjs)))
+		msIO := imgui.BeginMultiSelectV(flags, storage.Size(), int32(len(b.HircFilter.HircObjs)))
 		storage.ApplyRequests(msIO)
 
 		clipper := imgui.NewListClipper()
-		clipper.Begin(int32(len(hircObjs)))
+		clipper.Begin(int32(len(b.HircFilter.HircObjs)))
 		if msIO.RangeSrcItem() != 1 {
 			// Ensure RangeSrc item is not clipped
 			clipper.IncludeItemByIndex(int32(msIO.RangeSrcItem()))
 		}
 		for clipper.Step() {
 			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-				o := hircObjs[n]
+				o := b.HircFilter.HircObjs[n]
 
 				imgui.TableNextRow()
 				imgui.TableSetColumnIndex(0)

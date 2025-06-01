@@ -10,7 +10,6 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/parser"
-	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/wwise"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
@@ -141,12 +140,9 @@ func (f *MediaIndexFilter) Filter(indices []wwise.MediaIndex) {
 type BankTab struct {
 	Bank *wwise.Bank
 	InitBank *wwise.Bank
-	idQuery string
-	sidQuery string
-	typeQuery int32
-	filtered []wwise.HircObj
 
 	// Filter
+	HircFilter       HircFilter
 	HircRootFilter   HircRootFilter
 	MediaIndexFilter MediaIndexFilter
 
@@ -162,77 +158,23 @@ type BankTab struct {
 
 func (b *BankTab) changeRoot(hid, np, op uint32) {
 	b.Bank.HIRC().ChangeRoot(hid, np, op)
-	b.filter()
+	b.Filter()
 	b.CntrStorage.Clear()
 	b.RanSeqPlaylistStorage.Clear()
 }
 
 func (b *BankTab) removeRoot(hid, op uint32) {
 	b.Bank.HIRC().RemoveRoot(hid, op)
-	b.filter()
+	b.Filter()
 	b.CntrStorage.Clear()
 	b.RanSeqPlaylistStorage.Clear()
 }
 
-func (b *BankTab) filter() {
+func (b *BankTab) Filter() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
-	if !utils.IsDigit(b.idQuery) {
-		return
-	}
-	hirc := b.Bank.HIRC()
-	i := 0
-	old := len(b.filtered)
-	for _, h := range hirc.HircObjs {
-		// filter out Event and Action
-		if h.HircType() == wwise.HircTypeAction || h.HircType() == wwise.HircTypeEvent {
-			continue
-		}
-
-		// type filter
-		if b.typeQuery > 0 && b.typeQuery != int32(h.HircType()) {
-			continue
-		}
-
-		// sid filter
-		sound := wwise.HircTypeSound == h.HircType()
-		filterSid := b.typeQuery == 0 || b.typeQuery == int32(wwise.HircTypeSound)
-		if filterSid && sound {
-			s := h.(*wwise.Sound)
-			if !fuzzy.Match(
-				b.sidQuery, 
-				strconv.FormatUint(uint64(s.BankSourceData.SourceID), 10),
-			) {
-				continue
-			}
-		}
-
-		// uid filter
-		id, err := h.HircID()
-		// Unused bypass
-		if err != nil {
-			if i < len(b.filtered) {
-				b.filtered[i] = h
-			} else {
-				b.filtered = append(b.filtered, h)
-			}
-			i += 1
-			continue
-		}
-		if !fuzzy.Match(b.idQuery, strconv.FormatUint(uint64(id), 10)) {
-			continue
-		}
-		if i < len(b.filtered) {
-			b.filtered[i] = h
-		} else {
-			b.filtered = append(b.filtered, h)
-		}
-		i += 1
-	}
-	if i < old {
-		b.filtered = slices.Delete(b.filtered, i, old)
-	}
+	b.HircFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
 func (b *BankTab) FilterRoot() {
@@ -332,11 +274,13 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	t := &BankTab{
 		WriteLock: &atomic.Bool{},
 		Bank: bank,
-		idQuery: "",
-		sidQuery: "",
-		typeQuery: 0,
-		filtered: objs,
 
+		HircFilter: HircFilter{
+			Id: 0,
+			Sid: 0,
+			Type : wwise.HircTypeAll,
+			HircObjs: objs,
+		},
 		HircRootFilter: HircRootFilter{
 			Id: 0,
 			Type: wwise.HircTypeAll,
