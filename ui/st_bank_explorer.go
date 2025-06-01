@@ -144,12 +144,11 @@ type BankTab struct {
 	idQuery string
 	sidQuery string
 	typeQuery int32
-	parentIdQuery string
-	parentTypeQuery wwise.HircType
-	rewireSidQuery string
 	filtered []wwise.HircObj
-	filteredParent []wwise.HircObj
-	filteredMediaIndexs []*wwise.MediaIndex
+
+	// Filter
+	HircRootFilter   HircRootFilter
+	MediaIndexFilter MediaIndexFilter
 
 	// Storage
 	LinearStorage         *imgui.SelectionBasicStorage
@@ -236,79 +235,18 @@ func (b *BankTab) filter() {
 	}
 }
 
-func (b *BankTab) filterParent() {
+func (b *BankTab) FilterRoot() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
-	if !utils.IsDigit(b.parentIdQuery) {
-		return
-	}
-	hirc := b.Bank.HIRC()
-	i := 0
-	old := len(b.filteredParent)
-	for _, d := range hirc.HircObjs {
-		// filter out Event and Action
-		if d.HircType() == wwise.HircTypeAction || d.HircType() == wwise.HircTypeEvent {
-			continue
-		}
-
-		if !slices.Contains(wwise.ContainerHircType, d.HircType()) {
-			continue
-		}
-
-		if b.parentTypeQuery > 0 && b.parentTypeQuery != d.HircType() {
-			continue
-		}
-
-		id, err := d.HircID()
-		if err != nil {
-			if i < len(b.filteredParent) {
-				b.filteredParent[i] = d
-			} else {
-				b.filteredParent = append(b.filteredParent, d)
-			}
-			i += 1
-			continue
-		}
-		if !fuzzy.Match(b.parentIdQuery, strconv.FormatUint(uint64(id), 10)) {
-			continue
-		}
-		if i < len(b.filteredParent) {
-			b.filteredParent[i] = d
-		} else {
-			b.filteredParent = append(b.filteredParent, d)
-		}
-		i += 1
-	}
-	if i < old {
-		b.filteredParent = slices.Delete(b.filteredParent, i, old)
-	}
+	b.HircRootFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
-func (b *BankTab) filterRewireQuery() {
+func (b *BankTab) FilterMediaIndices() {
 	if b.Bank.DIDX() == nil {
 		return
 	}
-	if !utils.IsDigit(b.rewireSidQuery) {
-		return
-	}
-	didx := b.Bank.DIDX()
-	i := 0
-	old := len(b.filteredMediaIndexs)
-	for _, m := range didx.MediaIndexs {
-		if !fuzzy.Match(b.rewireSidQuery, strconv.FormatUint(uint64(m.Sid), 10)) {
-			continue
-		}
-		if i < len(b.filteredMediaIndexs) {
-			b.filteredMediaIndexs[i] = m
-		} else {
-			b.filteredMediaIndexs = append(b.filteredMediaIndexs, m)
-		}
-		i += 1
-	}
-	if i < old {
-		b.filteredMediaIndexs = slices.Delete(b.filteredMediaIndexs, i, old)
-	}
+	b.MediaIndexFilter.Filter(b.Bank.DIDX().MediaIndexs)
 }
 
 func (b *BankTab) encode(ctx context.Context) ([]byte, error) {
@@ -365,30 +303,29 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		return fmt.Errorf("Sound bank %s is already open", path)
 	}
 
-	filtered := []wwise.HircObj{}
-	filteredParent := []wwise.HircObj{}
+	objs := []wwise.HircObj{}
+	roots := []wwise.HircObj{}
 	if bank.HIRC() != nil {
 		hirc := bank.HIRC()
-		filtered = make([]wwise.HircObj, len(hirc.HircObjs) - int(hirc.ActionCount.Load()) - int(hirc.EventCount.Load()))
-		filteredParent = make([]wwise.HircObj, 0, len(hirc.HircObjs) / 2)
-		for i, o := range hirc.HircObjs {
-			// filter out Event and Action
-			if o.HircType() == wwise.HircTypeAction || o.HircType() == wwise.HircTypeEvent {
+		objs = make([]wwise.HircObj, 0, hirc.NumHirc())
+		roots = make([]wwise.HircObj, 0, len(hirc.HircObjs) / 2)
+		for _, o := range hirc.HircObjs {
+			if wwise.NonHircType(o) {
 				continue
 			}
-			filtered[i] = o
-			if slices.Contains(wwise.ContainerHircType, o.HircType()) {
-				filteredParent = append(filteredParent, o)
+			objs = append(objs, o)
+			if wwise.ContainerHircType(o) {
+				roots = append(roots, o)
 			}
 		}
 	}
 
-	filteredSid := []*wwise.MediaIndex{}
+	indices := []*wwise.MediaIndex{}
 	if bank.DIDX() != nil {
 		didx := bank.DIDX()
-		filteredSid = make([]*wwise.MediaIndex, len(didx.MediaIndexs))
-		for i, mediaIndex := range didx.MediaIndexs {
-			filteredSid[i] = mediaIndex
+		indices = make([]*wwise.MediaIndex, len(didx.MediaIndexs))
+		for i, index := range didx.MediaIndexs {
+			indices[i] = &index
 		}
 	}
 
@@ -398,11 +335,18 @@ func (b *BankManager) openBank(ctx context.Context, path string) error {
 		idQuery: "",
 		sidQuery: "",
 		typeQuery: 0,
-		parentIdQuery: "",
-		parentTypeQuery: 0,
-		filtered: filtered,
-		filteredParent: filteredParent,
-		filteredMediaIndexs: filteredSid,
+		filtered: objs,
+
+		HircRootFilter: HircRootFilter{
+			Id: 0,
+			Type: wwise.HircTypeAll,
+			HircObjs: roots,
+		},
+		MediaIndexFilter: MediaIndexFilter{
+			Sid: 0,
+			MediaIndices: indices,
+		},
+
 		ActiveHirc: nil,
 		LinearStorage: imgui.NewSelectionBasicStorage(),
 		CntrStorage: imgui.NewSelectionBasicStorage(),
