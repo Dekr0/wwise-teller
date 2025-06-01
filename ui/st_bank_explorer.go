@@ -20,6 +20,124 @@ type BankManager struct {
 	WriteLock *atomic.Bool
 }
 
+type HircFilter struct {
+	Id         uint32
+	Sid        uint32
+	Type       wwise.HircType
+	HircObjs []wwise.HircObj
+}
+
+func (f *HircFilter) Filter(objs []wwise.HircObj) {
+	curr := 0 
+	prev := len(f.HircObjs)
+	for _, obj := range objs {
+		if wwise.NonHircType(obj) {
+			continue
+		}
+		if f.Type > 0 && f.Type != obj.HircType() {
+			continue
+		}
+		sound := obj.HircType() == wwise.HircTypeSound
+		bySid := f.Type == 0 || f.Type == wwise.HircTypeSound
+		if sound && bySid {
+			sound := obj.(*wwise.Sound)
+			if !fuzzy.Match(
+				strconv.FormatUint(uint64(f.Sid), 10),
+				strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10),
+			) {
+				continue
+			}
+		}
+		id, err := obj.HircID()
+		if err != nil {
+			continue
+		}
+		if !fuzzy.Match(
+			strconv.FormatUint(uint64(f.Id), 10),
+			strconv.FormatUint(uint64(id), 10),
+		) {
+			continue
+		}
+		if curr < len(f.HircObjs) {
+			f.HircObjs[curr] = obj
+		} else {
+			f.HircObjs = append(f.HircObjs, obj)
+		}
+		curr += 1
+	}
+	if curr < prev {
+		f.HircObjs = slices.Delete(f.HircObjs, curr, prev)
+	}
+}
+
+type HircRootFilter struct {
+	Id         uint32
+	Type       wwise.HircType
+	HircObjs []wwise.HircObj
+}
+
+func (f *HircRootFilter) Filter(objs []wwise.HircObj) {
+	curr := 0
+	prev := len(f.HircObjs)
+	for _, obj := range objs {
+		if wwise.NonHircType(obj) {
+			continue
+		}
+		if wwise.ContainerHircType(obj) {
+			continue
+		}
+		if f.Type > 0 && f.Type != obj.HircType() {
+			continue
+		}
+		id, err := obj.HircID()
+		if err != nil {
+			continue
+		}
+		if !fuzzy.Match(
+			strconv.FormatUint(uint64(f.Id), 10),
+			strconv.FormatUint(uint64(id), 10),
+		) {
+			continue
+		}
+		if curr < len(f.HircObjs) {
+			f.HircObjs[curr] = obj
+		} else {
+			f.HircObjs = append(f.HircObjs, obj)
+		}
+		curr += 1
+	}
+	if curr < prev {
+		f.HircObjs = slices.Delete(f.HircObjs, curr, prev)
+	}
+}
+
+type MediaIndexFilter struct {
+	Sid             uint32
+	MediaIndices []*wwise.MediaIndex
+}
+
+func (f *MediaIndexFilter) Filter(indices []wwise.MediaIndex) {
+	curr := 0
+	prev := len(f.MediaIndices)
+	for _, index := range indices {
+		if !fuzzy.Match(
+			strconv.FormatUint(uint64(f.Sid), 10),
+			strconv.FormatUint(uint64(index.Sid), 10),
+		) {
+			continue
+		}
+		if curr < len(f.MediaIndices) {
+			f.MediaIndices[curr] = &index
+		} else {
+			f.MediaIndices = append(f.MediaIndices, &index)
+		}
+		curr += 1
+	}
+	if curr < prev {
+		f.MediaIndices = slices.Delete(f.MediaIndices, curr, prev)
+	}
+}
+
 type bankTab struct {
 	bank *wwise.Bank
 	initBank *wwise.Bank
