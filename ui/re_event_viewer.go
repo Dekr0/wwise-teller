@@ -15,16 +15,7 @@ import (
 
 func renderEventsViewer(t *BankTab) {
 	imgui.Begin("Events")
-	if t == nil {
-		imgui.End()
-		return
-	}
-	if t.WriteLock.Load() {
-		imgui.End()
-		return
-	}
-
-	if t.Bank.HIRC() == nil {
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
 		imgui.End()
 		return
 	}

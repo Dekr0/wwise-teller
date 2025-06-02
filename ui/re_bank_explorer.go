@@ -211,7 +211,7 @@ func renderHircLTable(path string, b *BankTab) {
 
 func renderHircTree(t *BankTab)  {
 	imgui.Begin("Hierarchy View")
-	if t == nil {
+	if t == nil || t.Bank == nil || t.Bank.HIRC() != nil {
 		imgui.End()
 		return
 	}

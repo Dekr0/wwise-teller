@@ -12,11 +12,7 @@ import (
 func renderObjEditor(t *BankTab) {
 	imgui.Begin("Object Editor")
 
-	if t == nil {
-		imgui.End()
-		return
-	}
-	if t.WriteLock.Load() {
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
 		imgui.End()
 		return
 	}
