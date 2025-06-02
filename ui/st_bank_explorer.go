@@ -140,17 +140,21 @@ func (f *MediaIndexFilter) Filter(indices []wwise.MediaIndex) {
 }
 
 type BankTab struct {
-	Bank *wwise.Bank
-	InitBank *wwise.Bank
+	Bank                  *wwise.Bank
+	InitBank              *wwise.Bank
 
 	// Filter
-	HircFilter       HircFilter
-	HircRootFilter   HircRootFilter
-	MediaIndexFilter MediaIndexFilter
+	HircFilter            HircFilter
+	HircRootFilter        HircRootFilter
+	MediaIndexFilter      MediaIndexFilter
+
+	EventViewer            EventViewer
 
 	// Storage
-	LinearStorage         *imgui.SelectionBasicStorage
 	ActiveHirc             wwise.HircObj
+	LinearStorage         *imgui.SelectionBasicStorage
+
+
 	CntrStorage           *imgui.SelectionBasicStorage
 	RanSeqPlaylistStorage *imgui.SelectionBasicStorage
 
@@ -158,32 +162,39 @@ type BankTab struct {
 	WriteLock              atomic.Bool
 }
 
-func (b *BankTab) changeRoot(hid, np, op uint32) {
+func (b *BankTab) ChangeRoot(hid, np, op uint32) {
 	b.Bank.HIRC().ChangeRoot(hid, np, op)
-	b.Filter()
+	b.FilterHircs()
 	b.CntrStorage.Clear()
 	b.RanSeqPlaylistStorage.Clear()
 }
 
-func (b *BankTab) removeRoot(hid, op uint32) {
+func (b *BankTab) RemoveRoot(hid, op uint32) {
 	b.Bank.HIRC().RemoveRoot(hid, op)
-	b.Filter()
+	b.FilterHircs()
 	b.CntrStorage.Clear()
 	b.RanSeqPlaylistStorage.Clear()
 }
 
-func (b *BankTab) Filter() {
+func (b *BankTab) FilterHircs() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
 	b.HircFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
-func (b *BankTab) FilterRoot() {
+func (b *BankTab) FilterRoots() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
 	b.HircRootFilter.Filter(b.Bank.HIRC().HircObjs)
+}
+
+func (b *BankTab) FilterEvents() {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	b.EventViewer.EventFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
 func (b *BankTab) FilterMediaIndices() {
@@ -193,7 +204,7 @@ func (b *BankTab) FilterMediaIndices() {
 	b.MediaIndexFilter.Filter(b.Bank.DIDX().MediaIndexs)
 }
 
-func (b *BankTab) encode(ctx context.Context) ([]byte, error) {
+func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
 	b.WriteLock.Store(true)
 	defer b.WriteLock.Store(false)
 	type result struct {
@@ -249,17 +260,20 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 
 	objs := []wwise.HircObj{}
 	roots := []wwise.HircObj{}
+	events := []*wwise.Event{}
+
 	if bank.HIRC() != nil {
 		hirc := bank.HIRC()
 		objs = make([]wwise.HircObj, 0, hirc.NumHirc())
 		roots = make([]wwise.HircObj, 0, len(hirc.HircObjs) / 2)
 		for _, o := range hirc.HircObjs {
-			if wwise.NonHircType(o) {
-				continue
-			}
-			objs = append(objs, o)
-			if wwise.ContainerHircType(o) {
-				roots = append(roots, o)
+			if !wwise.NonHircType(o) {
+				objs = append(objs, o)
+				if wwise.ContainerHircType(o) {
+					roots = append(roots, o)
+				}
+			} else if o.HircType() == wwise.HircTypeEvent {
+				events = append(events, o.(*wwise.Event))
 			}
 		}
 	}
@@ -293,6 +307,15 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 			MediaIndices: indices,
 		},
 
+		EventViewer: EventViewer{
+			EventFilter: EventFilter{
+				Id: 0,
+				Events: events,
+			},
+			ActiveEvent: nil,
+			ActiveAction: nil,
+		},
+
 		ActiveHirc: nil,
 		LinearStorage: imgui.NewSelectionBasicStorage(),
 		CntrStorage: imgui.NewSelectionBasicStorage(),
@@ -306,7 +329,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	return nil
 }
 
-func (b *BankManager) closeBank(del string) {
+func (b *BankManager) CloseBank(del string) {
 	b.Banks.Delete(del)
 }
 
