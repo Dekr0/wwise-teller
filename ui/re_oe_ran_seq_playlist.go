@@ -1,3 +1,5 @@
+// TODO
+// - Add source ID column
 package ui
 
 import (
@@ -28,7 +30,7 @@ func renderRanSeqPlayList(t *BankTab, r *wwise.RanSeqCntr) {
 func renderPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("PLTransfer", 3, 0, outerSize, 0) {
-		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthStretch, 0, 0)
+		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthStretch, 0, 0)
 		imgui.TableSetupScrollFreeze(0, 1)
@@ -53,12 +55,16 @@ func renderPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 }
 
 func renderPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
-	imgui.BeginChildStr("PLPendingCell")
-	const flags = DefaultTableFlags
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("PLPendTable", 2, flags, outerSize, 0) {
+	size := imgui.NewVec2(200, 0)
+	imgui.BeginChildStrV("PLPendingCell", size, imgui.ChildFlagsNone, imgui.WindowFlagsNone)
+	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
+
+	hirc := t.Bank.HIRC()
+	size.X = 0
+	if imgui.BeginTableV("PLPendTable", 3, flags, size, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumn("Target ID")
+		imgui.TableSetupColumn("Source ID")
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
@@ -85,6 +91,13 @@ func renderPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 
 			imgui.TableSetColumnIndex(1)
 			imgui.Text(strconv.FormatUint(uint64(child), 10))
+
+			imgui.TableSetColumnIndex(2)
+			value, ok := hirc.Sounds.Load(child)
+			if ok {
+				sound := value.(wwise.HircObj).(*wwise.Sound)
+				imgui.Text(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10))
+			}
 		}
 
 		imgui.EndTable()
@@ -105,12 +118,13 @@ func bindToPlayList(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
 
 func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLCell")
-	const flags = DefaultTableFlags
+	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("PLTable", 4, flags, outerSize, 0) {
+	if imgui.BeginTableV("PLTable", 5, flags, outerSize, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumn("Sequence")
 		imgui.TableSetupColumn("Target ID")
+		imgui.TableSetupColumn("Source ID")
 		imgui.TableSetupColumn("Weight")
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
@@ -125,6 +139,7 @@ func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 		msIO := imgui.BeginMultiSelectV(flags, storageSize, itemCount)
 		t.RanSeqPlaylistStorage.ApplyRequests(msIO)
 
+		hirc := t.Bank.HIRC()
 		for i, p := range r.PlayListItems {
 			imgui.TableNextRow()
 
@@ -157,7 +172,14 @@ func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 				delSel = c
 			}
 
-			imgui.TableSetColumnIndex(3)
+			value, ok := hirc.Sounds.Load(p.UniquePlayID)
+			if ok {
+				imgui.TableSetColumnIndex(3)
+				sound := value.(wwise.HircObj).(*wwise.Sound)
+				imgui.Text(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10))
+			}
+
+			imgui.TableSetColumnIndex(4)
 			imgui.SetNextItemWidth(-1)
 			imgui.PushIDStr(fmt.Sprintf("PLWeight%d", i))
 			imgui.InputScalar("", imgui.DataTypeU32, uintptr(utils.Ptr(&p.Weight)))
