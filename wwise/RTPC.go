@@ -4,6 +4,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
+const CurveInterpolationCount = 10
 var CurveInterpolationName []string = []string{
   	"Log3",
   	"Sine",
