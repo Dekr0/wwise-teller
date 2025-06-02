@@ -75,7 +75,7 @@ func saveSoundBankFunc(
 
 				bnkMngr.WriteLock.Store(true)
 
-				if data, err := saveTab.encode(ctx); err != nil {
+				if data, err := saveTab.Encode(ctx); err != nil {
 					slog.Error(
 						fmt.Sprintf("Failed to encode sound bank %s", saveName),
 						"error", err,
@@ -125,7 +125,7 @@ func HD2PatchFunc(
 				slog.Info(onProcMsg)
 				bnkMngr.WriteLock.Store(true)
 				defer bnkMngr.WriteLock.Store(false)
-				bnkData, err := saveTab.encode(ctx)
+				bnkData, err := saveTab.Encode(ctx)
 				if err != nil {
 					slog.Error(
 						fmt.Sprintf("Failed to encode sound bank %s", saveName),
