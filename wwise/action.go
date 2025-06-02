@@ -10,6 +10,7 @@ type ActionType              uint16
 type ActionParamType         uint8
 type ActionSpecificParamType uint8
 
+const ActionTypeCount = 42
 var ActionTypeName []string = []string{
 	"",
 	"Stop",
@@ -104,6 +105,14 @@ type Action struct {
 	PropBundle      PropBundle
 	RangePropBundle RangePropBundle
 	ActionParam     ActionParam
+}
+
+func (a *Action) Type() uint16 {
+	return (uint16(a.ActionType) & 0xFF00) >> 8
+}
+
+func (a *Action) SetType(t uint16) {
+	a.ActionType = ActionType((uint16(a.ActionType) & 0x00FF) | (t << 8))
 }
 
 func (a *Action) Encode() []byte {
