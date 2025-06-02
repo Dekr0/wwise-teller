@@ -1,3 +1,6 @@
+// TODO:
+// Goto / select direct parent ID
+// Goto / select leaf ID
 package ui
 
 import (
@@ -38,7 +41,7 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 	var filter func() = nil
 	imgui.Text("Filtered parent by ID")
 	if imgui.InputScalar("##FilteredParentByID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.HircRootFilter.Id))) {
-		filter = t.FilterRoot
+		filter = t.FilterRoots
 	}
 
 	preview := wwise.HircTypeName[t.HircRootFilter.Type]
@@ -49,7 +52,7 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 			preview = wwise.HircTypeName[_type]
 			if imgui.SelectableBoolPtr(preview, &selected) {
 				t.HircRootFilter.Type = _type
-				filter = t.FilterRoot
+				filter = t.FilterRoots
 			}
 			if selected {
 				imgui.SetItemDefaultFocus()
@@ -95,13 +98,13 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 
 func bindChangeRoot(t *BankTab, hid, np, op uint32) func() {
 	return func() {
-		t.changeRoot(hid, np, op)
+		t.ChangeRoot(hid, np, op)
 	}
 }
 
 func bindRemoveRoot(t *BankTab, hid, op uint32) func() {
 	return func() {
-		t.removeRoot(hid, op)
+		t.RemoveRoot(hid, op)
 	}
 }
 
