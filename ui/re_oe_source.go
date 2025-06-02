@@ -78,7 +78,7 @@ func renderChangeSourceTable(t *BankTab) {
 	size := imgui.NewVec2(0, 256)
 	imgui.BeginChildStrV("ChangeSourceChildTable", size, 0, 0)
 
-	const flags = DefaultTableFlags
+	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("SourceTable", 2, flags, outerSize, 0) {
 		imgui.TableSetupColumn("Source ID")
