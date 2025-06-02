@@ -27,6 +27,7 @@ func NewDockManager() *DockManager {
 			"File Explorer",
 			"Log",
 			"Object Editor",
+			"Events",
 		},
 		layout: Layout02,
 		rebuild: true,
@@ -101,6 +102,7 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("Hierarchy View", dock2)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
+		imgui.InternalDockBuilderDockWindow("Events", dock3)
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.rebuild = false
 	}
