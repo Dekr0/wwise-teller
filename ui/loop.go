@@ -201,13 +201,9 @@ func createLoop(
 		imgui.DockSpaceV(dockSpaceID, size, DockSpaceFlags, imgui.NewEmptyWindowClass())
 
 		renderMainMenuBar(dockMngr, conf, cmdPaletteMngr, modalQ, loop)
-
 		modalQ.renderModal()
-
 		renderLog(gLog)
-
 		renderFileExplorer(fileExplorer, modalQ)
-
 		closeTab, saveTab, saveName, iType := renderBankExplorerL(
 			bnkMngr, saveActive, iType,
 		)
@@ -219,17 +215,13 @@ func createLoop(
 				pushHD2PatchModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
 			}
 		}
-
 		renderHircTree(bnkMngr.ActiveBank)
-
 		renderObjEditor(bnkMngr.ActiveBank)
-
+		renderEventsViewer(bnkMngr.ActiveBank)
 		renderNotfiy(nQ)
-
 		imgui.End()
-
 		if closeTab != "" {
-			bnkMngr.closeBank(closeTab)
+			bnkMngr.CloseBank(closeTab)
 		}
 	}
 }
