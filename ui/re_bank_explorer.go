@@ -117,12 +117,12 @@ func renderHircLTable(path string, b *BankTab) {
 
 	imgui.SetNextItemShortcut(DefaultSearchSC)
 	if imgui.InputScalar("Filter by hierarchy object ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Id))) {
-		b.Filter()
+		b.FilterHircs()
 	}
 
 	imgui.BeginDisabledV(b.HircFilter.Type != wwise.HircTypeAll && b.HircFilter.Type != wwise.HircTypeSound)
 	if imgui.InputScalar("Filter by source ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Sid))) {
-		b.Filter()
+		b.FilterHircs()
 	}
 	imgui.EndDisabled()
 
@@ -130,7 +130,7 @@ func renderHircLTable(path string, b *BankTab) {
 	if imgui.ComboStrarr("Filter by hierarchy object type", &typeFilter, wwise.HircTypeName, int32(len(wwise.HircTypeName)),
 	) {
 		b.HircFilter.Type = wwise.HircType(typeFilter)
-		b.Filter()
+		b.FilterHircs()
 	}
 
 	if imgui.Shortcut(UnFocusQuerySC) {
