@@ -1,3 +1,5 @@
+// TODO
+// - Tree View Keyboard navigation
 package ui
 
 import (
@@ -211,7 +213,7 @@ func renderHircLTable(path string, b *BankTab) {
 
 func renderHircTree(t *BankTab)  {
 	imgui.Begin("Hierarchy View")
-	if t == nil || t.Bank == nil || t.Bank.HIRC() != nil {
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
 		imgui.End()
 		return
 	}
@@ -220,15 +222,12 @@ func renderHircTree(t *BankTab)  {
 }
 
 func renderHircTTable(t *BankTab) {
-	tableFlags := imgui.TableFlagsResizable   | 
-				  imgui.TableFlagsReorderable | 
-			      imgui.TableFlagsRowBg       | 
-		          imgui.TableFlagsBordersH    | 
-				  imgui.TableFlagsBordersV
+	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("TreeTable", 2, tableFlags, outerSize, 0) {
+	if imgui.BeginTableV("TreeTable", 3, flags, outerSize, 0) {
 		imgui.TableSetupColumn("Hierarchy ID")
 		imgui.TableSetupColumn("Hierarchy Type")
+		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
@@ -242,11 +241,11 @@ func renderHircTTable(t *BankTab) {
 		drawIdx := int32(0)
 		for c.Step() {
 			for drawIdx < c.DisplayEnd() && treeIdx < len(hircObjs) {
-				renderHircNode(c, &drawIdx, &treeIdx, hircObjs)
+				renderHircNode(t, c, &drawIdx, &treeIdx, hircObjs)
 			}
 		}
 		for treeIdx < len(hircObjs) {
-			renderHircNode(c, &drawIdx, &treeIdx, hircObjs)
+			renderHircNode(t, c, &drawIdx, &treeIdx, hircObjs)
 		}
 
 		imgui.EndTable()
@@ -254,6 +253,7 @@ func renderHircTTable(t *BankTab) {
 }
 
 func renderHircNode(
+	t *BankTab,
 	c *imgui.ListClipper,
 	drawIdx *int32,
 	treeIdx *int,
@@ -296,9 +296,16 @@ func renderHircNode(
 			)
 		}
 		imgui.Text(st)
+		imgui.TableSetColumnIndex(2)
+		imgui.SetNextItemWidth(56)
+		imgui.BeginDisabledV(err != nil)
+		if imgui.ArrowButton("HircTreeGoTo" + sid, imgui.DirRight) {
+			t.LinearStorage.SetItemSelected(imgui.ID(id), true)
+		}
+		imgui.EndDisabled()
 		if open {
 			for j := 0; j < o.NumLeaf(); {
-				if !renderHircNode(c, drawIdx, treeIdx, hircObjs) {
+				if !renderHircNode(t, c, drawIdx, treeIdx, hircObjs) {
 					j += 1
 				}
 			}
@@ -315,7 +322,7 @@ func renderHircNode(
 		if imgui.StateStorage().Int(imgui.IDInt(int32(*treeIdx))) != 0 { // open?
 			imgui.TreePushStr(sid)
 			for j := 0; j < o.NumLeaf(); {
-				if !renderHircNode(c, drawIdx, treeIdx, hircObjs) {
+				if !renderHircNode(t, c, drawIdx, treeIdx, hircObjs) {
 					j += 1
 				}
 			}
