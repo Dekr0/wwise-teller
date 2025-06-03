@@ -59,7 +59,8 @@ func renderHircTab(t *BankTab, i int, h wwise.HircObj) {
 		label = fmt.Sprintf("%s %d", wwise.HircTypeName[h.HircType()], id)
 	}
 
-	if imgui.BeginTabItem(label) {
+	open := true
+	if imgui.BeginTabItemV(label, &open, imgui.TabItemFlagsNone) {
 		if t.ActiveHirc != h {
 			t.CntrStorage.Clear()
 			t.RanSeqPlaylistStorage.Clear()
@@ -82,6 +83,11 @@ func renderHircTab(t *BankTab, i int, h wwise.HircObj) {
 			renderUnknown(h.(*wwise.Unknown))
 		}
 		imgui.EndTabItem()
+	}
+	if !open {
+		if id, err := h.HircID(); err == nil {
+			t.LinearStorage.SetItemSelected(imgui.ID(id), false)
+		}
 	}
 }
 
