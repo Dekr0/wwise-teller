@@ -1,5 +1,4 @@
 // TODO
-// - Add source ID column
 package ui
 
 import (
