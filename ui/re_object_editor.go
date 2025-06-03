@@ -126,10 +126,11 @@ func renderContainer(t *BankTab, id uint32, cntr *wwise.Container) {
 
 		const flags = DefaultTableFlags
 		outerSize := imgui.NewVec2(0.0, 0.0)
-		if imgui.BeginTableV("CntrTable", 4, flags, outerSize, 0) {
+		if imgui.BeginTableV("CntrTable", 5, flags, outerSize, 0) {
 			imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 			imgui.TableSetupColumn("ID")
 			imgui.TableSetupColumn("Type")
+			imgui.TableSetupColumn("Source ID")
 			imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 			imgui.TableSetupScrollFreeze(0, 1)
 			imgui.TableHeadersRow()
@@ -159,10 +160,15 @@ func renderContainer(t *BankTab, id uint32, cntr *wwise.Container) {
 				if !ok {
 					imgui.Text("-")
 				} else {
-					imgui.Text(wwise.HircTypeName[value.(wwise.HircObj).HircType()])
+					obj := value.(wwise.HircObj)
+					imgui.Text(wwise.HircTypeName[obj.HircType()])
+					if obj.HircType() == wwise.HircTypeSound {
+						imgui.TableSetColumnIndex(3)
+						imgui.Text(strconv.FormatUint(uint64(obj.(*wwise.Sound).BankSourceData.SourceID), 10))
+					}
 				}
 
-				imgui.TableSetColumnIndex(3)
+				imgui.TableSetColumnIndex(4)
 				imgui.SetNextItemWidth(56)
 				imgui.BeginDisabledV(!ok)
 				if imgui.ArrowButton("CntrGoTo" + strconv.FormatUint(uint64(i), 10), imgui.DirRight) {
