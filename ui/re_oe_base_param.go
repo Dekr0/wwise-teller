@@ -1,10 +1,9 @@
 // TODO:
-// Goto / select direct parent ID
-// Goto / select leaf ID
 package ui
 
 import (
 	"encoding/binary"
+	"fmt"
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -93,6 +92,15 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 		}
 	}
 	imgui.EndDisabled()
+	imgui.SameLine()
+	if imgui.ArrowButton(fmt.Sprintf("%dGoTo%d", hid, b.DirectParentId), imgui.DirRight) {
+		hirc := t.Bank.HIRC()
+		_, ok := hirc.HircObjsMap.Load(b.DirectParentId)
+		if ok {
+			t.LinearStorage.SetItemSelected(imgui.ID(b.DirectParentId), true)
+		}
+	}
+
 	imgui.EndChild()
 }
 
