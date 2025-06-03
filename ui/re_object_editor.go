@@ -1,3 +1,5 @@
+// TODO
+// - Add New Children
 package ui
 
 import (
@@ -118,16 +120,21 @@ func renderUnknown(o *wwise.Unknown) {
 
 func renderContainer(t *BankTab, id uint32, cntr *wwise.Container) {
 	if imgui.TreeNodeExStr("Container") {
-		if imgui.Button("Add New Children") {
-		}
+		imgui.BeginDisabled()
+		imgui.Button("Add New Children")
+		imgui.EndDisabled()
 
 		const flags = DefaultTableFlags
 		outerSize := imgui.NewVec2(0.0, 0.0)
-		if imgui.BeginTableV("CntrTable", 2, flags, outerSize, 0) {
+		if imgui.BeginTableV("CntrTable", 4, flags, outerSize, 0) {
 			imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
-			imgui.TableSetupColumn("Children Hierarchy ID")
+			imgui.TableSetupColumn("ID")
+			imgui.TableSetupColumn("Type")
+			imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
+			imgui.TableSetupScrollFreeze(0, 1)
 			imgui.TableHeadersRow()
 
+			hirc := t.Bank.HIRC()
 			var deleteChild func() = nil
 			for _, i := range cntr.Children {
 				imgui.TableNextRow()
@@ -145,6 +152,23 @@ func renderContainer(t *BankTab, id uint32, cntr *wwise.Container) {
 				imgui.SetNextItemWidth(-1)
 
 				imgui.Text(strconv.FormatUint(uint64(i), 10))
+
+				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(-1)
+				value, ok := hirc.HircObjsMap.Load(i)
+				if !ok {
+					imgui.Text("-")
+				} else {
+					imgui.Text(wwise.HircTypeName[value.(wwise.HircObj).HircType()])
+				}
+
+				imgui.TableSetColumnIndex(3)
+				imgui.SetNextItemWidth(56)
+				imgui.BeginDisabledV(!ok)
+				if imgui.ArrowButton("CntrGoTo" + strconv.FormatUint(uint64(i), 10), imgui.DirRight) {
+					t.LinearStorage.SetItemSelected(imgui.ID(i), true)
+				}
+				imgui.EndDisabled()
 			}
 
 			imgui.EndTable()
