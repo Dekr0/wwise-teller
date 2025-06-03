@@ -133,6 +133,7 @@ func setupImGUI() error {
 	imgui.CreateContext()
 	imgui.CurrentIO().SetConfigFlags(
 		imgui.ConfigFlagsDockingEnable |
+		imgui.ConfigFlagsViewportsEnable |
 		imgui.ConfigFlagsNavEnableKeyboard,
 	)
 	return nil
