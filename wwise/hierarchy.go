@@ -49,6 +49,7 @@ const (
 
 var KnownHircTypes []HircType = []HircType{
 	0x00,
+	HircTypeState,
 	HircTypeSound,
 	HircTypeAction,
 	HircTypeEvent,
@@ -86,7 +87,10 @@ func ContainerHircType(o HircObj) bool {
 
 func NonHircType(o HircObj) bool {
 	t := o.HircType()
-	return t == HircTypeAction || t == HircTypeEvent || t == HircTypeAttenuation
+	return t == HircTypeAction      || 
+		   t == HircTypeEvent       || 
+	       t == HircTypeAttenuation ||
+	       t == HircTypeState
 }
 
 var HircTypeName []string = []string{
@@ -122,25 +126,27 @@ type HIRC struct {
 	// Retain the tree structure that comes from the decoding with minimal
 	// modification
 	HircObjs    []HircObj
-	HircObjsMap *sync.Map
+	HircObjsMap sync.Map
 
 	// Map for different types of hierarchy objects. Each object is a pointer
 	// to a specific hierarchy object, which is also in `HircObjs`.
-	ActorMixers      *sync.Map
-	Actions          *sync.Map
-	ActionCount      *atomic.Uint32
-	Attenuations     *sync.Map
-	AttenuationCount *atomic.Uint32
-	Events           *sync.Map
-	EventCount       *atomic.Uint32
-	LayerCntrs       *sync.Map
-	MusicSegments    *sync.Map
-	MusicTracks      *sync.Map
-	MusicRanSeqCntr  *sync.Map
-	MusicSwitchCntr  *sync.Map
-	SwitchCntrs      *sync.Map
-	RanSeqCntrs      *sync.Map
-	Sounds           *sync.Map
+	ActorMixers      sync.Map
+	Actions          sync.Map
+	ActionCount      atomic.Uint32
+	Attenuations     sync.Map
+	AttenuationCount atomic.Uint32
+	Events           sync.Map
+	EventCount       atomic.Uint32
+	LayerCntrs       sync.Map
+	MusicSegments    sync.Map
+	MusicTracks      sync.Map
+	MusicRanSeqCntr  sync.Map
+	MusicSwitchCntr  sync.Map
+	SwitchCntrs      sync.Map
+	RanSeqCntrs      sync.Map
+	Sounds           sync.Map
+	States           sync.Map
+	StateCount       atomic.Uint32
 }
 
 func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
@@ -148,22 +154,24 @@ func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 		I:               I,
 		T:               T,
 		HircObjs:        make([]HircObj, numHircItem),
-		HircObjsMap:     &sync.Map{},
-		Actions:         &sync.Map{},
-		ActionCount:     &atomic.Uint32{},
-		ActorMixers:     &sync.Map{},
-		Attenuations:    &sync.Map{},
-		AttenuationCount:&atomic.Uint32{},
-		Events:          &sync.Map{},
-		EventCount:      &atomic.Uint32{},
-		LayerCntrs:      &sync.Map{},
-		MusicSegments:   &sync.Map{},
-		MusicTracks:     &sync.Map{},
-		MusicRanSeqCntr: &sync.Map{},
-		MusicSwitchCntr: &sync.Map{},
-		SwitchCntrs:     &sync.Map{},
-		RanSeqCntrs:     &sync.Map{},
-		Sounds:          &sync.Map{},
+		HircObjsMap:     sync.Map{},
+		Actions:         sync.Map{},
+		ActionCount:     atomic.Uint32{},
+		ActorMixers:     sync.Map{},
+		Attenuations:    sync.Map{},
+		AttenuationCount:atomic.Uint32{},
+		Events:          sync.Map{},
+		EventCount:      atomic.Uint32{},
+		LayerCntrs:      sync.Map{},
+		MusicSegments:   sync.Map{},
+		MusicTracks:     sync.Map{},
+		MusicRanSeqCntr: sync.Map{},
+		MusicSwitchCntr: sync.Map{},
+		SwitchCntrs:     sync.Map{},
+		RanSeqCntrs:     sync.Map{},
+		Sounds:          sync.Map{},
+		States:          sync.Map{},
+		StateCount:      atomic.Uint32{},
 	}
 }
 
@@ -241,8 +249,9 @@ func (h *HIRC) Idx() uint8 {
 //   - Action
 //   - Attenuation
 //   - Event
+//   - State
 func (h *HIRC) NumHirc() uint32 {
-	return uint32(len(h.HircObjs)) - h.AttenuationCount.Load() - h.ActionCount.Load() - h.EventCount.Load()
+	return uint32(len(h.HircObjs)) - h.AttenuationCount.Load() - h.ActionCount.Load() - h.EventCount.Load() - h.StateCount.Load()
 }
 
 func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
