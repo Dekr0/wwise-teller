@@ -2,6 +2,16 @@ package wwise
 
 import "github.com/Dekr0/wwise-teller/wio"
 
+type GroupType uint8
+const (
+	GroupTypeSwitch GroupType = 0
+	GroupTypeState GroupType = 1
+	GroupTypeCount GroupType = 2
+)
+var GroupTypeName = []string{
+	"Switch", "State",
+}
+
 type State struct {
 	HircObj
 
