@@ -223,15 +223,15 @@ func (m *MusicTrackSwitchParam) Size() uint16 {
 
 var SyncTypeName []string = []string{
   	"Immediate",
-  	"NextGrid",
-  	"NextBar",
-  	"NextBeat",
-  	"NextMarker",
-  	"NextUserMarker",
-  	"EntryMarker",
-  	"ExitMarker",
-  	"ExitNever",
-  	"LastExitPosition",
+  	"Next Grid",
+  	"Next Bar",
+  	"Next Beat",
+  	"Next Marker",
+  	"Next User Marker",
+  	"Entry Marker",
+  	"Exit Marker",
+  	"Exit Never",
+  	"Last ExitPosition",
 }
 const NumSyncType = 10
 const SizeOfMusicTrackTransitionParam = 32
