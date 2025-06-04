@@ -78,6 +78,16 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 		select {
 		case sem <- struct{}{}:
 			switch wwise.HircType(eHircType) {
+			case wwise.HircTypeState:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseState,
+					hirc,
+					sem,
+					&parsed,
+				)
 			case wwise.HircTypeSound:
 				go ParserRoutine(
 					dwSectionSize,
@@ -212,6 +222,8 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 		default:
 			var obj wwise.HircObj
 			switch wwise.HircType(eHircType) {
+			case wwise.HircTypeState:
+				obj = ParseState(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeSound:
 				obj = ParseSound(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeAction:
@@ -263,6 +275,11 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 		panic(err)
 	}
 	switch t {
+	case wwise.HircTypeState:
+		if _, in := h.States.LoadOrStore(id, obj); in {
+			panic(fmt.Sprintf("Duplicate state object %d", id))
+		}
+		h.StateCount.Add(1)
 	case wwise.HircTypeSound:
 		if _, in := h.Sounds.LoadOrStore(id, obj); in {
 			panic(fmt.Sprintf("Duplicate sound object %d", id))
@@ -349,6 +366,28 @@ func ParserRoutine[T wwise.HircObj](
 	AddHircObj(h, i, f(size, r))
 	parsed.Add(1)
 	<-sem
+}
+
+func ParseState(size uint32, r *wio.Reader) *wwise.State {
+	assert.Equal(0, r.Pos(), "State parser position doesn't start at position 0.")
+	begin := r.Pos()
+
+	state := wwise.State{
+		StateID: r.U32Unsafe(),
+		StateProps: make([]struct{PID uint16; Val float32}, r.U16Unsafe()),
+	}
+	for i := range state.StateProps {
+		state.StateProps[i].PID, state.StateProps[i].Val = r.U16Unsafe(), r.F32Unsafe()
+	}
+
+	end := r.Pos()
+	if begin >= end {
+		panic("Reader consumes zero byte.")
+	}
+	assert.Equal(uint64(size), end-begin,
+		"The amount of bytes reader consume does not equal size in the hierarchy header",
+	)
+	return &state
 }
 
 func ParseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
