@@ -1,0 +1,53 @@
+package ui
+
+import (
+	"log/slog"
+	"slices"
+	"strconv"
+
+	"github.com/Dekr0/wwise-teller/wwise"
+	"github.com/lithammer/fuzzysearch/fuzzy"
+)
+
+type AttenuationFilter struct {
+	Id              uint32
+	Attenuations []*wwise.Attenuation
+}
+
+func (f *AttenuationFilter) Filter(objs []wwise.HircObj) {
+	curr := 0
+	prev := len(f.Attenuations)
+	for _, obj := range objs {
+		if obj.HircType() != wwise.HircTypeAttenuation {
+			continue
+		}
+		id, err := obj.HircID()
+		if err != nil {
+			slog.Error(
+				"Error message before panic",
+				"error", "Attenuation struct does not implement HircObj.HircID?",
+			)
+			panic("Panic Trap")
+		}
+		if !fuzzy.Match(
+			strconv.FormatUint(uint64(f.Id), 10),
+			strconv.FormatUint(uint64(id), 10),
+		) {
+			continue
+		}
+		if curr < len(f.Attenuations) {
+			f.Attenuations[curr] = obj.(*wwise.Attenuation)
+		} else {
+			f.Attenuations = append(f.Attenuations, obj.(*wwise.Attenuation))
+		}
+		curr += 1
+	}
+	if curr < prev {
+		f.Attenuations = slices.Delete(f.Attenuations, curr, prev)
+	}
+}
+
+type AttenuationViewer struct {
+	AttenuationFilter  AttenuationFilter
+	ActiveAttenuation *wwise.Attenuation
+}
