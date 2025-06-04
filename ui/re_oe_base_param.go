@@ -120,7 +120,7 @@ func renderChangeParentListing(t *BankTab) {
 	size := imgui.NewVec2(0, 160)
 	imgui.BeginChildStrV("ChangeParentListing", size, 0, 0)
 
-	const flags = DefaultTableFlags
+	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("ChangeParentTable", 2, flags, outerSize, 0) {
 		imgui.TableSetupColumn("Hierarchy ID")
