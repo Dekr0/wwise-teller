@@ -144,11 +144,13 @@ type BankTab struct {
 	InitBank              *wwise.Bank
 
 	// Filter
-	HircFilter            HircFilter
-	HircRootFilter        HircRootFilter
-	MediaIndexFilter      MediaIndexFilter
+	HircFilter             HircFilter
+	HircRootFilter         HircRootFilter
+	MediaIndexFilter       MediaIndexFilter
 
+	AttenuationViewer      AttenuationViewer
 	EventViewer            EventViewer
+	GameSyncViewer         GameSyncViewer
 
 	// Storage
 	ActiveHirc             wwise.HircObj
@@ -261,6 +263,8 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	objs := []wwise.HircObj{}
 	roots := []wwise.HircObj{}
 	events := []*wwise.Event{}
+	states := []*wwise.State{}
+	attenuations := []*wwise.Attenuation{}
 
 	if bank.HIRC() != nil {
 		hirc := bank.HIRC()
@@ -272,8 +276,15 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 				if wwise.ContainerHircType(o) {
 					roots = append(roots, o)
 				}
-			} else if o.HircType() == wwise.HircTypeEvent {
-				events = append(events, o.(*wwise.Event))
+			} else {
+				switch t := o.(type) {
+				case *wwise.Attenuation:
+					attenuations = append(attenuations, t)
+				case *wwise.Event:
+					events = append(events, t)
+				case *wwise.State:
+					states = append(states, t)
+				}
 			}
 		}
 	}
@@ -307,6 +318,13 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 			MediaIndices: indices,
 		},
 
+		AttenuationViewer: AttenuationViewer{
+			AttenuationFilter: AttenuationFilter{
+				Id: 0,
+				Attenuations: attenuations,
+			},
+			ActiveAttenuation: nil,
+		},
 		EventViewer: EventViewer{
 			EventFilter: EventFilter{
 				Id: 0,
@@ -314,6 +332,13 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 			},
 			ActiveEvent: nil,
 			ActiveAction: nil,
+		},
+		GameSyncViewer: GameSyncViewer{
+			StateFilter: StateFilter{
+				Id: 0,
+				States: states,
+			},
+			ActiveState: nil,
 		},
 
 		ActiveHirc: nil,
