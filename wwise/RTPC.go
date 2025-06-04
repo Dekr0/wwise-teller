@@ -6,15 +6,15 @@ import (
 
 const CurveInterpolationCount = 10
 var CurveInterpolationName []string = []string{
-  	"Log3",
-  	"Sine",
-  	"Log1",
-  	"InvSCurve",
+  	"Logarithmic (Base 3)",
+  	"Sine (Constant Power Fade Out)",
+  	"Logarithmic (Base 1.41)",
+  	"Inverted S-Curve",
   	"Linear",
-  	"SCurve",
-  	"Exp1",
-  	"SineRecip",
-  	"Exp3",
+  	"S-Curve",
+  	"Exponential (Base 1.41)",
+  	"Sine (Constant Power Fade In)",
+  	"Exponential (Base 3)",
   	"Constant",
 }
 type RTPC struct {
@@ -78,20 +78,6 @@ func (r *RTPCItem) Encode() []byte {
 func (r *RTPCItem) Size() uint32 {
 	return uint32(4 + 1 + 1 + 1 + 4 + 1 + 2 + len(r.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
 }
-
-var RTPCInterpName []string = []string{
-  "Log3",
-  "Sine",
-  "Log1",
-  "InvSCurve",
-  "Linear",
-  "SCurve",
-  "Exp1",
-  "SineRecip",
-  "Exp3", // "LastFadeCurve" define as 0x8 too in all versions
-  "Constant",
-}
-const NumRTPCInterp = 10
 
 const RTPCInterpSampleRate = 128
 
