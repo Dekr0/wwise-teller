@@ -12,11 +12,16 @@ var GroupTypeName = []string{
 	"Switch", "State",
 }
 
+const SizeOfStateProp = 6
 type State struct {
 	HircObj
 
-	Id   uint32
-	Data []byte
+	StateID    uint32
+	// cProps u16
+	StateProps []struct{
+		PID uint16
+		Val float32
+	}
 }
 
 func (s *State) Encode() []byte {
@@ -25,26 +30,29 @@ func (s *State) Encode() []byte {
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeState))
 	w.Append(dataSize)
-	w.Append(s.Id)
-	w.AppendBytes(s.Data)
+	w.Append(s.StateID)
+	w.Append(uint16(len(s.StateProps)))
+	for _, sp := range s.StateProps {
+		w.Append(sp)
+	}
 	return w.BytesAssert(int(size))
 }
 
 func (s *State) DataSize() uint32 {
-	return uint32(4 + len(s.Data))
+	return 4 + 2 + uint32(len(s.StateProps)) * SizeOfStateProp
 }
 
 func (s *State) BaseParameter() *BaseParameter { return nil }
 
 func (s *State) HircType() HircType { return HircTypeState }
 
-func (s *State) HircID() (uint32, error) { return s.Id, nil }
+func (s *State) HircID() (uint32, error) { return s.StateID, nil }
 
 func (s *State) IsCntr() bool { return false }
 
 func (s *State) NumLeaf() int { return 0 }
 
-func (s *State) ParentID() int { return 0 }
+func (s *State) ParentID() uint32 { return 0 }
 
 func (s *State) AddLeaf(o HircObj) { panic("") }
 
