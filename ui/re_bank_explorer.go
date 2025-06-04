@@ -235,7 +235,7 @@ func renderHircTTable(t *BankTab) {
 		hircObjs := hirc.HircObjs
 
 		c := imgui.NewListClipper()
-		c.Begin(int32(len(hircObjs)) - int32(hirc.ActionCount.Load()) - int32(hirc.EventCount.Load()))
+		c.Begin(int32(hirc.NumHirc()))
 
 		treeIdx := 0 
 		drawIdx := int32(0)
@@ -261,7 +261,7 @@ func renderHircNode(
 ) bool {
 	l := len(hircObjs)
 	o := hircObjs[l - *treeIdx - 1]
-	if o.HircType() == wwise.HircTypeAction || o.HircType() == wwise.HircTypeEvent {
+	if wwise.NonHircType(o) {
 		*treeIdx += 1
 		return true
 	}
