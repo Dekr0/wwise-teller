@@ -20,51 +20,14 @@ func renderEventsViewer(t *BankTab) {
 		return
 	}
 
-	if imgui.InputScalar("Filter by event ID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.EventViewer.EventFilter.Id))) {
-		t.FilterEvents()
-	}
-
-	size := imgui.NewVec2(0, imgui.ContentRegionAvail().Y * 0.3)
-	imgui.BeginChildStrV("EventsTableChild", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
-	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
-	size.Y = 0
-	if imgui.BeginTableV("EventsTable", 1, flags, size, 0) {
-		imgui.TableSetupColumn("Event ID")
-		imgui.TableSetupScrollFreeze(0, 1)
-		imgui.TableHeadersRow()
-
-		clipper := imgui.NewListClipper()
-		clipper.Begin(int32(len(t.EventViewer.EventFilter.Events)))
-		for clipper.Step() {
-			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-				event := t.EventViewer.EventFilter.Events[n]
-				imgui.TableNextRow()
-				imgui.TableSetColumnIndex(0)
-
-				size.X, size.Y = 0, 0
-				if t.EventViewer.ActiveEvent == nil {
-					t.EventViewer.ActiveEvent = event
-				}
-				selected := event.Id == t.EventViewer.ActiveEvent.Id
-				label := strconv.FormatUint(uint64(event.Id), 10)
-				if imgui.SelectableBoolPtr(label, &selected) {
-					t.EventViewer.ActiveEvent = event
-					t.EventViewer.ActiveAction = nil
-				}
-			}
-		}
-		imgui.EndTable()
-	}
-	imgui.EndChild()
-
 	if t.EventViewer.ActiveEvent != nil {
-		size.X, size.Y = 0, 0
-		imgui.BeginChildStrV("EventsActionChild", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+		size := imgui.NewVec2(0, 0)
 
 		size.Y = imgui.ContentRegionAvail().Y * 0.5
 		imgui.BeginChildStrV("EventActionTableChild", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
 
 		size.X, size.Y = 0, 0
+		const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 		if imgui.BeginTableV("EventActionTable", 3, flags, size, 0) {
 			imgui.TableSetupColumn("Action ID")
 			imgui.TableSetupColumn("Action Type")
@@ -141,10 +104,47 @@ func renderEventsViewer(t *BankTab) {
 
 			imgui.EndChild()
 		}
-
-		imgui.EndChild()
 	}
 	imgui.End()
+}
+
+func renderEventsTable(t *BankTab) {
+	imgui.SeparatorText("Filter")
+	imgui.SetNextItemWidth(96)
+	if imgui.InputScalar("By event ID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.EventViewer.EventFilter.Id))) {
+		t.FilterEvents()
+	}
+	imgui.SeparatorText("")
+
+	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
+	size := imgui.NewVec2(0, 0)
+	if imgui.BeginTableV("EventsTable", 1, flags, size, 0) {
+		imgui.TableSetupColumn("Event ID")
+		imgui.TableSetupScrollFreeze(0, 1)
+		imgui.TableHeadersRow()
+
+		clipper := imgui.NewListClipper()
+		clipper.Begin(int32(len(t.EventViewer.EventFilter.Events)))
+		for clipper.Step() {
+			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
+				event := t.EventViewer.EventFilter.Events[n]
+				imgui.TableNextRow()
+				imgui.TableSetColumnIndex(0)
+
+				size.X, size.Y = 0, 0
+				if t.EventViewer.ActiveEvent == nil {
+					t.EventViewer.ActiveEvent = event
+				}
+				selected := event.Id == t.EventViewer.ActiveEvent.Id
+				label := strconv.FormatUint(uint64(event.Id), 10)
+				if imgui.SelectableBoolPtr(label, &selected) {
+					t.EventViewer.ActiveEvent = event
+					t.EventViewer.ActiveAction = nil
+				}
+			}
+		}
+		imgui.EndTable()
+	}
 }
 
 func renderActionProp(a *wwise.Action) {
