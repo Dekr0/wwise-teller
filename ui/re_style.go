@@ -14,3 +14,10 @@ const DefaultTableFlagsY = DefaultTableFlags | imgui.TableFlagsScrollY
 
 const DefaultTableSelFlags = imgui.SelectableFlagsSpanAllColumns | 
 					 		 imgui.SelectableFlagsAllowOverlap
+
+const DefaultMultiSelectFlags = imgui.MultiSelectFlagsClearOnEscape | 
+		                        imgui.MultiSelectFlagsBoxSelect2d
+
+const DefaultTabFlags = imgui.TabBarFlagsReorderable | 
+		         imgui.TabBarFlagsTabListPopupButton | 
+	             imgui.TabBarFlagsFittingPolicyScroll
