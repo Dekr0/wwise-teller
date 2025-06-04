@@ -20,6 +20,8 @@ import (
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
+var ModifiyEverything = false
+
 const MainDockFlags imgui.WindowFlags = 
 	imgui.WindowFlagsNoDocking |
 	imgui.WindowFlagsNoTitleBar | 
