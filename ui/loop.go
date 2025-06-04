@@ -207,7 +207,7 @@ func createLoop(
 		modalQ.renderModal()
 		renderLog(gLog)
 		renderFileExplorer(fileExplorer, modalQ)
-		closeTab, saveTab, saveName, iType := renderBankExplorerL(
+		closeTab, saveTab, saveName, iType := renderBankExplorer(
 			bnkMngr, saveActive, iType,
 		)
 		if saveTab != nil {
