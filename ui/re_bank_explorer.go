@@ -1,4 +1,10 @@
 // TODO
+// - Clean up filter for hierarchy object listing
+//   - Action
+//   - Attenuation
+//   - Event
+//   - State
+//   - ...
 // - Tree View Keyboard navigation
 package ui
 
@@ -13,7 +19,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
+func renderBankExplorer(bnkMngr *BankManager, saveActive bool, iType int) (
 	string, *BankTab, string, int,
 ) {
 	closedPath := "" 
@@ -21,12 +27,7 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
 
 	savedTab, savedName, iType := renderBankExplorerMenu(bnkMngr, iType)
-
-	flags := imgui.TabBarFlagsReorderable        | 
-	         imgui.TabBarFlagsAutoSelectNewTabs  | 
-		     imgui.TabBarFlagsTabListPopupButton | 
-	         imgui.TabBarFlagsFittingPolicyScroll
-	if imgui.BeginTabBarV("BankExplorerTabBar", flags) {
+	if imgui.BeginTabBarV("BankExplorerTabBar", DefaultTabFlags) {
 		bnkMngr.Banks.Range(func(key any, value any) bool {
 			open := true
 			path := key.(string)
@@ -34,7 +35,7 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 
 			imgui.PushIDStr(path)
 			if imgui.BeginTabItemV(filepath.Base(path), &open, 0) {
-				renderHircLTable(path, value.(*BankTab))
+				renderBankExplorerTab(path, value.(*BankTab))
 				bnkMngr.ActiveBank = tab
 				bnkMngr.ActivePath = path
 				imgui.EndTabItem()
@@ -62,6 +63,27 @@ func renderBankExplorerL(bnkMngr *BankManager, saveActive bool, iType int) (
 	}
 
 	return closedPath, savedTab, savedName, iType
+}
+
+func renderBankExplorerTab(path string, t *BankTab) {
+	imgui.Text("Sound bank: " + path)
+	if imgui.BeginTabBar("SubBankExplorerTabBar") {
+		if imgui.BeginTabItem("Hierarchy Listing") {
+			renderHircLTable(t)
+			imgui.EndTabItem()
+		}
+		if imgui.BeginTabItem("Attenuation") {
+			imgui.EndTabItem()
+		}
+		if imgui.BeginTabItem("Events") {
+			renderEventsTable(t)
+			imgui.EndTabItem()
+		}
+		if imgui.BeginTabItem("Game Sync") {
+			imgui.EndTabItem()
+		}
+		imgui.EndTabBar()
+	}
 }
 
 func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, int) {
@@ -105,7 +127,7 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, 
 	return saveTab, saveName, itype
 }
 
-func renderHircLTable(path string, b *BankTab) {
+func renderHircLTable(b *BankTab) {
 	focusTable := false
 
 	useViUp()
@@ -113,34 +135,36 @@ func renderHircLTable(path string, b *BankTab) {
 	useViDown()
 	useViShiftDown()
 
-	imgui.Text("Sound bank: " + path)
-
 	imgui.SeparatorText("Filter")
 
 	imgui.SetNextItemShortcut(DefaultSearchSC)
-	if imgui.InputScalar("Filter by hierarchy object ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Id))) {
+	imgui.SetNextItemWidth(96)
+	if imgui.InputScalar("By ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Id))) {
 		b.FilterHircs()
 	}
 
 	imgui.BeginDisabledV(b.HircFilter.Type != wwise.HircTypeAll && b.HircFilter.Type != wwise.HircTypeSound)
-	if imgui.InputScalar("Filter by source ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Sid))) {
+	imgui.SetNextItemWidth(96)
+	if imgui.InputScalar("By source ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Sid))) {
 		b.FilterHircs()
 	}
 	imgui.EndDisabled()
 
 	typeFilter := int32(b.HircFilter.Type)
-	if imgui.ComboStrarr("Filter by hierarchy object type", &typeFilter, wwise.HircTypeName, int32(len(wwise.HircTypeName)),
+	imgui.SetNextItemWidth(256)
+	if imgui.ComboStrarr("By hierarchy object type", &typeFilter, wwise.HircTypeName, int32(len(wwise.HircTypeName)),
 	) {
 		b.HircFilter.Type = wwise.HircType(typeFilter)
 		b.FilterHircs()
 	}
+	imgui.SeparatorText("")
 
 	if imgui.Shortcut(UnFocusQuerySC) {
 		focusTable = true
 		imgui.SetKeyboardFocusHere()
 	}
 
-	flags := DefaultTableFlags
+	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("LinearTable", 2, flags, outerSize, 0) {
 		imgui.TableSetupColumn("Hierarchy ID")
@@ -153,9 +177,7 @@ func renderHircLTable(path string, b *BankTab) {
 
 		storage := b.LinearStorage
 
-		flags := imgui.MultiSelectFlagsClearOnEscape | 
-		         imgui.MultiSelectFlagsBoxSelect2d
-		msIO := imgui.BeginMultiSelectV(flags, storage.Size(), int32(len(b.HircFilter.HircObjs)))
+		msIO := imgui.BeginMultiSelectV(DefaultMultiSelectFlags, storage.Size(), int32(len(b.HircFilter.HircObjs)))
 		storage.ApplyRequests(msIO)
 
 		clipper := imgui.NewListClipper()
