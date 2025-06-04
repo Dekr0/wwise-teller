@@ -80,6 +80,9 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("Hierarchy View", dock2)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
+		imgui.InternalDockBuilderDockWindow("Events", dock3)
+		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
+		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.rebuild = false
 	} else if d.layout == Layout02 {
@@ -103,6 +106,8 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
+		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
+		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.rebuild = false
 	}
