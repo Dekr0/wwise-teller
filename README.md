@@ -25,6 +25,12 @@ with version 141.
 
 ## Contribution
 
+- Feel free to leave suggestions or PRs (especially on performance and state 
+management / pattern in the UI part)
+- Wwise Teller might undergo a direct port to Zig or Odin if it needs to start 
+doing any sort operations that performance intensive such as real time audio 
+processing, audio simulation etc.
+
 ### Code Organization
 
 - `assert` - hand roll assertion function
