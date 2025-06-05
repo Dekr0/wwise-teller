@@ -111,17 +111,13 @@ var RTPCAccumTypeName []string = []string{
 	// "Max Number / Count",
 }
 
-const CurveScalingTypeCount = 9
+const CurveScalingTypeCount = 5
 var CurveScalingTypeName []string = []string{
 	"None",
 	"Unsupported",
 	"dB",
 	"Log",
 	"dB To Lin",
-	"Unknown Curve Scaling Type 5",
-	"Unknown Curve Scaling Type 6",
-	"Unknown Curve Scaling Type 7",
-	"Max Number (?)",
 }
 
 type RTPC struct {
