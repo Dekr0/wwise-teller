@@ -13,6 +13,7 @@ import (
 	"github.com/AllenDang/cimgui-go/backend/sdlbackend"
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/imguizmo"
+	"github.com/AllenDang/cimgui-go/implot"
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	"github.com/Dekr0/wwise-teller/log"
@@ -133,6 +134,7 @@ func setupBackend() (backend.Backend[sdlbackend.SDLWindowFlags], error) {
 
 func setupImGUI() error {
 	imgui.CreateContext()
+	implot.CreateContext()
 	imgui.CurrentIO().SetConfigFlags(
 		imgui.ConfigFlagsDockingEnable |
 		imgui.ConfigFlagsViewportsEnable |
