@@ -1,3 +1,7 @@
+// TODO:
+// - Switch to "Events", "Attenuations", "Game Sync", "FX", ...
+// - File saving
+// - Enable "Modifying Everything"
 package ui
 
 import (
@@ -76,6 +80,11 @@ func NewCmdPaletteMngr(
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
 		"integration: extract sound banks from Helldivers 2 game archives",
 		func() { pushSelectGameArchiveModal(modalQ, loop, conf) },
+	})
+
+	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+		"Disable All Guard Rails",
+		func() { ModifiyEverything = !ModifiyEverything },
 	})
 
 	mngr.filtered = make([]*RankCmdPalette, len(mngr.cmdPalette))

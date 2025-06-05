@@ -11,6 +11,7 @@ import (
 func configModalFunc(modalQ *ModalQ,conf *config.Config) (func(), *bool) {
 	done := false
 	return func() {
+		imgui.Checkbox("Disable All Guard Rails", &ModifiyEverything)
 		imgui.Text(fmt.Sprintf("Home: %s", conf.Home))
 		imgui.SameLine()
 		if imgui.ArrowButton("SetHome", imgui.DirRight) {
