@@ -14,7 +14,6 @@ import (
 	"sync/atomic"
 
 	"github.com/Dekr0/wwise-teller/assert"
-	"github.com/Dekr0/wwise-teller/interp"
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
@@ -1051,39 +1050,6 @@ func ParseRTPC(r *wio.Reader, rtpc *wwise.RTPC) {
 		item.RTPCGraphPoints = make([]wwise.RTPCGraphPoint, NumRTPCGraphPoints, NumRTPCGraphPoints)
 		ParseRTPCGraphPoints(r, item.RTPCGraphPoints)
 	}
-}
-
-func computeRTPCSamplePoints(rpts []*wwise.RTPCGraphPoint) []float32 {
-	spts := make([]float32, 0, len(rpts)*interp.NumSamples)
-	for i, p1 := range rpts {
-		if i >= len(rpts)-1 {
-			break
-		}
-		p2 := rpts[i+1]
-		switch p1.Interp {
-		case 1:
-			spts = append(spts, interp.SampleLog3(float64(p1.From), float64(p1.To), float64(p2.From), float64(p2.To))...)
-		case 2:
-			spts = append(spts, interp.SampleSine(float64(p1.From), float64(p1.To), float64(p2.From), float64(p2.To))...)
-		case 3:
-			spts = append(spts, interp.SampleLog1(float64(p1.From), float64(p1.To), float64(p2.From), float64(p2.To))...)
-		case 4:
-			spts = append(spts, interp.SampleInvertSCurve(float64(p1.From), float64(p1.To), float64(p2.From), float64(p2.To))...)
-		case 5:
-			spts = append(spts, interp.SampleLinear(float64(p1.From), float64(p1.To), float64(p2.From), float64(p2.To))...)
-		case 6:
-			spts = append(spts, interp.SampleSCurve(float64(p1.From), float64(p1.To), float64(p2.From), float64(p2.To))...)
-		case 7:
-			spts = append(spts, interp.SampleExp1(float64(p1.From), float64(p1.To), float64(p2.From), float64(p2.To))...)
-		case 8:
-			spts = append(spts, interp.SampleConst(p2.To)...)
-		case 9:
-			spts = append(spts, interp.SampleExp3(float64(p1.From), float64(p1.To), float64(p2.From), float64(p2.To))...)
-		case 10:
-			spts = append(spts, interp.SampleConst(p2.To)...)
-		}
-	}
-	return spts
 }
 
 func ParseContainer(r *wio.Reader) *wwise.Container {
