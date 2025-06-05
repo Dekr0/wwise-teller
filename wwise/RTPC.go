@@ -17,6 +17,113 @@ var CurveInterpolationName []string = []string{
   	"Exponential (Base 3)",
   	"Constant",
 }
+
+// Target toward v144 but HD2 is using 141???
+const RTPCTypeCount = 5
+var RTPCTypeName []string = []string{
+	"Game Parameter",
+	"MIDI Parameter",
+	"Switch",
+	"State",
+	"Modulator",
+	// "Count",
+	// "Max Number",
+}
+
+const RTPCParameterIDCount = 60
+var RTPCParameterIDName []string = []string{
+  "Volume",
+  "LFE",
+  "Pitch",
+  "LPF",
+  "HPF",
+  "Bus Volume",
+  "Initial Delay",
+  "Make Up Gain",
+  "Deprecated Feedback Volume", // #140~~ Deprecated_RTPC_FeedbackVolume
+  "Deprecated Feedback Lowpass", // #140~~ Deprecated_RTPC_FeedbackLowpass
+  "Deprecated Feedback Pitch", // ##140~~ Deprecated_RTPC_FeedbackPitch
+  "Midi Transposition",
+  "Midi Velocity Offset",
+  "Playback Speed",
+  "Mute Ratio",
+  "Play Mechanism Special Transitions Value",
+  "Max Number Instances",
+  "Priority", // OVERRIDABLE_PARAMS_START
+  "Position PAN X 2D",
+  "Position PAN Y 2D",
+  "Position PAN X 3D",
+  "Position PAN Y 3D",
+  "Position PAN Z 3D",
+  "Positioning Type Blend",
+  "Positioning Divergence Center PCT",
+  "Positioning Cone Attenuation ON OFF",
+  "Positioning Cone Attenuation",
+  "Positioning Cone LPF",
+  "Positioning Cone HPF",
+  "Bypass FX0",
+  "Bypass FX1",
+  "Bypass FX2",
+  "Bypass FX3",
+  "Bypass All FX",
+  "HDR Bus Threshold",
+  "HDR Bus Release Time",
+  "HDR Bus Ratio",
+  "HDR Active Range",
+  "Game Aux Send Volume",
+  "User Aux Send Volume 0",
+  "User Aux Send Volume 1",
+  "User Aux Send Volume 2",
+  "User Aux Send Volume 3",
+  "Output Bus Volume",
+  "Output Bus HPF",
+  "Output Bus LPF",
+  "Positioning Enable Attenuation",
+  "Reflections Volume",
+  "User Aux Send LPF 0",
+  "User Aux Send LPF 1",
+  "User Aux Send LPF 2",
+  "User Aux Send LPF 3",
+  "User Aux Send HPF 0",
+  "User Aux Send HPF 1",
+  "User Aux Send HPF 2",
+  "User Aux Send HPF 3",
+  "Game Aux Send LPF",
+  "Game Aux Send HPF",
+  "Position PAN Z 2D",
+  "Bypass All Metadata",
+  // #0x3C: "MaxNumRTPC,
+
+  // 0x3D: "Unknown/Custom?", #AC Valhalla
+  // 0x3E: "Unknown/Custom?", #AC Valhalla (found near "DB" scaling, some volume?)
+  // 0x3F: "Unknown/Custom?", #AC Valhalla
+}
+
+const RTPCAccumTypeCount = 7
+var RTPCAccumTypeName []string = []string{
+	"None",
+	"Exclusive",
+	"Additive",
+	"Multiply",
+	"Boolean",
+	"Maximum",
+	"Filter",
+	// "Max Number / Count",
+}
+
+const CurveScalingTypeCount = 9
+var CurveScalingTypeName []string = []string{
+	"None",
+	"Unsupported",
+	"dB",
+	"Log",
+	"dB To Lin",
+	"Unknown Curve Scaling Type 5",
+	"Unknown Curve Scaling Type 6",
+	"Unknown Curve Scaling Type 7",
+	"Max Number (?)",
+}
+
 type RTPC struct {
 	// NumRTPC uint16 // u16
 	RTPCItems []RTPCItem
