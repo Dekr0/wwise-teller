@@ -1,3 +1,6 @@
+// TODO:
+// - Replacing audio data
+// 		- Target import and automation should be first class citizen
 package wwise
 
 import (
