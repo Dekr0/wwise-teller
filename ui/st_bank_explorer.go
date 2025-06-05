@@ -1,3 +1,6 @@
+// TODO:
+// - Give the option of including META when saving sound bank 
+// 		- Save using integration must exclude META
 package ui
 
 import (
