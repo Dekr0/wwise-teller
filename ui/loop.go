@@ -285,4 +285,3 @@ func renderDebug(
 	imgui.Text(fmt.Sprintf("Number of asynchronous tasks: %d", loop.NumTasks()))
 	imgui.End()
 }
-

@@ -29,6 +29,7 @@ func renderBaseParam(t *BankTab, o wwise.HircObj) {
 		renderBaseProp(&b.PropBundle)
 		renderBaseRangeProp(&b.RangePropBundle)
 		renderAdvSetting(b, &b.AdvanceSetting)
+		renderRTPC(hid, &b.RTPC)
 		imgui.TreePop()
 	}
 }
