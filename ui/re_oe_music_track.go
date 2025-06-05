@@ -5,12 +5,14 @@ import (
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/AllenDang/cimgui-go/utils"
 
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
 func renderMusicTrack(t *BankTab, o *wwise.MusicTrack) {
 	if imgui.TreeNodeExStr("Music Override Flags") {
+		imgui.BeginDisabledV(o.BaseParam.DirectParentId == 0)
 		overrideParentMIDITempo := o.OverrideParentMIDITempo()
 		if imgui.Checkbox("Override Parent MIDI Tempo", &overrideParentMIDITempo) {
 			o.SetOverrideParentMIDITempo(overrideParentMIDITempo)
@@ -25,13 +27,15 @@ func renderMusicTrack(t *BankTab, o *wwise.MusicTrack) {
 		if imgui.Checkbox("MIDI Target Type Bus", &midiTargetTypeBus) {
 			o.SetMidiTargetTypeBus(midiTargetTypeBus)
 		}
+		imgui.EndDisabled()
 		imgui.TreePop()
 	}
 	// renderBankSourceData ???
 	renderMusicTrackPlayList(t, o)
 	// renderClipAutomation(t, o)
 	renderBaseParam(t, o)
-	// renderTransitionParam(&o.TransitionParam)
+	renderSwitchParam(t, o)
+	renderTransitionParam(&o.TransitionParam)
 }
 
 func renderMusicTrackPlayList(t *BankTab, o *wwise.MusicTrack) {
@@ -39,9 +43,9 @@ func renderMusicTrackPlayList(t *BankTab, o *wwise.MusicTrack) {
 		const flags = DefaultTableFlags
 		outerSize := imgui.NewVec2(0, 0)
 		if imgui.BeginTableV("MusicTrackPlayListTable", 7, flags, outerSize, 0) {
-			imgui.TableSetupColumn("Track ID")
-			imgui.TableSetupColumn("Source ID")
-			imgui.TableSetupColumn("Event ID")
+			imgui.TableSetupColumnV("Track ID", imgui.TableColumnFlagsWidthFixed, 0, 0)
+			imgui.TableSetupColumnV("Source ID", imgui.TableColumnFlagsWidthFixed, 0, 0)
+			imgui.TableSetupColumnV("Event ID", imgui.TableColumnFlagsWidthFixed, 0, 0)
 			imgui.TableSetupColumn("Play At")
 			imgui.TableSetupColumn("Begin Trim Offset")
 			imgui.TableSetupColumn("End Trim Offset")
@@ -54,34 +58,43 @@ func renderMusicTrackPlayList(t *BankTab, o *wwise.MusicTrack) {
 				imgui.TableNextRow()
 
 				imgui.TableSetColumnIndex(0)
+				imgui.SetNextItemWidth(88)
 				imgui.Text(strconv.FormatUint(uint64(p.TrackID), 10))
 
 				imgui.TableSetColumnIndex(1)
+				imgui.SetNextItemWidth(88)
 				imgui.Text(strconv.FormatUint(uint64(p.SourceID), 10))
 
 				imgui.TableSetColumnIndex(2)
+				imgui.SetNextItemWidth(88)
 				imgui.Text(strconv.FormatUint(uint64(p.EventID), 10))
 
 				imgui.TableSetColumnIndex(3)
 				imgui.SetNextItemWidth(-1)
+				imgui.BeginDisabledV(!ModifiyEverything)
 				playAt := float32(p.PlayAt)
 				if imgui.InputFloat(fmt.Sprintf("##%dPlayAt%d", o.Id, i), &playAt) {
 					p.PlayAt = float64(playAt)
 				}
+				imgui.EndDisabled()
 
 				imgui.TableSetColumnIndex(4)
 				imgui.SetNextItemWidth(-1)
 				beginTrimOffset := float32(p.BeginTrimOffset)
+				imgui.BeginDisabledV(!ModifiyEverything)
 				if imgui.InputFloat(fmt.Sprintf("##%dBeginTrimOffset%d", o.Id, i), &beginTrimOffset) {
 					p.BeginTrimOffset = float64(beginTrimOffset)
 				}
+				imgui.EndDisabled()
 
 				imgui.TableSetColumnIndex(5)
 				imgui.SetNextItemWidth(-1)
+				imgui.BeginDisabledV(!ModifiyEverything)
 				endTrimOffset := float32(p.EndTrimOffset)
 				if imgui.InputFloat(fmt.Sprintf("##%dEndTrimOffset%d", o.Id, i), &endTrimOffset) {
 					p.EndTrimOffset = float64(endTrimOffset)
 				}
+				imgui.EndDisabled()
 
 				imgui.TableSetColumnIndex(6)
 				imgui.PushIDStr(fmt.Sprintf("%dSrcDuration%d", o.Id, i))
@@ -188,8 +201,8 @@ func renderClipAutomation(t *BankTab, o *wwise.MusicTrack) {
 						if imgui.ComboStrarr(
 							fmt.Sprintf("##CARTPC%dInterp%d", i, j),
 							&interp,
-							wwise.RTPCInterpName,
-							wwise.NumRTPCInterp,
+							wwise.CurveInterpolationName,
+							wwise.CurveInterpolationCount,
 						) {
 							pt.Interp = uint32(interp)
 						}
@@ -220,43 +233,88 @@ func bindRmCARTPCGraphPt(c *wwise.ClipAutomation, i int) func() {
 }
 
 func renderTransitionParam(p *wwise.MusicTrackTransitionParam) {
-	imgui.InputInt("Source Transition Time", &p.SrcTransitionTime)
-	
-	srcFadeCurve := int32(p.SrcFadeCurve)
-	if imgui.ComboStrarr(
-		"Source Fade Curve",
-		&srcFadeCurve,
-		wwise.RTPCInterpName,
-		wwise.NumRTPCInterp,
-	) {
-		p.SrcFadeCurve = uint32(srcFadeCurve)
+	if imgui.TreeNodeStr("Music Track Transition Parameter") {
+		imgui.BeginDisabledV(!ModifiyEverything)
+		imgui.SetNextItemWidth(128)
+		imgui.InputInt("Source Transition Time", &p.SrcTransitionTime)
+		imgui.EndDisabled()
+
+		srcFadeCurve := int32(p.SrcFadeCurve)
+		imgui.SetNextItemWidth(256)
+		if imgui.ComboStrarr(
+			"Source Fade Curve",
+			&srcFadeCurve,
+			wwise.CurveInterpolationName,
+			wwise.CurveInterpolationCount,
+			) {
+			p.SrcFadeCurve = uint32(srcFadeCurve)
+		}
+
+		imgui.SetNextItemWidth(128)
+		imgui.InputInt("Source Fade Offset", &p.SrcFadeOffset)
+
+		syncType := int32(p.SyncType)
+		imgui.SetNextItemWidth(160)
+		if imgui.ComboStrarr(
+			"Source Sync Type",
+			&syncType,
+			wwise.SyncTypeName,
+			wwise.NumSyncType,
+			) {
+			p.SyncType = uint32(syncType)
+		}
+
+		imgui.Text(fmt.Sprintf("Cue Filter Hash: %d", p.CueFilterHash))
+
+		imgui.BeginDisabledV(!ModifiyEverything)
+		imgui.SetNextItemWidth(128)
+		imgui.InputInt("Destination Transition Time", &p.DestTransitionTime)
+		imgui.EndDisabled()
+
+		destFadeCurve := int32(p.DestFadeCurve)
+		imgui.SetNextItemWidth(256)
+		if imgui.ComboStrarr(
+			"Destination Fade Curve",
+			&destFadeCurve,
+			wwise.CurveInterpolationName,
+			wwise.CurveInterpolationCount,
+			) {
+			p.DestFadeCurve = uint32(destFadeCurve)
+		}
+
+		imgui.BeginDisabledV(!ModifiyEverything)
+		imgui.SetNextItemWidth(128)
+		imgui.InputInt("Destination Fade Offset", &p.DestFadeOffset)
+		imgui.EndDisabled()
+
+		imgui.TreePop()
 	}
+}
 
-	imgui.InputInt("Source Fade Offset", &p.SrcFadeOffset)
+func renderSwitchParam(t *BankTab, m *wwise.MusicTrack) {
+	if imgui.TreeNodeStr("Music Track Switch Parameter") {
+		imgui.Text("Group Type: " + wwise.GroupTypeName[m.SwitchParam.GroupType])
+		imgui.Text(fmt.Sprintf("Group ID: %d", m.SwitchParam.GroupID))
+		imgui.BeginDisabledV(!ModifiyEverything)
+		imgui.Text("Default Switch ID")
+		imgui.SetNextItemWidth(64)
+		imgui.SameLine()
+		imgui.InputScalar("##DefaultSwitchID", imgui.DataTypeU32, uintptr(utils.Ptr(&m.SwitchParam.DefaultSwitch)))
+		imgui.EndDisabled()
 
-	syncType := int32(p.SyncType)
-	if imgui.ComboStrarr(
-		"Source Sync Type",
-		&syncType,
-		wwise.SyncTypeName,
-		wwise.NumSyncType,
-	) {
-		p.SyncType = uint32(syncType)
+		size := imgui.NewVec2(0, 160)
+		const flags = DefaultTableFlags | imgui.TableFlagsScrollY
+		if imgui.BeginTableV("MusicTrackSwitchParamTable", 1, flags, size, 0) {
+			imgui.TableSetupColumn("Switch ID")
+			imgui.TableSetupScrollFreeze(0, 1)
+			imgui.TableHeadersRow()
+			for _, i := range m.SwitchParam.SwitchAssociates {
+				imgui.TableNextRow()
+				imgui.TableSetColumnIndex(0)
+				imgui.Text(strconv.FormatUint(uint64(i), 10))
+			}
+			imgui.EndTable()
+		}
+		imgui.TreePop()
 	}
-
-	imgui.Text(fmt.Sprintf("Cue Filter Hash", p.CueFilterHash))
-
-	imgui.InputInt("Destination Transition Time", &p.DestTransitionTime)
-	
-	destFadeCurve := int32(p.DestFadeCurve)
-	if imgui.ComboStrarr(
-		"Source Fade Curve",
-		&destFadeCurve,
-		wwise.RTPCInterpName,
-		wwise.NumRTPCInterp,
-	) {
-		p.DestFadeCurve = uint32(destFadeCurve)
-	}
-
-	imgui.InputInt("Destination Fade Offset", &p.DestFadeOffset)
 }
