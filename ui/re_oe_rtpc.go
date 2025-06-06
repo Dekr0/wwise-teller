@@ -9,8 +9,15 @@ import (
 
 func renderRTPC(hid uint32, r *wwise.RTPC) {
 	if imgui.TreeNodeExStr("RTPC") {
+		var removeRTPC func() = nil
 		for i := range r.RTPCItems {
 			ri := &r.RTPCItems[i]
+			imgui.PushIDStr(fmt.Sprintf("%dRmRTPC%d", hid, i))
+			if imgui.Button("X") {
+				removeRTPC = bindRTPCRemove(r, i)
+			}
+			imgui.PopID()
+			imgui.SameLine()
 			if imgui.TreeNodeExStrStr(fmt.Sprintf("RTPC%d%d", ri.RTPCID, i), 0, fmt.Sprintf("RTPC %d", ri.RTPCID)) {
 				imgui.BeginDisabledV(!ModifiyEverything)
 				rtpcType := int32(ri.RTPCType)
@@ -72,7 +79,14 @@ func renderRTPC(hid uint32, r *wwise.RTPC) {
 			}
 		}
 		imgui.TreePop()
+		if removeRTPC != nil {
+			removeRTPC()
+		}
 	}
+}
+
+func bindRTPCRemove(r *wwise.RTPC, i int) func() {
+	return func() { r.RemoveRTPCItem(i) }
 }
 
 func renderRTPCGraph(
@@ -151,7 +165,7 @@ func renderRTPCGraph(
 			curve := int32(p.Interp)
 			if imgui.ComboStrarr(
 				fmt.Sprintf("##%sRTPCCurve%d", stackID, i),
-				&curve, wwise.InterpCurveTypeName, int32(wwise.InterpCurveTypeConst),
+				&curve, wwise.InterpCurveTypeName, int32(wwise.InterpCurveTypeCount),
 			) {
 				p.Interp = uint32(curve)
 			}
