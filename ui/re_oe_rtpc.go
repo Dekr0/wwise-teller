@@ -151,7 +151,7 @@ func renderRTPCGraph(
 			curve := int32(p.Interp)
 			if imgui.ComboStrarr(
 				fmt.Sprintf("##%sRTPCCurve%d", stackID, i),
-				&curve, wwise.CurveInterpolationName, wwise.CurveInterpolationCount,
+				&curve, wwise.InterpCurveTypeName, int32(wwise.InterpCurveTypeConst),
 			) {
 				p.Interp = uint32(curve)
 			}
