@@ -246,10 +246,9 @@ func renderHircTree(t *BankTab)  {
 func renderHircTTable(t *BankTab) {
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("TreeTable", 3, flags, outerSize, 0) {
+	if imgui.BeginTableV("TreeTable", 2, flags, outerSize, 0) {
 		imgui.TableSetupColumn("Hierarchy ID")
 		imgui.TableSetupColumn("Hierarchy Type")
-		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
@@ -292,11 +291,13 @@ func renderHircNode(
 	*treeIdx += 1
 
 	var sid string
+	selected := false
 	id, err := o.HircID()
 	if err != nil {
 		sid = fmt.Sprintf("Unknown Id (Tree Index %d)", *treeIdx)
 	} else {
 		sid = strconv.FormatUint(uint64(id), 10)
+		selected = t.LinearStorage.Contains(imgui.ID(id))
 	}
 
 	rootless := false
@@ -308,7 +309,19 @@ func renderHircNode(
 		imgui.SetNextItemStorageID(imgui.IDInt(int32(*treeIdx)))
 		imgui.TableNextRow()
 		imgui.TableSetColumnIndex(0)
-		open := imgui.TreeNodeExStrV(sid, imgui.TreeNodeFlagsSpanAllColumns)
+
+		flags := imgui.TreeNodeFlagsSpanAllColumns | imgui.TreeNodeFlagsOpenOnDoubleClick
+		if selected {
+			flags |= imgui.TreeNodeFlagsSelected
+		}
+
+		open := imgui.TreeNodeExStrV(sid, flags)
+		if imgui.IsItemClicked() && err == nil {
+			if !imgui.CurrentIO().KeyCtrl() {
+				t.LinearStorage.Clear()
+			}
+			t.LinearStorage.SetItemSelected(imgui.ID(id), true)
+		}
 		imgui.TableSetColumnIndex(1)
 		st := wwise.HircTypeName[o.HircType()]
 		if o.HircType() == wwise.HircTypeSound {
@@ -318,13 +331,6 @@ func renderHircNode(
 			)
 		}
 		imgui.Text(st)
-		imgui.TableSetColumnIndex(2)
-		imgui.SetNextItemWidth(56)
-		imgui.BeginDisabledV(err != nil)
-		if imgui.ArrowButton("HircTreeGoTo" + sid, imgui.DirRight) {
-			t.LinearStorage.SetItemSelected(imgui.ID(id), true)
-		}
-		imgui.EndDisabled()
 		if open {
 			for j := 0; j < o.NumLeaf(); {
 				if !renderHircNode(t, c, drawIdx, treeIdx, hircObjs) {
