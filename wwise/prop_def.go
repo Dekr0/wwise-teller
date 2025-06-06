@@ -77,8 +77,10 @@ var PropLabel_140 = []string{
   "PAN_UD",
 }
 
+type PropType uint8
+
 const (
-	PropTypeVolume uint8 = 0 
+	PropTypeVolume PropType = 0 
 	PropTypeLFE = 1 
 	PropTypePitch = 2 
 	PropTypeLPF = 3 
@@ -154,7 +156,7 @@ const (
 	PropTypePAN_UD = 73 
 )
 
-var BasePropType []uint8 = []uint8{
+var BasePropType []PropType = []PropType{
 	PropTypeVolume,
 	PropTypePitch,
 	PropTypeLPF,
@@ -164,7 +166,7 @@ var BasePropType []uint8 = []uint8{
 	PropTypeInitialDelay,
 }
 
-var BaseRangePropType []uint8 = []uint8 {
+var BaseRangePropType []PropType = []PropType {
 	PropTypeVolume,
 	PropTypePitch,
 	PropTypeLPF,
@@ -173,7 +175,7 @@ var BaseRangePropType []uint8 = []uint8 {
 	PropTypeInitialDelay,
 }
 
-var UserAuxSendVolumePropType []uint8 = []uint8 {
+var UserAuxSendVolumePropType []PropType = []PropType {
 	PropTypeUserAuxSendVolume0,
 	PropTypeUserAuxSendVolume1,
 	PropTypeUserAuxSendVolume2,
