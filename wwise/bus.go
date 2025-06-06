@@ -98,12 +98,11 @@ func (h *Bus) Encode() []byte {
 	w.AppendByte(uint8(HircTypeBus))
 	w.Append(dataSize)
 	w.Append(h.Id)
-	w.AppendBytes(h.Data)
 	return w.BytesAssert(int(size))
 }
 
 func (h *Bus) DataSize() uint32 {
-	return uint32(4 + len(h.Data))
+	return 0
 }
 
 func (h *Bus) BaseParameter() *BaseParameter { return nil }
@@ -122,3 +121,25 @@ func (h *Bus) AddLeaf(o HircObj) { panic("") }
 
 func (h *Bus) RemoveLeaf(o HircObj) { panic("") }
 
+type BusFxParam struct {
+	FxChunk       FxChunk
+	FxID_0        uint32
+	IsShareSet_0  uint8  // !=0
+}
+
+func (b *BusFxParam) Encode() []byte {
+	size := b.Size()
+	w := wio.NewWriter(uint64(size))
+	w.AppendBytes(b.FxChunk.Encode())
+	w.Append(b.FxID_0)
+	w.Append(b.IsShareSet_0)
+	return w.BytesAssert(int(size))
+}
+
+func (b *BusFxParam) Size() uint32 {
+	return b.FxChunk.Size() + 5
+}
+
+type BusMetaFxParam struct {
+	// NumFx uint8
+}
