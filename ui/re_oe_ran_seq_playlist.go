@@ -118,8 +118,8 @@ func bindToPlayList(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
 func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLCell")
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("PLTable", 5, flags, outerSize, 0) {
+	size := imgui.NewVec2(0, 180)
+	if imgui.BeginTableV("PLTable", 5, flags, size, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumn("Sequence")
 		imgui.TableSetupColumn("Target ID")
