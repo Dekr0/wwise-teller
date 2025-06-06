@@ -125,8 +125,8 @@ type FxChunk struct {
 	FxChunkItems []FxChunkItem
 }
 
-func NewFxChunk() *FxChunk {
-	return &FxChunk{0, []FxChunkItem{}}
+func NewFxChunk() FxChunk {
+	return FxChunk{0, []FxChunkItem{}}
 }
 
 func (f *FxChunk) Encode() []byte {
@@ -155,7 +155,7 @@ type FxChunkItem struct {
 	UniqueFxIndex uint8 // u8i
 	FxId uint32 // tid
 	BitIsShareSet uint8 // U8x
-	BitIsRendered uint8 // U8x
+	BitIsRendered uint8 // U8x unused (effects can't render)
 }
 
 type FxChunkMetadata struct {
