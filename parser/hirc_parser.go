@@ -933,7 +933,7 @@ func ParsePropBundle(r *wio.Reader, p *wwise.PropBundle) {
 	CProps := r.U8Unsafe()
 	p.PropValues = make([]wwise.PropValue, CProps)
 	for i := range CProps {
-		p.PropValues[i].P = r.U8Unsafe()
+		p.PropValues[i].P = wwise.PropType(r.U8Unsafe())
 	}
 	for i := range CProps {
 		p.PropValues[i].V = r.ReadNUnsafe(4, 0)
@@ -944,7 +944,7 @@ func ParseRangePropBundle(r *wio.Reader, p *wwise.RangePropBundle) {
 	CProps := r.U8Unsafe()
 	p.RangeValues = make([]wwise.RangeValue, CProps)
 	for i := range p.RangeValues {
-		p.RangeValues[i].P = r.U8Unsafe()
+		p.RangeValues[i].P = wwise.PropType(r.U8Unsafe())
 	}
 	for i := range p.RangeValues {
 		p.RangeValues[i].Min = r.ReadNUnsafe(4, 0)
