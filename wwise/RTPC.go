@@ -1,11 +1,27 @@
+// TODO:
+// - Make proper enum type
 package wwise
 
 import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
-const CurveInterpolationCount = 10
-var CurveInterpolationName []string = []string{
+type InterpCurveType uint8 
+
+const (
+	InterpCurveTypeLog3      InterpCurveType = 0
+	InterpCurveTypeSine      InterpCurveType = 1
+	InterpCurveTypeLog1      InterpCurveType = 2
+	InterpCurveTypeInvSCurve InterpCurveType = 3
+	InterpCurveTypeLinear    InterpCurveType = 4
+	InterpCurveTypeSCurve    InterpCurveType = 5
+	InterpCurveTypeExp1      InterpCurveType = 6
+	InterpCurveTypInvSine    InterpCurveType = 7
+	InterpCurveTypeExp3      InterpCurveType = 8
+	InterpCurveTypeConst     InterpCurveType = 9
+	InterpCurveTypeCount     InterpCurveType = 10
+)
+var InterpCurveTypeName []string = []string{
   	"Logarithmic (Base 3)",
   	"Sine (Constant Power Fade Out)",
   	"Logarithmic (Base 1.41)",
