@@ -15,7 +15,7 @@ import (
 const SizeOfPropValue = 4
 
 type PropValue struct {
-	P uint8
+	P   PropType
 	V []byte
 }
 type PropBundle struct {
@@ -31,7 +31,7 @@ func (p *PropBundle) Encode() []byte {
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(len(p.PropValues)))
 	for _, i := range p.PropValues {
-		w.AppendByte(i.P)
+		w.Append(i.P)
 	}
 	for _, i := range p.PropValues {
 		w.AppendBytes(i.V)
@@ -43,7 +43,7 @@ func (p *PropBundle) Size() uint32 {
 	return uint32(1 + len(p.PropValues) + SizeOfPropValue * len(p.PropValues))
 }
 
-func (p *PropBundle) HasPid(pId uint8) (int, bool) {
+func (p *PropBundle) HasPid(pId PropType) (int, bool) {
 	return sort.Find(len(p.PropValues), func(i int) int {
 		if pId < p.PropValues[i].P {
 			return -1
@@ -116,7 +116,7 @@ func (p *PropBundle) PriorityApplyDistFactor() (int, *PropValue) {
 }
 
 // TODO: Find a better way to do this
-func (p *PropBundle) ChangeBaseProp(idx int, nextPid uint8) {
+func (p *PropBundle) ChangeBaseProp(idx int, nextPid PropType) {
 	if !slices.Contains(BasePropType, nextPid) {
 		return
 	}
@@ -142,7 +142,7 @@ func (p *PropBundle) AddUserAuxSendVolume() {
 }
 
 // TODO: better way to do this
-func (p *PropBundle) ChangeUserAuxSendVolumeProp(idx int, nextPid uint8) {
+func (p *PropBundle) ChangeUserAuxSendVolumeProp(idx int, nextPid PropType) {
 	if !slices.Contains(UserAuxSendVolumePropType, nextPid) {
 		return
 	}
@@ -192,7 +192,7 @@ func (p *PropBundle) HDRActiveRange() (int, *PropValue) {
 	}
 }
 
-func (p *PropBundle) Remove(pId uint8) {
+func (p *PropBundle) Remove(pId PropType) {
 	i, found := p.HasPid(pId)
 	if !found {
 		return
@@ -219,7 +219,7 @@ func (r *RangePropBundle) Encode() []byte {
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(len(r.RangeValues)))
 	for _, i := range r.RangeValues {
-		w.AppendByte(i.P)
+		w.Append(i.P)
 	}
 	for _, i := range r.RangeValues {
 		w.AppendBytes(i.Encode())
@@ -231,7 +231,7 @@ func (r *RangePropBundle) Size() uint32 {
 	return uint32(1 + len(r.RangeValues) + SizeOfRangeValue * len(r.RangeValues))
 }
 
-func (r *RangePropBundle) HasPid(pID uint8) (int, bool) {
+func (r *RangePropBundle) HasPid(pID PropType) (int, bool) {
 	return sort.Find(len(r.RangeValues), func(i int) int {
 		if pID < r.RangeValues[i].P {
 			return -1
@@ -254,7 +254,7 @@ func (r *RangePropBundle) AddBaseProp() {
 	}
 }
 
-func (r *RangePropBundle) ChangeBaseProp(idx int, nextPid uint8) {
+func (r *RangePropBundle) ChangeBaseProp(idx int, nextPid PropType) {
 	if !slices.Contains(BasePropType, nextPid) {
 		return
 	}
@@ -286,7 +286,7 @@ func (r *RangePropBundle) SetPropMaxByIdxF32(idx int, v float32) {
 	binary.Encode(r.RangeValues[idx].Max, wio.ByteOrder, v)
 }
 
-func (r *RangePropBundle) Remove(pId uint8) error {
+func (r *RangePropBundle) Remove(pId PropType) error {
 	i, found := r.HasPid(pId)
 	if !found {
 		return fmt.Errorf("Failed to find property ID %d", pId)
@@ -311,7 +311,7 @@ func (r *RangePropBundle) Sort() {
 
 const SizeOfRangeValue = 8
 type RangeValue struct {
-	P uint8
+	P     PropType
 	Min []byte // Union[tid, uni / float32]
 	Max []byte // Union[tid, uni / float32]
 }
