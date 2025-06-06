@@ -177,7 +177,7 @@ func renderFadeInCurveCombo(EnumFadeCurve uint8) uint8 {
 	curveType := int32(EnumFadeCurve)
 	imgui.Text("Fade-In Curve")
 	imgui.SetNextItemWidth(128)
-	if imgui.ComboStrarr("##Fade-In Curve", &curveType, wwise.CurveInterpolationName, wwise.CurveInterpolationCount) {
+	if imgui.ComboStrarr("##Fade-In Curve", &curveType, wwise.InterpCurveTypeName, int32(wwise.InterpCurveTypeCount)) {
 		EnumFadeCurve = uint8(curveType)
 	}
 	return EnumFadeCurve

@@ -160,7 +160,7 @@ func renderUserAuxSendVolumeTable(p *wwise.PropBundle) {
 	}
 }
 
-func bindChangeUserAuxSendVolumeProp(p *wwise.PropBundle, idx int, nextPid uint8) func() {
+func bindChangeUserAuxSendVolumeProp(p *wwise.PropBundle, idx int, nextPid wwise.PropType) func() {
 	return func() { p.ChangeUserAuxSendVolumeProp(idx, nextPid) }
 }
 

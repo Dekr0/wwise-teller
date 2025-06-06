@@ -201,8 +201,8 @@ func renderClipAutomation(t *BankTab, o *wwise.MusicTrack) {
 						if imgui.ComboStrarr(
 							fmt.Sprintf("##CARTPC%dInterp%d", i, j),
 							&interp,
-							wwise.CurveInterpolationName,
-							wwise.CurveInterpolationCount,
+							wwise.InterpCurveTypeName,
+							int32(wwise.InterpCurveTypeCount),
 						) {
 							pt.Interp = uint32(interp)
 						}
@@ -244,9 +244,9 @@ func renderTransitionParam(p *wwise.MusicTrackTransitionParam) {
 		if imgui.ComboStrarr(
 			"Source Fade Curve",
 			&srcFadeCurve,
-			wwise.CurveInterpolationName,
-			wwise.CurveInterpolationCount,
-			) {
+			wwise.InterpCurveTypeName,
+			int32(wwise.InterpCurveTypeCount),
+		) {
 			p.SrcFadeCurve = uint32(srcFadeCurve)
 		}
 
@@ -276,9 +276,9 @@ func renderTransitionParam(p *wwise.MusicTrackTransitionParam) {
 		if imgui.ComboStrarr(
 			"Destination Fade Curve",
 			&destFadeCurve,
-			wwise.CurveInterpolationName,
-			wwise.CurveInterpolationCount,
-			) {
+			wwise.InterpCurveTypeName,
+			int32(wwise.InterpCurveTypeCount),
+		) {
 			p.DestFadeCurve = uint32(destFadeCurve)
 		}
 

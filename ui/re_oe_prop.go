@@ -180,11 +180,11 @@ func renderBasePropTable(p *wwise.PropBundle) {
 	}
 }
 
-func bindChangeBaseProp(p *wwise.PropBundle, idx int, nextPid uint8) func() {
+func bindChangeBaseProp(p *wwise.PropBundle, idx int, nextPid wwise.PropType) func() {
 	return func() { p.ChangeBaseProp(idx, nextPid) }
 }
 
-func bindRemoveProp(p *wwise.PropBundle, pid uint8) func() {
+func bindRemoveProp(p *wwise.PropBundle, pid wwise.PropType) func() {
 	return func() {
 		p.Remove(pid)
 	}
@@ -415,13 +415,13 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 	}
 }
 
-func bindRemoveBaseRangeProp(r *wwise.RangePropBundle, p uint8) func() {
+func bindRemoveBaseRangeProp(r *wwise.RangePropBundle, p wwise.PropType) func() {
 	return func() {
 		r.Remove(p)
 	}
 }
 
-func bindChangeBaseRangeProp(r *wwise.RangePropBundle, idx int, nextPid uint8) func() {
+func bindChangeBaseRangeProp(r *wwise.RangePropBundle, idx int, nextPid wwise.PropType) func() {
 	return func() {
 		r.ChangeBaseProp(idx, nextPid)
 	}
