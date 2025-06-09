@@ -803,7 +803,7 @@ func ParseSound(size uint32, r *wio.Reader) *wwise.Sound {
 func ParseBankSourceData(r *wio.Reader) wwise.BankSourceData {
 	b := wwise.BankSourceData{
 		PluginID:          r.U32Unsafe(),
-		StreamType:        r.U8Unsafe(),
+		StreamType:        wwise.SourceType(r.U8Unsafe()),
 		SourceID:          r.U32Unsafe(),
 		InMemoryMediaSize: r.U32Unsafe(),
 		SourceBits:        r.U8Unsafe(),
@@ -1013,8 +1013,8 @@ func ParseStateProp(r *wio.Reader, s *wwise.StateProp) {
 	NumStateProps := r.U8Unsafe()
 	s.StatePropItems = make([]wwise.StatePropItem, NumStateProps)
 	for i := range s.StatePropItems {
-		s.StatePropItems[i].PropertyId = r.U8Unsafe()
-		s.StatePropItems[i].AccumType = r.U8Unsafe()
+		s.StatePropItems[i].PropertyId = wwise.RTPCParameterType(r.U8Unsafe())
+		s.StatePropItems[i].AccumType = wwise.RTPCAccumType(r.U8Unsafe())
 		s.StatePropItems[i].InDb = r.U8Unsafe()
 	}
 }
@@ -1042,10 +1042,10 @@ func ParseRTPC(r *wio.Reader, rtpc *wwise.RTPC) {
 		item := &rtpc.RTPCItems[i]
 		item.RTPCID = r.U32Unsafe()
 		item.RTPCType = r.U8Unsafe()
-		item.RTPCAccum = r.U8Unsafe()
-		item.ParamID = r.U8Unsafe()
+		item.RTPCAccum = wwise.RTPCAccumType(r.U8Unsafe())
+		item.ParamID = wwise.RTPCParameterType(r.U8Unsafe())
 		item.RTPCCurveID = r.U32Unsafe()
-		item.Scaling = r.U8Unsafe()
+		item.Scaling = wwise.CurveScalingType(r.U8Unsafe())
 		NumRTPCGraphPoints := r.U16Unsafe()
 		item.RTPCGraphPoints = make([]wwise.RTPCGraphPoint, NumRTPCGraphPoints, NumRTPCGraphPoints)
 		ParseRTPCGraphPoints(r, item.RTPCGraphPoints)
