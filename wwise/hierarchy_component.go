@@ -1,7 +1,8 @@
+// TODO
+// - Channel Mask to string name
 package wwise
 
 import (
-	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
@@ -185,18 +186,14 @@ func (f *FxChunkMetadata) Size() uint32 {
 
 const SizeOfFxChunkMetadata = 6
 type FxChunkMetadataItem struct {
-	UniqueFxIndex uint8 // u8i
-	FxId uint32 // tid
-	BitIsShareSet uint8 // U8x
+	UniqueFxIndex uint8  // u8i
+	FxId          uint32 // tid
+	BitIsShareSet uint8  // U8x
 }
 
 type StateProp struct {
 	// NumStateProps uint8
 	StatePropItems []StatePropItem
-}
-
-func NewStateProp() *StateProp {
-	return &StateProp{[]StatePropItem{}}
 }
 
 func (s *StateProp) Encode() []byte {
@@ -215,9 +212,9 @@ func (s *StateProp) Size() uint32 {
 
 const SizeOfStatePropItem = 3
 type StatePropItem struct {
-	PropertyId uint8 // var (at least 1 byte / 8 bits)
-	AccumType uint8 // U8x
-	InDb uint8 // U8x
+	PropertyId RTPCParameterType // var (at least 1 byte / 8 bits)
+	AccumType  RTPCAccumType // U8x
+	InDb       uint8 // U8x
 }
 
 type StateGroup struct {
@@ -280,113 +277,6 @@ type StateGroupItemState struct {
 	StateInstanceID uint32 // tid
 }
 
-var SourceType []string = []string{
-	"DATA",
-	"Streaming",
-	"Prefetch Streaming",
-}
-type BankSourceData struct {
-	PluginID uint32 // U32
-	StreamType uint8 // U8x
-	SourceID uint32 // tid
-	InMemoryMediaSize uint32 // U32
-	SourceBits uint8 // U8x
-	PluginParam *PluginParam
-}
-
-func (b *BankSourceData) PluginType() uint32 {
-	return (b.PluginID >> 0) & 0x000F
-}
-
-func (b *BankSourceData) Company() uint32 {
-	return (b.PluginID >> 4) & 0x03FF
-}
-
-func (b *BankSourceData) LanguageSpecific() bool {
-	return b.SourceBits & 0b00000001 != 0
-}
-
-func (b *BankSourceData) Prefetch() bool {
-	return b.SourceBits & 0b00000010 != 0
-}
-
-func (b *BankSourceData) NonCacheable() bool {
-	return b.SourceBits & 0b00001000 != 0
-}
-
-func (b *BankSourceData) HasSource() bool {
-	return b.SourceBits & 0b10000000 != 0
-}
-
-func (b *BankSourceData) HasParam() bool {
-	return (b.PluginID & 0x0F) == 2
-}
-
-func (b *BankSourceData) ChangeSource(sid uint32, inMemoryMediaSize uint32) {
-	b.SourceID = sid
-	b.InMemoryMediaSize = inMemoryMediaSize
-}
-
-func (b *BankSourceData) Encode() []byte {
-	b.assert()
-	size := b.Size()
-	w := wio.NewWriter(uint64(size))
-	w.Append(b.PluginID)
-	w.AppendByte(b.StreamType)
-	w.Append(b.SourceID)
-	w.Append(b.InMemoryMediaSize)
-	w.Append(b.SourceBits)
-	if b.PluginParam != nil {
-		w.AppendBytes(b.PluginParam.Encode())
-	}
-	return w.BytesAssert(int(size))
-}
-
-func (b *BankSourceData) Size() uint32 {
-	size := uint32(4 + 1 + 4 + 4 + 1)
-	if b.PluginParam != nil {
-		size += b.PluginParam.Size()
-	}
-	return size
-}
-
-func (b *BankSourceData) assert() {
-	if !b.HasParam() {
-		assert.Nil(b.PluginParam,
-			"Plugin type indicate that there's no plugin parameter data.",
-		)
-		return
-	}
-	// This make no sense???
-	if b.PluginID == 0 {
-		assert.Nil(b.PluginParam,
-			"Plugin type indicate that there's no plugin parameter data.",
-		)
-	}
-}
-
-type PluginParam struct {
-	PluginParamSize uint32 // U32
-	PluginParamData []byte
-}
-
-func (p *PluginParam) Encode() []byte {
-	assert.Equal(
-		int(p.PluginParamSize),
-		len(p.PluginParamData),
-		"Plugin parameter size doesn't equal # of bytes in plugin parameter data",
-	)
-	size := 4 + len(p.PluginParamData)
-	w := wio.NewWriter(uint64(size))
-	w.Append(p.PluginParamSize)
-	w.AppendBytes(p.PluginParamData)
-	return w.BytesAssert(size)
-}
-
-func (p *PluginParam) Size() uint32 {
-	return uint32(4 + len(p.PluginParamData))
-}
-
 type Container struct {
 	// NumChild u32
 	Children []uint32 // NUmChild * sizeof(tid)
@@ -438,60 +328,4 @@ type SwitchParam struct {
 	ModeBitVector uint8 // U8x
 	FadeOutTime int32 // s32
 	FadeInTime int32 // s32
-}
-
-type Layer struct {
-	Id uint32 // tid
-	InitialRTPC RTPC
-	RTPCId uint32 // tid
-	RTPCType uint8 // U8x
-
-	// NumAssoc uint32 // u32
-
-	LayerRTPCs []LayerRTPC
-}
-
-func (l *Layer) Encode() []byte {
-	size := l.Size()
-	w := wio.NewWriter(uint64(size))
-	w.Append(l.Id)
-	w.AppendBytes(l.InitialRTPC.Encode())
-	w.Append(l.RTPCId)
-	w.AppendByte(l.RTPCType)
-	w.Append(uint32(len(l.LayerRTPCs)))
-	for _, i := range l.LayerRTPCs {
-		w.AppendBytes(i.Encode())
-	}
-	return w.BytesAssert(int(size))
-}
-
-func (l *Layer) Size() uint32 {
-	size := uint32(4 + l.InitialRTPC.Size() + 4 + 1 + 4)
-	for _, i := range l.LayerRTPCs {
-		size += i.Size()
-	}
-	return size
-}
-
-type LayerRTPC struct {
-	AssociatedChildID uint32 // tid
-
-	// NumRTPCGraphPoints / CurveSize uint32 // u32
-
-	RTPCGraphPoints []RTPCGraphPoint
-}
-
-func (l *LayerRTPC) Encode() []byte {
-	size := l.Size()
-	w := wio.NewWriter(uint64(size))
-	w.Append(l.AssociatedChildID)
-	w.Append(uint32(len(l.RTPCGraphPoints)))
-	for _, i := range l.RTPCGraphPoints {
-		w.Append(i.Encode())
-	}
-	return w.BytesAssert(int(size))
-}
-
-func (l *LayerRTPC) Size() uint32 {
-	return uint32(4 + 4 + len(l.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
 }
