@@ -207,6 +207,16 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
+			case wwise.HircTypeFxCustom:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseFxCustom,
+					hirc,
+					sem,
+					&parsed,
+				)
 			default:
 				panic("Assertion Trap")
 			}
@@ -247,6 +257,8 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 				obj = ParseMusicRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeAttenuation:
 				obj = ParseAttenuation(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeFxCustom:
+				obj = ParseFxCustom(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			default:
 				panic("Assertion Trap")
 			}
@@ -330,6 +342,10 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 			panic(fmt.Sprintf("Duplicate attenuation object %d", id))
 		}
 		h.AttenuationCount.Add(1)
+	case wwise.HircTypeFxCustom:
+		if _, in := h.FxCustoms.LoadOrStore(id, obj); in {
+			panic(fmt.Sprintf("Duplicate fx custom object %d", id))
+		}
 	default:
 		panic("Assertion Trap")
 	}
@@ -1113,4 +1129,44 @@ func ParseRTPCGraphPoints(r *wio.Reader, pts []wwise.RTPCGraphPoint) {
 		pts[i].To = r.F32Unsafe()
 		pts[i].Interp = r.U32Unsafe()
 	}
+}
+
+func ParseFxCustom(size uint32, r *wio.Reader) *wwise.FxCustom {
+	assert.Equal(0, r.Pos(), "Fx Custom parser position doesn't start at 0.")
+	begin := r.Pos()
+	f := wwise.FxCustom{
+		Id: r.U32Unsafe(),
+		PluginTypeId: r.U32Unsafe(),
+	}
+	if f.HasParam() {
+		f.PluginParam = &wwise.PluginParam{
+			PluginParamSize: r.U32Unsafe(),
+			PluginParamData: []byte{},
+		}
+		if f.PluginParam.PluginParamSize > 0 {
+			f.PluginParam.PluginParamData = r.ReadNUnsafe(uint64(f.PluginParam.PluginParamSize), 0)
+		}
+	}
+	f.MediaMap = make([]wwise.MediaMapItem, r.U8Unsafe())
+	for i := range f.MediaMap {
+		f.MediaMap[i].Index = r.U8Unsafe()
+		f.MediaMap[i].SourceId = r.U32Unsafe()
+	}
+	ParseRTPC(r, &f.RTPC)
+	ParseStateProp(r, &f.StateProp)
+	ParseStateGroup(r, &f.StateGroup)
+	f.PluginProps = make([]wwise.PluginProp, r.U16Unsafe())
+	for i := range f.PluginProps {
+		f.PluginProps[i].PropertyID = wwise.RTPCParameterType(r.U8Unsafe())
+		f.PluginProps[i].RTPCAccum = wwise.RTPCAccumType(r.U8Unsafe())
+		f.PluginProps[i].Value = r.F32Unsafe()
+	}
+	end := r.Pos()
+	if begin >= end {
+		panic("Reader consume zero byte.")
+	}
+	assert.Equal(size, uint32(end-begin),
+		"The amount of bytes reader consume doesn't equal to size in hierarchy header",
+	)
+	return &f
 }

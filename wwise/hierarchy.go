@@ -62,6 +62,7 @@ var KnownHircTypes []HircType = []HircType{
 	HircTypeMusicSwitchCntr,
 	HircTypeMusicRanSeqCntr,
 	HircTypeAttenuation,
+	HircTypeFxCustom,
 }
 
 var ContainerHircTypes []HircType = []HircType{
@@ -70,8 +71,8 @@ var ContainerHircTypes []HircType = []HircType{
 	HircTypeActorMixer,
 	HircTypeLayerCntr,
 	HircTypeMusicSegment,
-	HircTypeMusicRanSeqCntr,
 	HircTypeMusicSwitchCntr,
+	HircTypeMusicRanSeqCntr,
 }
 
 func ContainerHircType(o HircObj) bool {
@@ -87,10 +88,11 @@ func ContainerHircType(o HircObj) bool {
 
 func NonHircType(o HircObj) bool {
 	t := o.HircType()
-	return t == HircTypeAction      || 
+	return t == HircTypeState       ||
+	       t == HircTypeAction      || 
 		   t == HircTypeEvent       || 
 	       t == HircTypeAttenuation ||
-	       t == HircTypeState
+		   t == HircTypeFxCustom
 }
 
 var HircTypeName []string = []string{
@@ -137,6 +139,8 @@ type HIRC struct {
 	AttenuationCount atomic.Uint32
 	Events           sync.Map
 	EventCount       atomic.Uint32
+	FxCustoms        sync.Map
+	FxCustomCount    atomic.Uint32
 	LayerCntrs       sync.Map
 	MusicSegments    sync.Map
 	MusicTracks      sync.Map
