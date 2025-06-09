@@ -39,9 +39,9 @@ func renderRTPC(hid uint32, r *wwise.RTPC) {
 					"Accumulation Type",
 					&accumType,
 					wwise.RTPCAccumTypeName,
-					wwise.RTPCAccumTypeCount,
+					int32(wwise.RTPCAccumTypeCount),
 				) {
-					ri.RTPCAccum = uint8(accumType)
+					ri.RTPCAccum = wwise.RTPCAccumType(accumType)
 				}
 				imgui.EndDisabled()
 
@@ -52,9 +52,9 @@ func renderRTPC(hid uint32, r *wwise.RTPC) {
 					"RTPC Parameter",
 					&paramID,
 					wwise.RTPCParameterIDName,
-					wwise.RTPCParameterIDCount,
+					int32(wwise.RTPCParameterTypeCount),
 				) {
-					ri.ParamID = uint8(paramID)
+					ri.ParamID = wwise.RTPCParameterType(paramID)
 				}
 				imgui.EndDisabled()
 
@@ -67,9 +67,9 @@ func renderRTPC(hid uint32, r *wwise.RTPC) {
 					"Scaling",
 					&scaling,
 					wwise.CurveScalingTypeName,
-					wwise.CurveScalingTypeCount,
+					int32(wwise.CurveScalingTypeCount),
 				) {
-					ri.Scaling = uint8(scaling)
+					ri.Scaling = wwise.CurveScalingType(scaling)
 				}
 				imgui.EndDisabled()
 
@@ -92,7 +92,7 @@ func bindRTPCRemove(r *wwise.RTPC, i int) func() {
 func renderRTPCGraph(
 	rtpcID uint32,
 	curveID uint32,
-	paramID uint8,
+	paramID wwise.RTPCParameterType,
 	points []wwise.RTPCGraphPoint,
 ) {
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
