@@ -62,3 +62,59 @@ func (l *LayerCntr) AddLeaf(o HircObj) {
 func (l *LayerCntr) RemoveLeaf(o HircObj) {
 	slog.Warn("Removing old leaf is not implemented for layer container.")
 }
+
+type Layer struct {
+	Id uint32 // tid
+	InitialRTPC RTPC
+	RTPCId uint32 // tid
+	RTPCType uint8 // U8x
+
+	// NumAssoc uint32 // u32
+
+	LayerRTPCs []LayerRTPC
+}
+
+func (l *Layer) Encode() []byte {
+	size := l.Size()
+	w := wio.NewWriter(uint64(size))
+	w.Append(l.Id)
+	w.AppendBytes(l.InitialRTPC.Encode())
+	w.Append(l.RTPCId)
+	w.AppendByte(l.RTPCType)
+	w.Append(uint32(len(l.LayerRTPCs)))
+	for _, i := range l.LayerRTPCs {
+		w.AppendBytes(i.Encode())
+	}
+	return w.BytesAssert(int(size))
+}
+
+func (l *Layer) Size() uint32 {
+	size := uint32(4 + l.InitialRTPC.Size() + 4 + 1 + 4)
+	for _, i := range l.LayerRTPCs {
+		size += i.Size()
+	}
+	return size
+}
+
+type LayerRTPC struct {
+	AssociatedChildID uint32 // tid
+
+	// NumRTPCGraphPoints / CurveSize uint32 // u32
+
+	RTPCGraphPoints []RTPCGraphPoint
+}
+
+func (l *LayerRTPC) Encode() []byte {
+	size := l.Size()
+	w := wio.NewWriter(uint64(size))
+	w.Append(l.AssociatedChildID)
+	w.Append(uint32(len(l.RTPCGraphPoints)))
+	for _, i := range l.RTPCGraphPoints {
+		w.Append(i.Encode())
+	}
+	return w.BytesAssert(int(size))
+}
+
+func (l *LayerRTPC) Size() uint32 {
+	return uint32(4 + 4 + len(l.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
+}
