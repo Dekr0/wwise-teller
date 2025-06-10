@@ -56,6 +56,7 @@ var KnownHircTypes []HircType = []HircType{
 	HircTypeRanSeqCntr,
 	HircTypeSwitchCntr,
 	HircTypeActorMixer,
+	HircTypeBus,
 	HircTypeLayerCntr,
 	HircTypeMusicSegment,
 	HircTypeMusicTrack,
@@ -92,6 +93,7 @@ func NonHircType(o HircObj) bool {
 	return t == HircTypeState       ||
 	       t == HircTypeAction      || 
 		   t == HircTypeEvent       || 
+		   t == HircTypeBus         ||
 	       t == HircTypeAttenuation ||
 		   t == HircTypeFxShareSet  ||
 		   t == HircTypeFxCustom
@@ -134,6 +136,7 @@ type HIRC struct {
 
 	ActionCount      atomic.Uint32
 	AttenuationCount atomic.Uint32
+	BusCount         atomic.Uint32
 	EventCount       atomic.Uint32
 	FxCustomCount    atomic.Uint32
 	FxShareSetCount  atomic.Uint32
