@@ -1,3 +1,9 @@
+# Priority List
+
+- The ability to modify DATA and DIDX section
+    - Automation as first class citizen 
+- The ability to pack multiple sound banks for Helldivers 2 integration
+
 # Features
 
 ## Rewiring
