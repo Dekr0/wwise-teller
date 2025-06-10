@@ -6,6 +6,7 @@
 //   - State
 //   - ...
 // - Tree View Keyboard navigation
+// - Tree Render does not work when there's one not expanded root entry in the table 
 package ui
 
 import (
@@ -69,7 +70,7 @@ func renderBankExplorerTab(path string, t *BankTab) {
 	imgui.Text("Sound bank: " + path)
 	if imgui.BeginTabBar("SubBankExplorerTabBar") {
 		if imgui.BeginTabItem("Hierarchy Listing") {
-			renderHircLTable(t)
+			renderActorMixerHircTable(t)
 			imgui.EndTabItem()
 		}
 		if imgui.BeginTabItem("Attenuation") {
@@ -127,7 +128,7 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, 
 	return saveTab, saveName, itype
 }
 
-func renderHircLTable(b *BankTab) {
+func renderActorMixerHircTable(b *BankTab) {
 	focusTable := false
 
 	useViUp()
@@ -233,17 +234,18 @@ func renderHircLTable(b *BankTab) {
 	}
 }
 
-func renderHircTree(t *BankTab)  {
+func renderActorMixerHircTree(t *BankTab)  {
 	imgui.Begin("Hierarchy View")
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
 		imgui.End()
 		return
 	}
-	renderHircTTable(t)
+	renderActorMixerHircTreeTable(t)
 	imgui.End()
 }
 
-func renderHircTTable(t *BankTab) {
+func renderActorMixerHircTreeTable(t *BankTab) {
+	/*
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("TreeTable", 2, flags, outerSize, 0) {
@@ -271,6 +273,7 @@ func renderHircTTable(t *BankTab) {
 
 		imgui.EndTable()
 	}
+	*/
 }
 
 func renderHircNode(

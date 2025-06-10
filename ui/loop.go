@@ -220,7 +220,7 @@ func createLoop(
 				pushHD2PatchModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
 			}
 		}
-		renderHircTree(bnkMngr.ActiveBank)
+		renderActorMixerHircTree(bnkMngr.ActiveBank)
 		renderObjEditor(bnkMngr.ActiveBank)
 		renderEventsViewer(bnkMngr.ActiveBank)
 		renderNotfiy(nQ)
