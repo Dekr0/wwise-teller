@@ -1,3 +1,5 @@
+// TODO
+// - Rework of encoding (detail see TODO.md)
 package wwise
 
 import (
