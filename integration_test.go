@@ -30,18 +30,18 @@ func TestRemoveActorMixerCntrChild2(t *testing.T) {
 
 	l := len(hirc.HircObjs)
 
-	v, in := hirc.SwitchCntrs.Load(uint32(99586918))
+	v, in := hirc.HircObjsMap.Load(uint32(99586918))
 	if !in {
 		t.Fatalf("ID %d does not have an associated switch container", 99586918)
 	}
 	switchOne := v.(*wwise.SwitchCntr)
-	v, in = hirc.SwitchCntrs.Load(uint32(338060418))
+	v, in = hirc.HircObjsMap.Load(uint32(338060418))
 	if !in {
 		t.Fatalf("ID %d does not have an associated switch container", 338060418)
 	}
 	switchTwo := v.(*wwise.SwitchCntr)
 
-	v, in = hirc.ActorMixers.Load(uint32(662359126))
+	v, in = hirc.HircObjsMap.Load(uint32(662359126))
 	if !in {
 		t.Fatalf("ID %d does not have an associated actor mixer", 662359126)
 	}
@@ -129,14 +129,14 @@ func TestRemoveRanSeqCntrChild(t *testing.T) {
 		return h.HircType() == 0x03
 	})
 
-	v, in := hirc.RanSeqCntrs.Load(uint32(351417743))
+	v, in := hirc.HircObjsMap.Load(uint32(351417743))
 	if !in {
 		t.Fatalf("%d does not have an associated random / sequence container object.", 351417743)
 	}
 	ranSeqCntr := v.(*wwise.RanSeqCntr)
 
 	for _, soundID := range soundIDs {
-		v, in := hirc.Sounds.Load(soundID)
+		v, in := hirc.HircObjsMap.Load(soundID)
 		if !in {
 			t.Fatalf("%d does not have an associated sound object.", soundID)
 		}
@@ -209,7 +209,7 @@ func TestChangeSoundRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	v, in := hirc.RanSeqCntrs.Load(uint32(862008135))
+	v, in := hirc.HircObjsMap.Load(uint32(862008135))
 	if !in {
 		t.Fatalf("%d does not have an associated random / sequence container", 862008135)
 	}
@@ -225,7 +225,7 @@ func TestChangeSoundRoot(t *testing.T) {
 		t.Fatalf("%d is not in HIRC", 862008135)
 	}
 
-	v, in = hirc.RanSeqCntrs.Load(uint32(114819736))
+	v, in = hirc.HircObjsMap.Load(uint32(114819736))
 	if !in {
 		t.Fatalf("%d does not have an associated random / sequence container", 114819736)
 	}
@@ -252,7 +252,7 @@ func TestChangeSoundRoot(t *testing.T) {
 	}
 	oldSoundIdxs := make([]int, len(soundIDs))
 	for i, soundID := range soundIDs {
-		v, in := hirc.Sounds.Load(soundID)
+		v, in := hirc.HircObjsMap.Load(soundID)
 		if !in {
 			t.Fatalf("%d does not have an associated sound", soundID)
 		}
@@ -335,7 +335,7 @@ func TestChangeSoundPartial(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	v, in := hirc.RanSeqCntrs.Load(uint32(862008135))
+	v, in := hirc.HircObjsMap.Load(uint32(862008135))
 	if !in {
 		t.Fatalf("%d does not have an associated random / sequence container", 862008135)
 	}
@@ -351,7 +351,7 @@ func TestChangeSoundPartial(t *testing.T) {
 		t.Fatalf("%d is not in HIRC", 862008135)
 	}
 
-	v, in = hirc.RanSeqCntrs.Load(uint32(114819736))
+	v, in = hirc.HircObjsMap.Load(uint32(114819736))
 	if !in {
 		t.Fatalf("%d does not have an associated random / sequence container", 114819736)
 	}
@@ -374,7 +374,7 @@ func TestChangeSoundPartial(t *testing.T) {
 		486185470,
 	}
 	for _, soundID := range soundIDs {
-		v, in := hirc.Sounds.Load(soundID)
+		v, in := hirc.HircObjsMap.Load(soundID)
 		if !in {
 			t.Fatalf("%d does not have an associated sound", soundID)
 		}
