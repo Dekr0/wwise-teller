@@ -147,6 +147,16 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
+			case wwise.HircTypeBus:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseBus,
+					hirc,
+					sem,
+					&parsed,
+				)
 			case wwise.HircTypeLayerCntr:
 				go ParserRoutine(
 					dwSectionSize,
@@ -207,6 +217,16 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
+			case wwise.HircTypeFxShareSet:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseFxShareSet,
+					hirc,
+					sem,
+					&parsed,
+				)
 			case wwise.HircTypeFxCustom:
 				go ParserRoutine(
 					dwSectionSize,
@@ -245,6 +265,8 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 				obj = ParseSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeActorMixer:
 				obj = ParseActorMixer(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeBus:
+				obj = ParseBus(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeLayerCntr:
 				obj = ParseLayerCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeMusicSegment:
@@ -257,6 +279,8 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 				obj = ParseMusicRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeAttenuation:
 				obj = ParseAttenuation(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeFxShareSet:
+				obj = ParseFxShareSet(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeFxCustom:
 				obj = ParseFxCustom(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			default:
@@ -287,67 +311,23 @@ func AddHircObj(h *wwise.HIRC, i uint32, obj wwise.HircObj) {
 	}
 	switch t {
 	case wwise.HircTypeState:
-		if _, in := h.States.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate state object %d", id))
-		}
 		h.StateCount.Add(1)
-	case wwise.HircTypeSound:
-		if _, in := h.Sounds.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate sound object %d", id))
-		}
 	case wwise.HircTypeAction:
-		if _, in := h.Actions.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate action object %d", id))
-		}
 		h.ActionCount.Add(1)
 	case wwise.HircTypeEvent:
-		if _, in := h.Events.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate event object %d", id))
-		}
 		h.EventCount.Add(1)
-	case wwise.HircTypeRanSeqCntr:
-		if _, in := h.RanSeqCntrs.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate random / sequence container object %d", id))
-		}
-	case wwise.HircTypeSwitchCntr:
-		if _, in := h.SwitchCntrs.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate switch container object %d", id))
-		}
-	case wwise.HircTypeActorMixer:
-		if _, in := h.ActorMixers.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate actor mixer object %d", id))
-		}
-	case wwise.HircTypeLayerCntr:
-		if _, in := h.LayerCntrs.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate layer container object %d", id))
-		}
-	case wwise.HircTypeMusicSegment:
-		if _, in := h.MusicSegments.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate music segment object %d", id))
-		}
-	case wwise.HircTypeMusicTrack:
-		if _, in := h.MusicTracks.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate music track object %d", id))
-		}
-	case wwise.HircTypeMusicSwitchCntr:
-		if _, in := h.MusicSwitchCntr.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate music switch container object %d", id))
-		}
-	case wwise.HircTypeMusicRanSeqCntr:
-		if _, in := h.MusicRanSeqCntr.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate music random sequence container object %d", id))
-		}
+	case wwise.HircTypeBus:
+		h.BusCount.Add(1)
+		slog.Warn("Parsed a bus")
 	case wwise.HircTypeAttenuation:
-		if _, in := h.Attenuations.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate attenuation object %d", id))
-		}
 		h.AttenuationCount.Add(1)
+	case wwise.HircTypeFxShareSet:
+		h.FxShareSetCount.Add(1)
 	case wwise.HircTypeFxCustom:
-		if _, in := h.FxCustoms.LoadOrStore(id, obj); in {
-			panic(fmt.Sprintf("Duplicate fx custom object %d", id))
-		}
+		h.FxCustomCount.Add(1)
+	case wwise.HircTypeSound, wwise.HircTypeRanSeqCntr, wwise.HircTypeSwitchCntr, wwise.HircTypeActorMixer, wwise.HircTypeLayerCntr, wwise.HircTypeMusicTrack, wwise.HircTypeMusicSegment, wwise.HircTypeMusicRanSeqCntr, wwise.HircTypeMusicSwitchCntr:
 	default:
-		panic("Assertion Trap")
+		panic("Panic Trap")
 	}
 	h.HircObjs[i] = obj
 	if _, in := h.HircObjsMap.LoadOrStore(id, obj); in {
@@ -1169,4 +1149,102 @@ func ParseFxCustom(size uint32, r *wio.Reader) *wwise.FxCustom {
 		"The amount of bytes reader consume doesn't equal to size in hierarchy header",
 	)
 	return &f
+}
+
+func ParseFxShareSet(size uint32, r *wio.Reader) *wwise.FxShareSet {
+	assert.Equal(0, r.Pos(), "Fx Share Set parser position doesn't start at 0.")
+	begin := r.Pos()
+	f := wwise.FxShareSet{
+		Id: r.U32Unsafe(),
+		PluginTypeId: r.U32Unsafe(),
+	}
+	if f.HasParam() {
+		f.PluginParam = &wwise.PluginParam{
+			PluginParamSize: r.U32Unsafe(),
+			PluginParamData: []byte{},
+		}
+		if f.PluginParam.PluginParamSize > 0 {
+			f.PluginParam.PluginParamData = r.ReadNUnsafe(uint64(f.PluginParam.PluginParamSize), 0)
+		}
+	}
+	f.MediaMap = make([]wwise.MediaMapItem, r.U8Unsafe())
+	for i := range f.MediaMap {
+		f.MediaMap[i].Index = r.U8Unsafe()
+		f.MediaMap[i].SourceId = r.U32Unsafe()
+	}
+	ParseRTPC(r, &f.RTPC)
+	ParseStateProp(r, &f.StateProp)
+	ParseStateGroup(r, &f.StateGroup)
+	f.PluginProps = make([]wwise.PluginProp, r.U16Unsafe())
+	for i := range f.PluginProps {
+		f.PluginProps[i].PropertyID = wwise.RTPCParameterType(r.U8Unsafe())
+		f.PluginProps[i].RTPCAccum = wwise.RTPCAccumType(r.U8Unsafe())
+		f.PluginProps[i].Value = r.F32Unsafe()
+	}
+	end := r.Pos()
+	if begin >= end {
+		panic("Reader consume zero byte.")
+	}
+	assert.Equal(size, uint32(end-begin),
+		"The amount of bytes reader consume doesn't equal to size in hierarchy header",
+	)
+	return &f
+}
+
+func ParseBus(size uint32, r *wio.Reader) *wwise.Bus {
+	assert.Equal(0, r.Pos(), "Bus parser position doesn't start at 0.")
+	begin := r.Pos()
+	bus := wwise.Bus{
+		Id: r.U32Unsafe(),
+		OverrideBusId: r.U32Unsafe(),
+	}
+	if bus.OverrideBusId == 0 {
+		bus.DeviceShareSetID = r.U32Unsafe()
+	}
+	ParsePropBundle(r, &bus.PropBundle)
+	ParsePositioningParam(r, &bus.PositioningParam)
+	ParseAuxParam(r, &bus.AuxParam)
+
+	bus.VirtualBehaviorBitVector = r.U8Unsafe()
+	bus.MaxNumInstance = r.U16Unsafe()
+	bus.ChannelConf = r.U32Unsafe()
+	bus.HDRBitVector = r.U8Unsafe()
+	bus.RecoveryTime = r.I32Unsafe()
+	bus.MaxDuckVolume = r.F32Unsafe()
+
+	bus.DuckInfoList = make([]wwise.DuckInfo, r.U32Unsafe())
+	for i := range bus.DuckInfoList {
+		bus.DuckInfoList[i].BusID = r.U32Unsafe()
+		bus.DuckInfoList[i].DuckVolume = r.F32Unsafe()
+		bus.DuckInfoList[i].FadeOutTime = r.I32Unsafe()
+		bus.DuckInfoList[i].FadeInTime = r.I32Unsafe()
+		bus.DuckInfoList[i].EnumFadeCurve = wwise.InterpCurveType(r.U8Unsafe())
+		bus.DuckInfoList[i].TargetProp = wwise.PropType(r.U8Unsafe())
+	}
+
+	ParseFxChunk(r, &bus.BusFxParam.FxChunk)
+	bus.BusFxParam.FxID_0 = r.U32Unsafe()
+	bus.BusFxParam.IsShareSet_0 = r.U8Unsafe()
+
+	bus.OverrideAttachmentParams = r.U8Unsafe()
+
+	bus.BusFxMetadataParam.FxChunkMetadataItems = make([]wwise.FxChunkMetadataItem, r.U8Unsafe())
+	for i := range bus.BusFxMetadataParam.FxChunkMetadataItems {
+		bus.BusFxMetadataParam.FxChunkMetadataItems[i].UniqueFxIndex = r.U8Unsafe()
+		bus.BusFxMetadataParam.FxChunkMetadataItems[i].FxId = r.U32Unsafe()
+		bus.BusFxMetadataParam.FxChunkMetadataItems[i].BitIsShareSet = r.U8Unsafe()
+	}
+
+	ParseRTPC(r, &bus.BusRTPC)
+	ParseStateProp(r, &bus.StateProp)
+	ParseStateGroup(r, &bus.StateGroup)
+
+	end := r.Pos()
+	if begin >= end {
+		panic("Reader consume zero byte.")
+	}
+	assert.Equal(size, uint32(end-begin),
+		"The amount of bytes reader consume doesn't equal to size in hierarchy header",
+	)
+	return &bus
 }
