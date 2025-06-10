@@ -2,31 +2,78 @@ package wwise
 
 import "github.com/Dekr0/wwise-teller/wio"
 
+type ChannelConfigType uint8
+
 const (
-	ChannelConfigTypeAnonymous            = 0
-	ChannelConfigTypeStandard             = 1
-	ChannelConfigTypeAmbisonic            = 2
-	ChannelConfigTypeObjects              = 3
-	ChannelConfigTypeUseDeviceMain        = 14
-	ChannelConfigTypeUseDevicePassThrough = 15
+	ChannelConfigTypeAnonymous            ChannelConfigType = 0
+	ChannelConfigTypeStandard             ChannelConfigType = 1
+	ChannelConfigTypeAmbisonic            ChannelConfigType = 2
+	ChannelConfigTypeObjects              ChannelConfigType = 3
+	ChannelConfigTypeUseDeviceMain        ChannelConfigType = 14
+	ChannelConfigTypeUseDevicePassThrough ChannelConfigType = 15
 )
+
 var ChannelConfigTypeName []string = []string{
 	"Anonymous",
 	"Standard",
 	"Ambisonic",
 	"Objects",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
+	"Unknown Channel Configuration Type 4",
+	"Unknown Channel Configuration Type 5",
+	"Unknown Channel Configuration Type 6",
+	"Unknown Channel Configuration Type 7",
+	"Unknown Channel Configuration Type 8",
+	"Unknown Channel Configuration Type 9",
+	"Unknown Channel Configuration Type 10",
+	"Unknown Channel Configuration Type 11",
+	"Unknown Channel Configuration Type 12",
+	"Unknown Channel Configuration Type 13",
 	"Use Device Main",
 	"Use Device Pass Through",
+}
+
+type ChannelMaskType uint32
+
+const (
+	ChannelMaskTypeFL  ChannelMaskType = 1 << 0
+	ChannelMaskTypeFR  ChannelMaskType = 1 << 1
+	ChannelMaskTypeFC  ChannelMaskType = 1 << 2
+	ChannelMaskTypeLFE ChannelMaskType = 1 << 3
+	ChannelMaskTypeBL  ChannelMaskType = 1 << 4
+	ChannelMaskTypeBR  ChannelMaskType = 1 << 5
+	ChannelMaskTypeFLC ChannelMaskType = 1 << 6
+	ChannelMaskTypeFRC ChannelMaskType = 1 << 7
+	ChannelMaskTypeBC  ChannelMaskType = 1 << 8
+	ChannelMaskTypeSL  ChannelMaskType = 1 << 9
+	ChannelMaskTypeSR  ChannelMaskType = 1 << 10
+	ChannelMaskTypeTC  ChannelMaskType = 1 << 11
+    ChannelMaskTypeTFL ChannelMaskType = 1 << 12
+    ChannelMaskTypeTFC ChannelMaskType = 1 << 13
+    ChannelMaskTypeTFR ChannelMaskType = 1 << 14
+    ChannelMaskTypeTBL ChannelMaskType = 1 << 15
+    ChannelMaskTypeTBC ChannelMaskType = 1 << 16
+    ChannelMaskTypeTBR ChannelMaskType = 1 << 17
+)
+
+var ChannelMaskTypeNames map[ChannelMaskType]string = map[ChannelMaskType]string{
+	ChannelMaskTypeFL: "FL",
+	ChannelMaskTypeFR: "FR",
+	ChannelMaskTypeFC: "FC",
+	ChannelMaskTypeLFE: "LFE",
+	ChannelMaskTypeBL: "BL",
+	ChannelMaskTypeBR: "BR",
+	ChannelMaskTypeFLC: "FLC",
+	ChannelMaskTypeFRC: "FRC",
+	ChannelMaskTypeBC: "BC",
+	ChannelMaskTypeSL: "SL",
+	ChannelMaskTypeSR: "SR",
+	ChannelMaskTypeTC: "TC",
+	ChannelMaskTypeTFL: "TFL",
+	ChannelMaskTypeTFC: "TFC",
+	ChannelMaskTypeTFR: "TFR",
+	ChannelMaskTypeTBL: "TBL",
+	ChannelMaskTypeTBC: "TBC",
+	ChannelMaskTypeTBR: "TBR",
 }
 
 type Bus struct {
@@ -39,38 +86,10 @@ type Bus struct {
 	PositioningParam          PositioningParam
 	AuxParam                  AuxParam
 
-	// 0 Kill Newest
-	// 1 Use Virtual Behavior
-	// 2 Ignore Parent Max Number Instance
-	// 3 Background Music
 	VirtualBehaviorBitVector  uint8
 	MaxNumInstance            uint16
 
-	// (>> 0) & 0xFF Number Channels
-	// (>> 8) & 0xF  Enum Config Type
-	// (>> 12) & 0xFFFFF Channel Mask
-	// 		(1 << 0):  "FL", # front left
-    // 		(1 << 1):  "FR", # front right
-    // 		(1 << 2):  "FC", # front center
-    // 		(1 << 3):  "LFE", # low frequency effects
-    // 		(1 << 4):  "BL", # back left
-    // 		(1 << 5):  "BR", # back right
-    // 		(1 << 6):  "FLC", # front left center
-    // 		(1 << 7):  "FRC", # front right center
-    // 		(1 << 8):  "BC", # back center
-    // 		(1 << 9):  "SL", # side left
-    // 		(1 << 10): "SR", # side right
-
-    // 		(1 << 11): "TC", # top center
-    // 		(1 << 12): "TFL", # top front left
-    // 		(1 << 13): "TFC", # top front center
-    // 		(1 << 14): "TFR", # top front right
-    // 		(1 << 15): "TBL", # top back left
-    // 		(1 << 16): "TBC", # top back center
-    // 		(1 << 17): "TBR", # top back left
-	ChannelConfig             uint32
-	// 0 Is HDR Bus
-	// 1 HDR Release Mode Exponential
+	ChannelConf               uint32
 	HDRBitVector              uint8
 	RecoveryTime              int32
 	MaxDuckVolume             float32
@@ -78,6 +97,10 @@ type Bus struct {
 	DuckInfoList              []DuckInfo
 	BusFxParam                BusFxParam
 	OverrideAttachmentParams  uint8
+	BusFxMetadataParam        BusFxMetadataParam
+	BusRTPC                   RTPC
+	StateProp                 StateProp
+	StateGroup                StateGroup
 }
 
 const SizeOfDuckInfo = 18
@@ -91,6 +114,66 @@ type DuckInfo struct {
 	TargetProp    PropType
 }
 
+func (h *Bus) KillNewest() bool {
+	return wio.GetBit(h.VirtualBehaviorBitVector, 0)
+}
+
+func (h *Bus) SetKillNewest(set bool) {
+	h.VirtualBehaviorBitVector = wio.SetBit(h.VirtualBehaviorBitVector, 0, set)
+}
+
+func (h *Bus) UseVirtualBehavior() bool {
+	return wio.GetBit(h.VirtualBehaviorBitVector, 1)
+}
+
+func (h *Bus) SetUseVirtualBehavior(set bool) {
+	h.VirtualBehaviorBitVector = wio.SetBit(h.VirtualBehaviorBitVector, 1, set)
+}
+
+func (h *Bus) IgnoreParentMaxNumInstance() bool {
+	return wio.GetBit(h.VirtualBehaviorBitVector, 2)
+}
+
+func (h *Bus) SetIgnoreParentMaxNumInstance(set bool) {
+	h.VirtualBehaviorBitVector = wio.SetBit(h.VirtualBehaviorBitVector, 2, set)
+}
+
+func (h *Bus) BackgroundMusic() bool {
+	return wio.GetBit(h.VirtualBehaviorBitVector, 3)
+}
+
+func (h *Bus) SetBackgroundMusic(set bool) {
+	h.VirtualBehaviorBitVector = wio.SetBit(h.VirtualBehaviorBitVector, 3, set)
+}
+
+func (h *Bus) NumChannel() uint8 {
+	return uint8((h.ChannelConf >> 0) & 0xFF)
+}
+
+func (h *Bus) ChannelConfig() ChannelConfigType {
+	return ChannelConfigType((h.ChannelConf >> 8) & 0xF)
+}
+
+func (h *Bus) ChannelMask() ChannelMaskType {
+	return ChannelMaskType((h.ChannelConf >> 12 ) & 0xFFFFF)
+}
+
+func (h *Bus) IsHDRBus() bool {
+	return wio.GetBit(h.HDRBitVector, 0)
+}
+
+func (h *Bus) SetHDRBus(set bool) {
+	h.HDRBitVector = wio.SetBit(h.HDRBitVector, 0, set)
+}
+
+func (h *Bus) HDRReleaseModeExponential() bool {
+	return wio.GetBit(h.HDRBitVector, 1)
+}
+
+func (h *Bus) SetHDRReleaseModeExponential(set bool) {
+	h.HDRBitVector = wio.SetBit(h.HDRBitVector, 1, set)
+}
+
 func (h *Bus) Encode() []byte {
 	dataSize := h.DataSize()
 	size := SizeOfHircObjHeader + dataSize
@@ -98,16 +181,52 @@ func (h *Bus) Encode() []byte {
 	w.AppendByte(uint8(HircTypeBus))
 	w.Append(dataSize)
 	w.Append(h.Id)
+	w.Append(h.OverrideBusId)
+	if h.OverrideBusId == 0 {
+		w.Append(h.DeviceShareSetID)
+	}
+	w.AppendBytes(h.PropBundle.Encode())
+	w.AppendBytes(h.PositioningParam.Encode())
+	w.AppendBytes(h.AuxParam.Encode())
+	w.Append(h.VirtualBehaviorBitVector)
+	w.Append(h.MaxNumInstance)
+	w.Append(h.ChannelConf)
+	w.Append(h.HDRBitVector)
+	w.Append(h.RecoveryTime)
+	w.Append(h.MaxDuckVolume)
+	w.Append(uint32(len(h.DuckInfoList)))
+	for _, i := range h.DuckInfoList {
+		w.Append(i)
+	}
+	w.AppendBytes(h.BusFxParam.Encode())
+	w.Append(h.OverrideAttachmentParams)
+	w.AppendBytes(h.BusFxMetadataParam.Encode())
+	w.AppendBytes(h.BusRTPC.Encode())
+	w.AppendBytes(h.StateProp.Encode())
+	w.AppendBytes(h.StateGroup.Encode())
 	return w.BytesAssert(int(size))
 }
 
 func (h *Bus) DataSize() uint32 {
-	return 0
+	size := 29 + 
+		h.PropBundle.Size() + 
+		h.PositioningParam.Size() +
+		h.AuxParam.Size() +
+		uint32(len(h.DuckInfoList)) * SizeOfDuckInfo +
+		h.BusFxParam.Size() +
+		h.BusFxMetadataParam.Size() +
+		h.BusRTPC.Size() +
+		h.StateProp.Size() +
+		h.StateGroup.Size()
+	if h.OverrideBusId == 0 {
+		size += 4
+	}
+	return size
 }
 
 func (h *Bus) BaseParameter() *BaseParameter { return nil }
 
-func (h *Bus) HircType() HircType { return HircTypeEvent }
+func (h *Bus) HircType() HircType { return HircTypeBus }
 
 func (h *Bus) HircID() (uint32, error) { return h.Id, nil }
 
@@ -115,7 +234,7 @@ func (h *Bus) IsCntr() bool { return false }
 
 func (h *Bus) NumLeaf() int { return 0 }
 
-func (h *Bus) ParentID() int { return 0 }
+func (h *Bus) ParentID() uint32 { return 0 }
 
 func (h *Bus) AddLeaf(o HircObj) { panic("") }
 
@@ -124,7 +243,7 @@ func (h *Bus) RemoveLeaf(o HircObj) { panic("") }
 type BusFxParam struct {
 	FxChunk       FxChunk
 	FxID_0        uint32
-	IsShareSet_0  uint8  // !=0
+	IsShareSet_0  uint8  // != 0
 }
 
 func (b *BusFxParam) Encode() []byte {
@@ -140,6 +259,21 @@ func (b *BusFxParam) Size() uint32 {
 	return b.FxChunk.Size() + 5
 }
 
-type BusMetaFxParam struct {
+type BusFxMetadataParam struct {
 	// NumFx uint8
+	FxChunkMetadataItems []FxChunkMetadataItem
+}
+
+func (b *BusFxMetadataParam) Encode() []byte {
+	size := b.Size()
+	w := wio.NewWriter(uint64(size))
+	w.Append(uint8(len(b.FxChunkMetadataItems)))
+	for _, i := range b.FxChunkMetadataItems {
+		w.Append(i)
+	}
+	return w.BytesAssert(int(size))
+}
+
+func (b *BusFxMetadataParam) Size() uint32 {
+	return 1 + uint32(len(b.FxChunkMetadataItems)) * SizeOfFxChunkMetadata
 }
