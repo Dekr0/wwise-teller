@@ -92,7 +92,7 @@ func renderPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 			imgui.Text(strconv.FormatUint(uint64(child), 10))
 
 			imgui.TableSetColumnIndex(2)
-			value, ok := hirc.Sounds.Load(child)
+			value, ok := hirc.HircObjsMap.Load(child)
 			if ok {
 				sound := value.(wwise.HircObj).(*wwise.Sound)
 				imgui.Text(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10))
@@ -171,7 +171,7 @@ func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 				delSel = c
 			}
 
-			value, ok := hirc.Sounds.Load(p.UniquePlayID)
+			value, ok := hirc.HircObjsMap.Load(p.UniquePlayID)
 			if ok {
 				imgui.TableSetColumnIndex(3)
 				sound := value.(wwise.HircObj).(*wwise.Sound)
