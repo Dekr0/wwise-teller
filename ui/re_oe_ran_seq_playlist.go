@@ -20,13 +20,13 @@ func renderRanSeqPlayList(t *BankTab, r *wwise.RanSeqCntr) {
 
 		imgui.PopItemWidth()
 
-		renderPlayListTableSet(t, r)
+		renderRanSeqPlayListTableSet(t, r)
 
 		imgui.TreePop()
 	}
 }
 
-func renderPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
+func renderRanSeqPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("PLTransfer", 3, 0, outerSize, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
@@ -36,7 +36,7 @@ func renderPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 		imgui.TableNextRow()
 
 		imgui.TableSetColumnIndex(0)
-		renderPlayListPendingTable(t, r)
+		renderRanSeqPlayListPendingTable(t, r)
 
 		imgui.TableSetColumnIndex(1)
 		if imgui.Button(">>") {
@@ -47,13 +47,13 @@ func renderPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 		}
 
 		imgui.TableSetColumnIndex(2)
-		renderPlayListTable(t, r)
+		renderRanSeqPlayListTable(t, r)
 
 		imgui.EndTable()
 	}
 }
 
-func renderPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
+func renderRanSeqPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 	size := imgui.NewVec2(200, 0)
 	imgui.BeginChildStrV("PLPendingCell", size, imgui.ChildFlagsNone, imgui.WindowFlagsNone)
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
@@ -84,7 +84,7 @@ func renderPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 			imgui.SetNextItemWidth(40)
 			imgui.PushIDStr(fmt.Sprintf("ToPlayList%d", i))
 			if imgui.Button(">") {
-				toPlayList = bindToPlayList(t, r, i)
+				toPlayList = bindToRanSeqPlayList(t, r, i)
 			}
 			imgui.PopID()
 
@@ -92,7 +92,7 @@ func renderPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 			imgui.Text(strconv.FormatUint(uint64(child), 10))
 
 			imgui.TableSetColumnIndex(2)
-			value, ok := hirc.HircObjsMap.Load(child)
+			value, ok := hirc.ActorMixerHirc.Load(child)
 			if ok {
 				sound := value.(wwise.HircObj).(*wwise.Sound)
 				imgui.Text(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10))
@@ -108,14 +108,14 @@ func renderPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.EndChild()
 }
 
-func bindToPlayList(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
+func bindToRanSeqPlayList(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
 	return func() {
 		r.AddLeafToPlayList(i)
 		t.RanSeqPlaylistStorage.Clear()
 	}
 }
 
-func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
+func renderRanSeqPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLCell")
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	size := imgui.NewVec2(0, 180)
@@ -147,14 +147,14 @@ func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 
 			imgui.PushIDStr(fmt.Sprintf("DelPlayListItem%d", i))
 			if imgui.Button("X") {
-				del = bindPendPlayListItem(t, r, i)
+				del = bindPendRanSeqPlayListItem(t, r, i)
 			}
 			imgui.PopID()
 
 			imgui.TableSetColumnIndex(1)
 			imgui.SetNextItemWidth(-1)
 
-			if c := renderPlayListItemOrderCombo(i, r); c != nil {
+			if c := renderRanSeqPlayListItemOrderCombo(i, r); c != nil {
 				move = c
 			}
 
@@ -167,11 +167,11 @@ func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 			imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(i))
 			imgui.SelectableBoolPtrV(label, &selected, flags, imgui.NewVec2(0, 0))
 
-			if c := renderPlayListTableCtxMenu(t, r); c != nil {
+			if c := renderRanSeqPlayListTableCtxMenu(t, r); c != nil {
 				delSel = c
 			}
 
-			value, ok := hirc.HircObjsMap.Load(p.UniquePlayID)
+			value, ok := hirc.ActorMixerHirc.Load(p.UniquePlayID)
 			if ok {
 				imgui.TableSetColumnIndex(3)
 				sound := value.(wwise.HircObj).(*wwise.Sound)
@@ -203,7 +203,7 @@ func renderPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.EndChild()
 }
 
-func renderPlayListItemOrderCombo(i int, r *wwise.RanSeqCntr) func() {
+func renderRanSeqPlayListItemOrderCombo(i int, r *wwise.RanSeqCntr) func() {
 	var move func() = nil
 
 	preview := strconv.FormatUint(uint64(i), 10)
@@ -213,7 +213,7 @@ func renderPlayListItemOrderCombo(i int, r *wwise.RanSeqCntr) func() {
 			selected := i == j
 			label := strconv.FormatUint(uint64(j), 10)
 			if imgui.SelectableBoolPtr(label, &selected) {
-				move = bindChangePlayListItemOrder(i, j, r)
+				move = bindChangeRanSeqPlayListItemOrder(i, j, r)
 			}
 			if selected {
 				imgui.SetItemDefaultFocus()
@@ -225,12 +225,12 @@ func renderPlayListItemOrderCombo(i int, r *wwise.RanSeqCntr) func() {
 	return move
 }
 
-func renderPlayListTableCtxMenu(t *BankTab, r *wwise.RanSeqCntr) func() {
+func renderRanSeqPlayListTableCtxMenu(t *BankTab, r *wwise.RanSeqCntr) func() {
 	var delSel func() = nil
 
 	if imgui.BeginPopupContextItem() {
 		if imgui.Button("Delete") {
-			delSel = bindPendSelectPlayListItem(t, r)
+			delSel = bindPendSelectRanSeqPlayListItem(t, r)
 			imgui.CloseCurrentPopup()
 		}
 		imgui.EndPopup()
@@ -239,20 +239,20 @@ func renderPlayListTableCtxMenu(t *BankTab, r *wwise.RanSeqCntr) func() {
 	return delSel
 }
 
-func bindChangePlayListItemOrder(i, j int, r *wwise.RanSeqCntr) func() {
+func bindChangeRanSeqPlayListItemOrder(i, j int, r *wwise.RanSeqCntr) func() {
 	return func() {
 		r.MovePlayListItem(i, j)
 	}
 }
 
-func bindPendPlayListItem(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
+func bindPendRanSeqPlayListItem(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
 	return func() {
 		r.RemoveLeafFromPlayList(i)
 		t.RanSeqPlaylistStorage.Clear()
 	}
 }
 
-func bindPendSelectPlayListItem(t *BankTab, r *wwise.RanSeqCntr) func() {
+func bindPendSelectRanSeqPlayListItem(t *BankTab, r *wwise.RanSeqCntr) func() {
 	return func() {
 		mut := false
 		tids := []uint32{}
