@@ -93,7 +93,7 @@ func renderHircTab(t *BankTab, i int, h wwise.HircObj) {
 
 func renderActorMixer(t *BankTab, o *wwise.ActorMixer) {
 	renderBaseParam(t, o)
-	renderContainer(t, o.Id, o.Container)
+	renderActorMixerHircContainer(t, o.Id, o.Container)
 }
 
 func renderLayerCntr(t *BankTab, o *wwise.LayerCntr) {
@@ -102,7 +102,7 @@ func renderLayerCntr(t *BankTab, o *wwise.LayerCntr) {
 
 func renderRanSeqCntr(t *BankTab, o *wwise.RanSeqCntr) {
 	renderBaseParam(t, o)
-	renderContainer(t, o.Id, o.Container)
+	renderActorMixerHircContainer(t, o.Id, o.Container)
 	renderRanSeqPlayList(t, o)
 }
 
@@ -124,7 +124,7 @@ func renderUnknown(o *wwise.Unknown) {
 	)
 }
 
-func renderContainer(t *BankTab, id uint32, cntr *wwise.Container) {
+func renderActorMixerHircContainer(t *BankTab, id uint32, cntr *wwise.Container) {
 	if imgui.TreeNodeExStr("Container") {
 		imgui.BeginDisabled()
 		imgui.Button("Add New Children")
@@ -162,7 +162,7 @@ func renderContainer(t *BankTab, id uint32, cntr *wwise.Container) {
 
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
-				value, ok := hirc.HircObjsMap.Load(i)
+				value, ok := hirc.ActorMixerHirc.Load(i)
 				if !ok {
 					imgui.Text("-")
 				} else {
