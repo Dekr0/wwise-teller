@@ -62,6 +62,7 @@ var KnownHircTypes []HircType = []HircType{
 	HircTypeMusicSwitchCntr,
 	HircTypeMusicRanSeqCntr,
 	HircTypeAttenuation,
+	HircTypeFxShareSet,
 	HircTypeFxCustom,
 }
 
@@ -92,6 +93,7 @@ func NonHircType(o HircObj) bool {
 	       t == HircTypeAction      || 
 		   t == HircTypeEvent       || 
 	       t == HircTypeAttenuation ||
+		   t == HircTypeFxShareSet  ||
 		   t == HircTypeFxCustom
 }
 
@@ -130,26 +132,11 @@ type HIRC struct {
 	HircObjs    []HircObj
 	HircObjsMap sync.Map
 
-	// Map for different types of hierarchy objects. Each object is a pointer
-	// to a specific hierarchy object, which is also in `HircObjs`.
-	ActorMixers      sync.Map
-	Actions          sync.Map
 	ActionCount      atomic.Uint32
-	Attenuations     sync.Map
 	AttenuationCount atomic.Uint32
-	Events           sync.Map
 	EventCount       atomic.Uint32
-	FxCustoms        sync.Map
 	FxCustomCount    atomic.Uint32
-	LayerCntrs       sync.Map
-	MusicSegments    sync.Map
-	MusicTracks      sync.Map
-	MusicRanSeqCntr  sync.Map
-	MusicSwitchCntr  sync.Map
-	SwitchCntrs      sync.Map
-	RanSeqCntrs      sync.Map
-	Sounds           sync.Map
-	States           sync.Map
+	FxShareSetCount  atomic.Uint32
 	StateCount       atomic.Uint32
 }
 
@@ -159,22 +146,9 @@ func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 		T:               T,
 		HircObjs:        make([]HircObj, numHircItem),
 		HircObjsMap:     sync.Map{},
-		Actions:         sync.Map{},
 		ActionCount:     atomic.Uint32{},
-		ActorMixers:     sync.Map{},
-		Attenuations:    sync.Map{},
 		AttenuationCount:atomic.Uint32{},
-		Events:          sync.Map{},
 		EventCount:      atomic.Uint32{},
-		LayerCntrs:      sync.Map{},
-		MusicSegments:   sync.Map{},
-		MusicTracks:     sync.Map{},
-		MusicRanSeqCntr: sync.Map{},
-		MusicSwitchCntr: sync.Map{},
-		SwitchCntrs:     sync.Map{},
-		RanSeqCntrs:     sync.Map{},
-		Sounds:          sync.Map{},
-		States:          sync.Map{},
 		StateCount:      atomic.Uint32{},
 	}
 }
