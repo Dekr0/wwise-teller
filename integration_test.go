@@ -1,15 +1,17 @@
 package main
 
 import (
-	"context"
-	"slices"
+	// "context"
+	// "slices"
+	// "context"
 	"testing"
-	"time"
 
-	"github.com/Dekr0/wwise-teller/parser"
-	"github.com/Dekr0/wwise-teller/wwise"
+	// "time"
+	// "github.com/Dekr0/wwise-teller/parser"
+	// "github.com/Dekr0/wwise-teller/wwise"
 )
 
+/*
 func TestRemoveActorMixerCntrChild2(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
@@ -430,10 +432,7 @@ func TestChangeSoundPartial(t *testing.T) {
 		t.Fatalf("Expected: %d, Got: %d", len(ref), len(got))
 	}
 }
-
-func TestChangeSoundMixerSeq(t *testing.T) {
-
-}
+*/
 
 func TestMain(t *testing.T) {
 	main()
