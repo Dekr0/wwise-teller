@@ -9,7 +9,7 @@ import (
 func ParseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
 	assert.Equal(0, r.Pos(), "Actor mixer parser position doesn't start at position 0.")
 	begin := r.Pos()
-	a := &wwise.ActorMixer{}
+	a := wwise.ActorMixer{}
 	a.Id = r.U32Unsafe()
 	a.BaseParam = ParseBaseParam(r)
 	a.Container = ParseContainer(r)
@@ -20,7 +20,7 @@ func ParseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
 	assert.Equal(uint64(size), end-begin,
 		"The amount of bytes reader consume does not equal size in the hierarchy header",
 	)
-	return a
+	return &a
 }
 
 func ParseLayerCntr(size uint32, r *wio.Reader) *wwise.LayerCntr {

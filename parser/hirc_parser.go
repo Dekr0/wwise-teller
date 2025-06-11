@@ -247,6 +247,16 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
+			case wwise.HircTypeEnvelopeModulator:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseEnvelopeModulator,
+					hirc,
+					sem,
+					&parsed,
+				)
 			default:
 				panic("Assertion Trap")
 			}
@@ -295,6 +305,8 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 				obj = ParseFxCustom(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeAuxBus:
 				obj = ParseAuxBus(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeEnvelopeModulator:
+				obj = ParseEnvelopeModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			default:
 				panic("Assertion Trap")
 			}
@@ -309,6 +321,8 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 		uint32(r.Pos()),
 		"There are data that is not consumed after parsing all HIRC blob",
 	)
+
+	hirc.BuildTree()
 
 	return hirc, nil
 }

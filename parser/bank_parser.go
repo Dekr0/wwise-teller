@@ -308,9 +308,9 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 
 	for pending > 0 {
 		select {
-		case <-ctx.Done():
+		case <- ctx.Done():
 			return nil, ctx.Err()
-		case res := <-c:
+		case res := <- c:
 			if res.e != nil {
 				return nil, err
 			}

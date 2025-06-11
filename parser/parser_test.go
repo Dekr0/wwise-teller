@@ -28,7 +28,7 @@ func TestParseBank(t *testing.T) {
 		t.Log(bank.Name())
 		bnkPath := filepath.Join("../tests/bnks", bank.Name())
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*360)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 360)
 		bnk, err := ParseBank(bnkPath, ctx)
 		if err != nil {
 			cancel()
@@ -41,7 +41,7 @@ func TestParseBank(t *testing.T) {
 		}
 		cancel()
 
-		ctx, cancel = context.WithTimeout(context.Background(), time.Second*4)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second * 4)
 		blob, err := bnk.Encode(ctx)
 		if err != nil {
 			cancel()
@@ -209,4 +209,12 @@ func TestFaulty(t *testing.T) {
 	for _, exclude := range excludes {
 		t.Log(exclude.name, exclude.err)
 	}
+}
+
+func TestTreeRendering(t *testing.T) {
+	bnk, err := ParseBank("../tests/bnks/wep_ar19_liberator.bnk", context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	bnk.HIRC().BuildTree()
 }
