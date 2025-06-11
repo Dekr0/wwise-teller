@@ -71,6 +71,24 @@ func ContainerHircType(o HircObj) bool {
 		   t == HircTypeMusicSwitchCntr
 }
 
+func ActorMixerHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeRanSeqCntr      ||
+		   t == HircTypeSwitchCntr      ||
+		   t == HircTypeActorMixer      ||
+		   t == HircTypeLayerCntr       ||
+		   t == HircTypeSound           ||
+		   t == HircTypeDialogueEvent
+}
+
+func MusicHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeMusicTrack      ||
+		   t == HircTypeMusicSegment    ||
+	       t == HircTypeMusicRanSeqCntr ||
+	       t == HircTypeMusicSwitchCntr
+}
+
 func NonHircType(o HircObj) bool {
 	t := o.HircType()
 	return t == HircTypeState       ||
@@ -125,6 +143,7 @@ type HircObj interface {
 	// pre condition: o.DirectParentId == HircObj.HircID
 	// post condition: DirectParentId = 0
 	RemoveLeaf(o HircObj)
+	Leafs() []uint32
 }
 
 const SizeOfHircObjHeader = 1 + 4
