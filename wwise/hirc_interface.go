@@ -48,7 +48,9 @@ var KnownHircTypes []HircType = []HircType{
 	HircTypeFxShareSet,
 	HircTypeFxCustom,
 	HircTypeAuxBus,
+	HircTypeLFOModulator,
 	HircTypeEnvelopeModulator,
+	HircTypeTimeModulator,
 }
 
 var ContainerHircTypes []HircType = []HircType{
@@ -100,7 +102,9 @@ func NonHircType(o HircObj) bool {
 		   t == HircTypeFxShareSet        ||
 		   t == HircTypeFxCustom          ||
 		   t == HircTypeAuxBus            ||
-	       t == HircTypeEnvelopeModulator
+		   t == HircTypeLFOModulator      ||
+	       t == HircTypeEnvelopeModulator ||
+	       t == HircTypeTimeModulator
 }
 
 var HircTypeName []string = []string{
