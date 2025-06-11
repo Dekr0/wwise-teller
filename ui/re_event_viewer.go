@@ -42,7 +42,7 @@ func renderEventsViewer(t *BankTab) {
 			for i, actionID := range t.EventViewer.ActiveEvent.ActionIDs {
 				imgui.TableNextRow()
 
-				value, ok := hirc.HircObjsMap.Load(actionID)
+				value, ok := hirc.Actions.Load(actionID)
 				if !ok {
 					imgui.TableSetColumnIndex(0)
 					imgui.Text(fmt.Sprintf("Action %d (Null)", actionID))
