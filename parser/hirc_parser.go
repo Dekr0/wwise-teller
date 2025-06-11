@@ -247,12 +247,32 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					sem,
 					&parsed,
 				)
+			case wwise.HircTypeLFOModulator:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseLFOModulator,
+					hirc,
+					sem,
+					&parsed,
+				)
 			case wwise.HircTypeEnvelopeModulator:
 				go ParserRoutine(
 					dwSectionSize,
 					uint32(i),
 					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
 					ParseEnvelopeModulator,
+					hirc,
+					sem,
+					&parsed,
+				)
+			case wwise.HircTypeTimeModulator:
+				go ParserRoutine(
+					dwSectionSize,
+					uint32(i),
+					r.NewBufferReaderUnsafe(uint64(dwSectionSize)),
+					ParseTimeModulator,
 					hirc,
 					sem,
 					&parsed,
@@ -305,8 +325,12 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 				obj = ParseFxCustom(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeAuxBus:
 				obj = ParseAuxBus(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeLFOModulator:
+				obj = ParseLFOModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			case wwise.HircTypeEnvelopeModulator:
 				obj = ParseEnvelopeModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+			case wwise.HircTypeTimeModulator:
+				obj = ParseTimeModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
 			default:
 				panic("Assertion Trap")
 			}
@@ -431,5 +455,5 @@ func ParserRoutine[T wwise.HircObj](
 ) {
 	AddHircObj(h, i, f(size, r))
 	parsed.Add(1)
-	<-sem
+	<- sem
 }

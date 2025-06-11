@@ -6,10 +6,10 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseEnvelopeModulator(size uint32, r *wio.Reader) *wwise.EnvelopeModulator {
+func ParseModulator(size uint32, r *wio.Reader) *wwise.Modulator {
 	assert.Equal(0, r.Pos(), "Envelope modulator parser position doesn't start at position 0.")
 	begin := r.Pos()
-	e := wwise.EnvelopeModulator{ Id: r.U32Unsafe() }
+	e := wwise.Modulator{ Id: r.U32Unsafe() }
 	ParsePropBundle(r, &e.PropBundle)
 	ParseRangePropBundle(r, &e.RangePropBundle)
 	ParseRTPC(r, &e.RTPC)
@@ -24,4 +24,22 @@ func ParseEnvelopeModulator(size uint32, r *wio.Reader) *wwise.EnvelopeModulator
 		"The amount of bytes reader consume does not equal size in the hierarchy header",
 	)
 	return &e
+}
+
+func ParseLFOModulator(size uint32, r *wio.Reader) *wwise.Modulator {
+	e := ParseModulator(size, r)
+	e.ModulatorType = wwise.HircTypeLFOModulator
+	return e
+}
+
+func ParseEnvelopeModulator(size uint32, r *wio.Reader) *wwise.Modulator {
+	e := ParseModulator(size, r)
+	e.ModulatorType = wwise.HircTypeEnvelopeModulator
+	return e
+}
+
+func ParseTimeModulator(size uint32, r *wio.Reader) *wwise.Modulator {
+	e := ParseModulator(size, r)
+	e.ModulatorType = wwise.HircTypeTimeModulator
+	return e
 }
