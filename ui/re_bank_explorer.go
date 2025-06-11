@@ -5,8 +5,9 @@
 //   - Event
 //   - State
 //   - ...
+//
 // - Tree View Keyboard navigation
-// - Tree Render does not work when there's one not expanded root entry in the table 
+// - Tree Render does not work when there's one not expanded root entry in the table
 package ui
 
 import (
@@ -235,7 +236,7 @@ func renderActorMixerHircTable(b *BankTab) {
 }
 
 func renderActorMixerHircTree(t *BankTab)  {
-	imgui.Begin("Hierarchy View")
+	imgui.Begin("Actor Mixer Hierarchy")
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
 		imgui.End()
 		return
@@ -245,7 +246,6 @@ func renderActorMixerHircTree(t *BankTab)  {
 }
 
 func renderActorMixerHircTreeTable(t *BankTab) {
-	/*
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("TreeTable", 2, flags, outerSize, 0) {
@@ -253,120 +253,55 @@ func renderActorMixerHircTreeTable(t *BankTab) {
 		imgui.TableSetupColumn("Hierarchy Type")
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
-
-		hirc := t.Bank.HIRC()
-		hircObjs := hirc.HircObjs
-
-		c := imgui.NewListClipper()
-		c.Begin(int32(hirc.NumHirc()))
-
-		treeIdx := 0 
-		drawIdx := int32(0)
-		for c.Step() {
-			for drawIdx < c.DisplayEnd() && treeIdx < len(hircObjs) {
-				renderHircNode(t, c, &drawIdx, &treeIdx, hircObjs)
-			}
+		// Clipper does not play well with Tree Node :(
+		for _, root := range t.Bank.HIRC().ActorMixerRoots {
+			renderActorMixerHircNode(t, &root)
 		}
-		for treeIdx < len(hircObjs) {
-			renderHircNode(t, c, &drawIdx, &treeIdx, hircObjs)
-		}
-
 		imgui.EndTable()
 	}
-	*/
 }
 
-func renderHircNode(
-	t *BankTab,
-	c *imgui.ListClipper,
-	drawIdx *int32,
-	treeIdx *int,
-	hircObjs []wwise.HircObj,
-) bool {
-	l := len(hircObjs)
-	o := hircObjs[l - *treeIdx - 1]
-	if wwise.NonHircType(o) {
-		*treeIdx += 1
-		return true
-	}
-	visible := *drawIdx >= c.DisplayStart() && *drawIdx < c.DisplayEnd()
-	*drawIdx += 1
-	*treeIdx += 1
+func renderActorMixerHircNode(t *BankTab, node *wwise.ActorMixerHircNode) {
+	o := node.Obj
 
 	var sid string
 	selected := false
 	id, err := o.HircID()
-	if err != nil {
-		sid = fmt.Sprintf("Unknown Id (Tree Index %d)", *treeIdx)
-	} else {
-		sid = strconv.FormatUint(uint64(id), 10)
-		selected = t.LinearStorage.Contains(imgui.ID(id))
+	if err != nil { panic("Panic Trap") }
+
+	sid = strconv.FormatUint(uint64(id), 10)
+	selected = t.LinearStorage.Contains(imgui.ID(id))
+
+	imgui.TableNextRow()
+	imgui.TableSetColumnIndex(0)
+
+	flags := imgui.TreeNodeFlagsSpanAllColumns | imgui.TreeNodeFlagsOpenOnDoubleClick
+	if selected {
+		flags |= imgui.TreeNodeFlagsSelected
 	}
 
-	rootless := false
-	if o.ParentID() == 0 {
-		rootless = true
+	open := imgui.TreeNodeExStrV(sid, flags)
+	if imgui.IsItemClicked() {
+		if !imgui.CurrentIO().KeyCtrl() {
+			t.LinearStorage.Clear()
+		}
+		t.LinearStorage.SetItemSelected(imgui.ID(id), true)
 	}
-
-	if visible {
-		imgui.SetNextItemStorageID(imgui.IDInt(int32(*treeIdx)))
-		imgui.TableNextRow()
-		imgui.TableSetColumnIndex(0)
-
-		flags := imgui.TreeNodeFlagsSpanAllColumns | imgui.TreeNodeFlagsOpenOnDoubleClick
-		if selected {
-			flags |= imgui.TreeNodeFlagsSelected
-		}
-
-		open := imgui.TreeNodeExStrV(sid, flags)
-		if imgui.IsItemClicked() && err == nil {
-			if !imgui.CurrentIO().KeyCtrl() {
-				t.LinearStorage.Clear()
-			}
-			t.LinearStorage.SetItemSelected(imgui.ID(id), true)
-		}
-		imgui.TableSetColumnIndex(1)
-		st := wwise.HircTypeName[o.HircType()]
-		if o.HircType() == wwise.HircTypeSound {
-			st = fmt.Sprintf(
-				"%s (Audio Source %d)",
-				st, o.(*wwise.Sound).BankSourceData.SourceID,
-			)
-		}
-		imgui.Text(st)
-		if open {
-			for j := 0; j < o.NumLeaf(); {
-				if !renderHircNode(t, c, drawIdx, treeIdx, hircObjs) {
-					j += 1
-				}
-			}
-			imgui.TreePop()
-		} else {
-			for j := 0; j < o.NumLeaf(); {
-				if !clippedHircNode(treeIdx, hircObjs) {
-					j += 1
-				}
-			}
-		}
-	} else if o.NumLeaf() > 0 {
-		// clipped
-		if imgui.StateStorage().Int(imgui.IDInt(int32(*treeIdx))) != 0 { // open?
-			imgui.TreePushStr(sid)
-			for j := 0; j < o.NumLeaf(); {
-				if !renderHircNode(t, c, drawIdx, treeIdx, hircObjs) {
-					j += 1
-				}
-			}
-			imgui.TreePop()
-		} else {
-			for j := 0; j < o.NumLeaf(); {
-				if !clippedHircNode(treeIdx, hircObjs) {
-					j += 1
-				}
-			}
-		}
+	imgui.TableSetColumnIndex(1)
+	st := wwise.HircTypeName[o.HircType()]
+	if o.HircType() == wwise.HircTypeSound {
+		st = fmt.Sprintf(
+			"%s (Audio Source %d)",
+			st, o.(*wwise.Sound).BankSourceData.SourceID,
+		)
 	}
-	return rootless
+	imgui.Text(st)
+	if open {
+		for _, leaf := range node.Leafs {
+			renderActorMixerHircNode(t, &leaf)
+		}
+		imgui.TreePop()
+	}
 }
 
 func clippedHircNode(treeIdx *int, hircObjs []wwise.HircObj) bool {
