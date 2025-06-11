@@ -94,3 +94,5 @@ func (h *FxShareSet) ParentID() uint32 { return 0 }
 func (h *FxShareSet) AddLeaf(o HircObj) { panic("Panic Trap") }
 
 func (h *FxShareSet) RemoveLeaf(o HircObj) { panic("Panic Trap") }
+
+func (h *FxShareSet) Leafs() []uint32 { return []uint32{} }

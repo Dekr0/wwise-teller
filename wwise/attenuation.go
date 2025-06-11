@@ -65,6 +65,8 @@ func (h *Attenuation) AddLeaf(o HircObj) { panic("Panic Trap") }
 
 func (h *Attenuation) RemoveLeaf(o HircObj) { panic("Panic Trap") }
 
+func (h *Attenuation) Leafs() []uint32 { return []uint32{} }
+
 func (h *Attenuation) DataSize() uint32 {
 	size := uint32(14)
 	if h.IsConeEnabled & 1 != 0 {

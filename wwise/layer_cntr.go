@@ -63,6 +63,8 @@ func (l *LayerCntr) RemoveLeaf(o HircObj) {
 	slog.Warn("Removing old leaf is not implemented for layer container.")
 }
 
+func (h *LayerCntr) Leafs() []uint32 { return h.Container.Children }
+
 type Layer struct {
 	Id uint32 // tid
 	InitialRTPC RTPC

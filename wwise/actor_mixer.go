@@ -82,3 +82,5 @@ func (a *ActorMixer) RemoveLeaf(o HircObj) {
 	}
 	b.DirectParentId = 0
 }
+
+func (a *ActorMixer) Leafs() []uint32 { return a.Container.Children }

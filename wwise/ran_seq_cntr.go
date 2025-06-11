@@ -107,6 +107,8 @@ func (r *RanSeqCntr) RemoveLeaf(o HircObj) {
 	b.DirectParentId = 0
 }
 
+func (r *RanSeqCntr) Leafs() []uint32 { return r.Container.Children }
+
 func (r *RanSeqCntr) AddLeafToPlayList(i int) {
 	if slices.ContainsFunc(r.PlayListItems, func(p *PlayListItem) bool {
 		return p.UniquePlayID == r.Container.Children[i]

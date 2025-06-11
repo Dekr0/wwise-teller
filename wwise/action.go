@@ -151,6 +151,8 @@ func (a *Action) AddLeaf(o HircObj) { panic("Panic Trap") }
 
 func (a *Action) RemoveLeaf(o HircObj) { panic("Panic Trap") }
 
+func (a *Action) Leafs() []uint32 { return []uint32{} }
+
 func (a *Action) IsBus() bool {
 	return wio.GetBit(a.IdExt4, 0)
 }

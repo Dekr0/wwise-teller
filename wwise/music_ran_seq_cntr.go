@@ -70,6 +70,8 @@ func (h *MusicRanSeqCntr) AddLeaf(o HircObj) { panic("") }
 
 func (h *MusicRanSeqCntr) RemoveLeaf(o HircObj) { panic("") }
 
+func (h *MusicRanSeqCntr) Leafs() []uint32 { return h.Children.Children }
+
 var JumpToTypeName []string = []string{
   	"StartOfPlaylist",
   	"SpecificItem",

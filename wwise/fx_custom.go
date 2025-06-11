@@ -207,3 +207,5 @@ func (h *FxCustom) ParentID() uint32 { return 0 }
 func (h *FxCustom) AddLeaf(o HircObj) { panic("Panic Trap") }
 
 func (h *FxCustom) RemoveLeaf(o HircObj) { panic("Panic Trap") }
+
+func (h *FxCustom) Leafs() []uint32 { return []uint32{} }

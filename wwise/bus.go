@@ -240,6 +240,8 @@ func (h *Bus) AddLeaf(o HircObj) { panic("") }
 
 func (h *Bus) RemoveLeaf(o HircObj) { panic("") }
 
+func (h *Bus) Leafs() []uint32 { return []uint32{} }
+
 type BusFxParam struct {
 	FxChunk       FxChunk
 	FxID_0        uint32

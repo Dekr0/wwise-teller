@@ -77,3 +77,4 @@ func (s *SwitchCntr) RemoveLeaf(o HircObj) {
 	slog.Warn("Removing old leaf is not implemented for switch container.")
 }
 
+func (s *SwitchCntr) Leafs() []uint32 { return s.Container.Children }

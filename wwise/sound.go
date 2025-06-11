@@ -44,3 +44,4 @@ func (s *Sound) RemoveLeaf(o HircObj) {
 	panic("Sound is not a container type hierarchy object.")
 }
 
+func (s *Sound) Leafs() []uint32 { return []uint32{} }

@@ -57,3 +57,5 @@ func (u *Unknown) AddLeaf(o HircObj) {
 func (u *Unknown) RemoveLeaf(o HircObj) {
 	panic("Work in development hierarchy object type is calling RemoveLeaf.")
 }
+
+func (u *Unknown) Leafs() []uint32 { return []uint32{} }

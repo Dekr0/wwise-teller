@@ -154,3 +154,5 @@ func (h *AuxBus) ParentID() uint32 { return 0 }
 func (h *AuxBus) AddLeaf(o HircObj) { panic("") }
 
 func (h *AuxBus) RemoveLeaf(o HircObj) { panic("") }
+
+func (h *AuxBus) Leafs() []uint32 { return []uint32{} }

@@ -136,6 +136,8 @@ func (h *MusicTrack) AddLeaf(o HircObj) { panic("") }
 
 func (h *MusicTrack) RemoveLeaf(o HircObj) { panic("") }
 
+func (h *MusicTrack) Leafs() []uint32 { return []uint32{} }
+
 func (h *MusicTrack) UseSwitchAndTransition() bool {
 	return h.TrackType == 0x03
 }

@@ -89,6 +89,8 @@ func (h *MusicSegment) AddLeaf(o HircObj) { panic("") }
 
 func (h *MusicSegment) RemoveLeaf(o HircObj) { panic("") }
 
+func (h *MusicSegment) Leafs() []uint32 { return h.Children.Children }
+
 const SizeOfMeterInfo = 23
 
 type MeterInfo struct {

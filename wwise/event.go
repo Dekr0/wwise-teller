@@ -42,3 +42,5 @@ func (h *Event) ParentID() uint32 { return 0 }
 func (h *Event) AddLeaf(o HircObj) { panic("Panic Trap") }
 
 func (h *Event) RemoveLeaf(o HircObj) { panic("Panic Trap") }
+
+func (h *Event) Leafs() []uint32 { return []uint32{} }

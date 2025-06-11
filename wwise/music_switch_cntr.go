@@ -71,3 +71,5 @@ func (h *MusicSwitchCntr) ParentID() uint32 { return h.BaseParam.DirectParentId 
 func (h *MusicSwitchCntr) AddLeaf(o HircObj) { panic("") }
 
 func (h *MusicSwitchCntr) RemoveLeaf(o HircObj) { panic("") }
+
+func (h *MusicSwitchCntr) Leafs() []uint32 { return h.Children.Children }
