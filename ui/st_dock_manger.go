@@ -77,7 +77,7 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
-		imgui.InternalDockBuilderDockWindow("Hierarchy View", dock2)
+		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
@@ -102,7 +102,7 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock1)
-		imgui.InternalDockBuilderDockWindow("Hierarchy View", dock2)
+		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
