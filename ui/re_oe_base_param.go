@@ -4,6 +4,7 @@ package ui
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -96,8 +97,15 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 	imgui.SameLine()
 	if imgui.ArrowButton(fmt.Sprintf("%dGoTo%d", hid, b.DirectParentId), imgui.DirRight) {
 		hirc := t.Bank.HIRC()
-		_, ok := hirc.HircObjsMap.Load(b.DirectParentId)
-		if ok {
+		// Temp solution
+		idx := slices.IndexFunc(hirc.HircObjs, func(h wwise.HircObj) bool {
+			id, err := h.HircID()
+			if err != nil {
+				return false
+			}
+			return id == b.DirectParentId
+		})
+		if idx != -1 {
 			t.LinearStorage.SetItemSelected(imgui.ID(b.DirectParentId), true)
 		}
 	}
