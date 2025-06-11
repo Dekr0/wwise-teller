@@ -22,7 +22,8 @@ type PropBundle struct {
 	// CProps uint8 // u8i
 	// PIds []uint8 // CProps * u8i
 	// PValues [][]byte // CProps * (Union[tid, uni / float32])
-	
+
+	Modulator    bool
 	PropValues []PropValue
 }
 
@@ -211,6 +212,7 @@ func (p *PropBundle) DisplayProp() {
 type RangePropBundle struct {
 	// CProps uint8 // u8i
 	// PIds []uint8 // CProps * u8i
+	Modulator     bool
 	RangeValues []RangeValue // CProps * sizeof(RangeValue)
 }
 

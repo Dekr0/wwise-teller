@@ -229,15 +229,12 @@ var CurveScalingTypeName []string = []string{
 type RTPC struct {
 	// NumRTPC uint16   // <= 141
 	// NumCurves uint16 // < 141
+	Modulator   bool
 	RTPCItems []RTPCItem
 }
 
 func (r *RTPC) RemoveRTPCItem(i int) {
 	r.RTPCItems = slices.Delete(r.RTPCItems, i, i + 1)
-}
-
-func NewRTPC() *RTPC {
-	return &RTPC{[]RTPCItem{}}
 }
 
 func (r *RTPC) Encode() []byte {
