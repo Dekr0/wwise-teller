@@ -91,46 +91,47 @@ var ModulatorRTPCParamID []string = []string{
     "Modulator Time Initial Delay", // #132~~
 }
 
-type EnvelopeModulator struct {
+type Modulator struct {
 	HircObj
 
+	ModulatorType   HircType
 	Id              uint32
 	PropBundle      PropBundle
 	RangePropBundle RangePropBundle
 	RTPC            RTPC
 }
 
-func (e *EnvelopeModulator) Encode() []byte {
+func (e *Modulator) Encode() []byte {
 	dataSize := e.DataSize()
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
-	w.Append(HircTypeEnvelopeModulator)
+	w.Append(e.ModulatorType)
 	w.Append(dataSize)
 	w.Append(e.Id)
 	w.AppendBytes(e.PropBundle.Encode())
 	w.AppendBytes(e.RangePropBundle.Encode())
 	w.AppendBytes(e.RTPC.Encode())
-	return w.BytesAssert(int(dataSize))
+	return w.BytesAssert(int(size))
 }
 
-func (e *EnvelopeModulator) DataSize() uint32 {
+func (e *Modulator) DataSize() uint32 {
 	return 4 + e.PropBundle.Size() + e.RangePropBundle.Size() + e.RTPC.Size()
 }
 
-func (h *EnvelopeModulator) BaseParameter() *BaseParameter { return nil }
+func (h *Modulator) BaseParameter() *BaseParameter { return nil }
 
-func (h *EnvelopeModulator) HircType() HircType { return HircTypeEnvelopeModulator }
+func (h *Modulator) HircType() HircType { return h.ModulatorType }
 
-func (h *EnvelopeModulator) HircID() (uint32, error) { return h.Id, nil }
+func (h *Modulator) HircID() (uint32, error) { return h.Id, nil }
 
-func (h *EnvelopeModulator) IsCntr() bool { return false }
+func (h *Modulator) IsCntr() bool { return false }
 
-func (h *EnvelopeModulator) NumLeaf() int { return 0 }
+func (h *Modulator) NumLeaf() int { return 0 }
 
-func (h *EnvelopeModulator) ParentID() uint32 { return 0 }
+func (h *Modulator) ParentID() uint32 { return 0 }
 
-func (h *EnvelopeModulator) AddLeaf(o HircObj) { panic("Panic Trap") }
+func (h *Modulator) AddLeaf(o HircObj) { panic("Panic Trap") }
 
-func (h *EnvelopeModulator) RemoveLeaf(o HircObj) { panic("Panic Trap") }
+func (h *Modulator) RemoveLeaf(o HircObj) { panic("Panic Trap") }
 
-func (h *EnvelopeModulator) Leafs() []uint32 { return []uint32{} }
+func (h *Modulator) Leafs() []uint32 { return []uint32{} }
