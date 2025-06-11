@@ -4,29 +4,29 @@ type HircType uint8
 
 const (
 	HircTypeAll                 HircType = 0x00
-	HircTypeState               HircType = 0x01 // ???
+	HircTypeState               HircType = 0x01
 	HircTypeSound               HircType = 0x02
-	HircTypeAction              HircType = 0x03 // ???
-	HircTypeEvent               HircType = 0x04 // ???
+	HircTypeAction              HircType = 0x03
+	HircTypeEvent               HircType = 0x04
 	HircTypeRanSeqCntr          HircType = 0x05
 	HircTypeSwitchCntr          HircType = 0x06
 	HircTypeActorMixer          HircType = 0x07
-	HircTypeBus                 HircType = 0x08 // ???
+	HircTypeBus                 HircType = 0x08
 	HircTypeLayerCntr           HircType = 0x09
 	HircTypeMusicSegment        HircType = 0x0a
-	HircTypeMusicTrack          HircType = 0x0b // ???
-	HircTypeMusicSwitchCntr     HircType = 0x0c // ???
-	HircTypeMusicRanSeqCntr     HircType = 0x0d // ???
-	HircTypeAttenuation         HircType = 0x0e // ???
-	HircTypeDialogueEvent       HircType = 0x0f // ???
-	HircTypeFxShareSet          HircType = 0x10 // ???
-	HircTypeFxCustom            HircType = 0x11 // ???
-	HircTypeAuxBus              HircType = 0x12 // ???
-	HircTypeLFOModulator        HircType = 0x13 // ???
-	HircTypeEnvelopeModulator   HircType = 0x14 // ???
-	HircTypeAudioDevice         HircType = 0x15 // ???
-	HircTypeTimeModulator       HircType = 0x16 // ???
-	HircTypeCount                    = 0x17
+	HircTypeMusicTrack          HircType = 0x0b
+	HircTypeMusicSwitchCntr     HircType = 0x0c
+	HircTypeMusicRanSeqCntr     HircType = 0x0d
+	HircTypeAttenuation         HircType = 0x0e
+	HircTypeDialogueEvent       HircType = 0x0f
+	HircTypeFxShareSet          HircType = 0x10
+	HircTypeFxCustom            HircType = 0x11
+	HircTypeAuxBus              HircType = 0x12
+	HircTypeLFOModulator        HircType = 0x13
+	HircTypeEnvelopeModulator   HircType = 0x14
+	HircTypeAudioDevice         HircType = 0x15
+	HircTypeTimeModulator       HircType = 0x16
+	HircTypeCount               HircType = 0x17
 )
 
 var KnownHircTypes []HircType = []HircType{
@@ -48,6 +48,7 @@ var KnownHircTypes []HircType = []HircType{
 	HircTypeFxShareSet,
 	HircTypeFxCustom,
 	HircTypeAuxBus,
+	HircTypeEnvelopeModulator,
 }
 
 var ContainerHircTypes []HircType = []HircType{
@@ -91,14 +92,15 @@ func MusicHircType(o HircObj) bool {
 
 func NonHircType(o HircObj) bool {
 	t := o.HircType()
-	return t == HircTypeState       ||
-	       t == HircTypeAction      || 
-		   t == HircTypeEvent       || 
-		   t == HircTypeBus         ||
-	       t == HircTypeAttenuation ||
-		   t == HircTypeFxShareSet  ||
-		   t == HircTypeFxCustom    ||
-		   t == HircTypeAuxBus
+	return t == HircTypeState             ||
+	       t == HircTypeAction            || 
+		   t == HircTypeEvent             || 
+		   t == HircTypeBus               ||
+	       t == HircTypeAttenuation       ||
+		   t == HircTypeFxShareSet        ||
+		   t == HircTypeFxCustom          ||
+		   t == HircTypeAuxBus            ||
+	       t == HircTypeEnvelopeModulator
 }
 
 var HircTypeName []string = []string{
