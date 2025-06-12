@@ -6,15 +6,12 @@ package ui
 import (
 	"context"
 	"fmt"
-	"slices"
-	"strconv"
 	"sync"
 	"sync/atomic"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/parser"
 	"github.com/Dekr0/wwise-teller/wwise"
-	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 type BankManager struct {
@@ -24,144 +21,18 @@ type BankManager struct {
 	WriteLock    atomic.Bool
 }
 
-type HircFilter struct {
-	Id         uint32
-	Sid        uint32
-	Type       wwise.HircType
-	HircObjs []wwise.HircObj
-}
-
-func (f *HircFilter) Filter(objs []wwise.HircObj) {
-	curr := 0 
-	prev := len(f.HircObjs)
-	for _, obj := range objs {
-		if wwise.NonHircType(obj) {
-			continue
-		}
-		if f.Type > 0 && f.Type != obj.HircType() {
-			continue
-		}
-		sound := obj.HircType() == wwise.HircTypeSound
-		bySid := f.Type == 0 || f.Type == wwise.HircTypeSound
-		if sound && bySid {
-			sound := obj.(*wwise.Sound)
-			if !fuzzy.Match(
-				strconv.FormatUint(uint64(f.Sid), 10),
-				strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10),
-			) {
-				continue
-			}
-		}
-		id, err := obj.HircID()
-		if err != nil {
-			continue
-		}
-		if !fuzzy.Match(
-			strconv.FormatUint(uint64(f.Id), 10),
-			strconv.FormatUint(uint64(id), 10),
-		) {
-			continue
-		}
-		if curr < len(f.HircObjs) {
-			f.HircObjs[curr] = obj
-		} else {
-			f.HircObjs = append(f.HircObjs, obj)
-		}
-		curr += 1
-	}
-	if curr < prev {
-		f.HircObjs = slices.Delete(f.HircObjs, curr, prev)
-	}
-}
-
-type HircRootFilter struct {
-	Id         uint32
-	Type       wwise.HircType
-	HircObjs []wwise.HircObj
-}
-
-func (f *HircRootFilter) Filter(objs []wwise.HircObj) {
-	curr := 0
-	prev := len(f.HircObjs)
-	for _, obj := range objs {
-		if wwise.NonHircType(obj) {
-			continue
-		}
-		if !wwise.ContainerHircType(obj) {
-			continue
-		}
-		if f.Type > 0 && f.Type != obj.HircType() {
-			continue
-		}
-		id, err := obj.HircID()
-		if err != nil {
-			continue
-		}
-		if !fuzzy.Match(
-			strconv.FormatUint(uint64(f.Id), 10),
-			strconv.FormatUint(uint64(id), 10),
-		) {
-			continue
-		}
-		if curr < len(f.HircObjs) {
-			f.HircObjs[curr] = obj
-		} else {
-			f.HircObjs = append(f.HircObjs, obj)
-		}
-		curr += 1
-	}
-	if curr < prev {
-		f.HircObjs = slices.Delete(f.HircObjs, curr, prev)
-	}
-}
-
-type MediaIndexFilter struct {
-	Sid             uint32
-	MediaIndices []*wwise.MediaIndex
-}
-
-func (f *MediaIndexFilter) Filter(indices []wwise.MediaIndex) {
-	curr := 0
-	prev := len(f.MediaIndices)
-	for _, index := range indices {
-		if !fuzzy.Match(
-			strconv.FormatUint(uint64(f.Sid), 10),
-			strconv.FormatUint(uint64(index.Sid), 10),
-		) {
-			continue
-		}
-		if curr < len(f.MediaIndices) {
-			f.MediaIndices[curr] = &index
-		} else {
-			f.MediaIndices = append(f.MediaIndices, &index)
-		}
-		curr += 1
-	}
-	if curr < prev {
-		f.MediaIndices = slices.Delete(f.MediaIndices, curr, prev)
-	}
-}
-
 type BankTab struct {
 	Bank                  *wwise.Bank
 	InitBank              *wwise.Bank
 
 	// Filter
-	HircFilter             HircFilter
-	HircRootFilter         HircRootFilter
 	MediaIndexFilter       MediaIndexFilter
 
+	ActorMixerViewer       ActorMixerViewer
 	AttenuationViewer      AttenuationViewer
 	EventViewer            EventViewer
 	GameSyncViewer         GameSyncViewer
-
-	// Storage
-	ActiveHirc             wwise.HircObj
-	LinearStorage         *imgui.SelectionBasicStorage
-
-
-	CntrStorage           *imgui.SelectionBasicStorage
-	RanSeqPlaylistStorage *imgui.SelectionBasicStorage
+	MusicHircViewer        MusicHircViewer
 
 	// Sync
 	WriteLock              atomic.Bool
@@ -169,30 +40,44 @@ type BankTab struct {
 
 func (b *BankTab) ChangeRoot(hid, np, op uint32) {
 	b.Bank.HIRC().ChangeRoot(hid, np, op)
-	b.FilterHircs()
-	b.CntrStorage.Clear()
-	b.RanSeqPlaylistStorage.Clear()
+	b.FilterActorMixerHircs()
+	b.ActorMixerViewer.CntrStorage.Clear()
+	b.ActorMixerViewer.RanSeqPlaylistStorage.Clear()
 }
 
 func (b *BankTab) RemoveRoot(hid, op uint32) {
 	b.Bank.HIRC().RemoveRoot(hid, op)
-	b.FilterHircs()
-	b.CntrStorage.Clear()
-	b.RanSeqPlaylistStorage.Clear()
+	b.FilterActorMixerHircs()
+	b.ActorMixerViewer.CntrStorage.Clear()
+	b.ActorMixerViewer.RanSeqPlaylistStorage.Clear()
 }
 
-func (b *BankTab) FilterHircs() {
+func (b *BankTab) FilterActorMixerHircs() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
-	b.HircFilter.Filter(b.Bank.HIRC().HircObjs)
+	b.ActorMixerViewer.ActorMixerHircFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
-func (b *BankTab) FilterRoots() {
+func (b *BankTab) FilterActorMixerRoots() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
-	b.HircRootFilter.Filter(b.Bank.HIRC().HircObjs)
+	b.ActorMixerViewer.ActorMixerRootFilter.Filter(b.Bank.HIRC().HircObjs)
+}
+
+func (b *BankTab) FilterMusicHircs() {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	b.MusicHircViewer.MusicHircFilter.Filter(b.Bank.HIRC().HircObjs)
+}
+
+func (b *BankTab) FilterMusicHircRoots() {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	b.MusicHircViewer.MusicHircRootFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
 func (b *BankTab) FilterEvents() {
@@ -263,21 +148,36 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 		return fmt.Errorf("Sound bank %s is already open", path)
 	}
 
-	objs := []wwise.HircObj{}
-	roots := []wwise.HircObj{}
+	actorMixerHircs := []wwise.HircObj{}
+	actorMixerRoots := []wwise.HircObj{}
+	musicHircs := []wwise.HircObj{}
+	musicHircRoots := []wwise.HircObj{}
 	events := []*wwise.Event{}
 	states := []*wwise.State{}
 	attenuations := []*wwise.Attenuation{}
 
 	if bank.HIRC() != nil {
 		hirc := bank.HIRC()
-		objs = make([]wwise.HircObj, 0, hirc.NumHirc())
-		roots = make([]wwise.HircObj, 0, len(hirc.HircObjs) / 2)
+
+		c := hirc.HierarchyCount()
+
+		actorMixerHircs = make([]wwise.HircObj, 0, c.ActorMixerHircs)
+		actorMixerRoots = make([]wwise.HircObj, 0, c.ActorMixerRoots)
+		musicHircs = make([]wwise.HircObj, 0, c.MusicHircs)
+		musicHircRoots = make([]wwise.HircObj, 0, c.MusicHircRoots)
+		events = make([]*wwise.Event, 0, c.Events)
+		states = make([]*wwise.State, 0, c.States)
+		attenuations = make([]*wwise.Attenuation, 0, c.Attenuations)
 		for _, o := range hirc.HircObjs {
-			if !wwise.NonHircType(o) {
-				objs = append(objs, o)
-				if wwise.ContainerHircType(o) {
-					roots = append(roots, o)
+			if wwise.ActorMixerHircType(o) {
+				actorMixerHircs = append(actorMixerHircs, o)
+				if wwise.ContainerActorMixerHircType(o) {
+					actorMixerRoots = append(actorMixerRoots, o)
+				}
+			} else if wwise.MusicHircType(o) {
+				musicHircs = append(musicHircs, o)
+				if wwise.ContainerMusicHircType(o) {
+					musicHircRoots = append(musicHircRoots, o)
 				}
 			} else {
 				switch t := o.(type) {
@@ -301,26 +201,31 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 		}
 	}
 
-	t := &BankTab{
+	t := BankTab{
 		WriteLock: atomic.Bool{},
 		Bank: bank,
 
-		HircFilter: HircFilter{
-			Id: 0,
-			Sid: 0,
-			Type : wwise.HircTypeAll,
-			HircObjs: objs,
-		},
-		HircRootFilter: HircRootFilter{
-			Id: 0,
-			Type: wwise.HircTypeAll,
-			HircObjs: roots,
-		},
 		MediaIndexFilter: MediaIndexFilter{
 			Sid: 0,
 			MediaIndices: indices,
 		},
 
+		ActorMixerViewer: ActorMixerViewer{
+			ActorMixerHircFilter: ActorMixerHircFilter{
+				Id: 0,
+				Sid: 0,
+				Type : wwise.HircTypeAll,
+				ActorMixerHircs: actorMixerHircs,
+			},
+			ActorMixerRootFilter: ActorMixerRootFilter{
+				Id: 0,
+				Type: wwise.HircTypeAll,
+				ActorMixerRoots: actorMixerRoots,
+			},
+			LinearStorage: imgui.NewSelectionBasicStorage(),
+			CntrStorage: imgui.NewSelectionBasicStorage(),
+			RanSeqPlaylistStorage: imgui.NewSelectionBasicStorage(),
+		},
 		AttenuationViewer: AttenuationViewer{
 			AttenuationFilter: AttenuationFilter{
 				Id: 0,
@@ -343,16 +248,25 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 			},
 			ActiveState: nil,
 		},
-
-		ActiveHirc: nil,
-		LinearStorage: imgui.NewSelectionBasicStorage(),
-		CntrStorage: imgui.NewSelectionBasicStorage(),
-		RanSeqPlaylistStorage: imgui.NewSelectionBasicStorage(),
+		MusicHircViewer: MusicHircViewer{
+			MusicHircFilter: MusicHircFilter{
+				Id: 0,
+				Type: wwise.HircTypeAll,
+				MusicHircs: musicHircs,
+			},
+			MusicHircRootFilter: MusicHircRootFilter{
+				Id: 0,
+				Type: wwise.HircTypeAll,
+				MusicHircRoots: musicHircRoots,
+			},
+			LinearStorage: imgui.NewSelectionBasicStorage(),
+			CntrStorage: imgui.NewSelectionBasicStorage(),
+		},
 	}
-	// t.buildTree()
+
 	t.WriteLock.Store(false)
 
-	b.Banks.Store(path, t)
+	b.Banks.Store(path, &t)
 
 	return nil
 }
@@ -360,39 +274,3 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 func (b *BankManager) CloseBank(del string) {
 	b.Banks.Delete(del)
 }
-
-// type Node struct {
-// 	tid   uint
-// 	leafs []*Node
-// }
-// 
-// func (b *bankTab) buildTree() {
-// 	hircObjs := b.bank.HIRC().HircObjs
-// 	b.roots = []*Node{}
-// 	tid := 0
-// 	for tid < len(hircObjs) {
-// 		root, _ := b.buildRoot(&tid, hircObjs)
-// 		b.roots = append(b.roots, root)
-// 	}
-// }
-
-// func (b *bankTab) buildRoot(tid *int, hircObjs []wwise.HircObj) (*Node, bool) {
-// 	o := hircObjs[*tid]
-// 	n := &Node{
-// 		tid: uint(*tid),
-// 		leafs: make([]*Node, 0, o.NumChild()),
-// 	}
-// 	*tid += 1
-// 
-// 	rootless := false
-// 
-// 	if o.ParentID() == 0 { rootless = true }
-// 
-// 	for j := 0; j < o.NumChild(); {
-// 		leaf, rootless := b.buildRoot(tid, hircObjs)
-// 		n.leafs = append(n.leafs, leaf)
-// 		if !rootless { j += 1 }
-// 	}
-// 
-// 	return n, rootless
-// }
