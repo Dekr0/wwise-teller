@@ -62,8 +62,11 @@ func renderBankExplorer(bnkMngr *BankManager, saveActive bool, iType int) (
 func renderBankExplorerTab(path string, t *BankTab) {
 	imgui.Text("Sound bank: " + path)
 	if imgui.BeginTabBar("SubBankExplorerTabBar") {
-		if imgui.BeginTabItem("Hierarchy Listing") {
+		if imgui.BeginTabItem("Actor Mixer Hierarchy Listing") {
 			renderActorMixerHircTable(t)
+			imgui.EndTabItem()
+		}
+		if imgui.BeginTabItem("Music Hierarchy Listing") {
 			imgui.EndTabItem()
 		}
 		if imgui.BeginTabItem("Attenuation") {
@@ -121,7 +124,7 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, 
 	return saveTab, saveName, itype
 }
 
-func renderActorMixerHircTable(b *BankTab) {
+func renderActorMixerHircTable(t *BankTab) {
 	focusTable := false
 
 	useViUp()
