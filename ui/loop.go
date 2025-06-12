@@ -221,7 +221,8 @@ func createLoop(
 			}
 		}
 		renderActorMixerHircTree(bnkMngr.ActiveBank)
-		renderObjEditor(bnkMngr.ActiveBank)
+		renderObjEditorActorMixer(bnkMngr.ActiveBank)
+		renderObjEditorMusic(bnkMngr.ActiveBank)
 		renderEventsViewer(bnkMngr.ActiveBank)
 		renderNotfiy(nQ)
 		imgui.End()
