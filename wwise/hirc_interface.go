@@ -53,35 +53,45 @@ var KnownHircTypes []HircType = []HircType{
 	HircTypeTimeModulator,
 }
 
-var ContainerHircTypes []HircType = []HircType{
-	HircTypeRanSeqCntr,
-	HircTypeSwitchCntr,
-	HircTypeActorMixer,
-	HircTypeLayerCntr,
+var MusicHircTypes []HircType = []HircType{
+	HircTypeMusicTrack,
 	HircTypeMusicSegment,
 	HircTypeMusicSwitchCntr,
 	HircTypeMusicRanSeqCntr,
 }
 
-func ContainerHircType(o HircObj) bool {
-	t := o.HircType()
-	return t == HircTypeRanSeqCntr      ||
-		   t == HircTypeSwitchCntr      ||
-		   t == HircTypeActorMixer      ||
-		   t == HircTypeLayerCntr       ||
-		   t == HircTypeMusicSegment    ||
-		   t == HircTypeMusicRanSeqCntr ||
-		   t == HircTypeMusicSwitchCntr
+var ActorMixerHircTypes []HircType = []HircType{
+	HircTypeSound,
+	HircTypeRanSeqCntr,
+	HircTypeSwitchCntr,
+	HircTypeActorMixer,
+	HircTypeLayerCntr,
+	HircTypeDialogueEvent,
 }
 
 func ActorMixerHircType(o HircObj) bool {
 	t := o.HircType()
-	return t == HircTypeRanSeqCntr      ||
+	return t == HircTypeSound           ||
+	       t == HircTypeRanSeqCntr      ||
 		   t == HircTypeSwitchCntr      ||
 		   t == HircTypeActorMixer      ||
 		   t == HircTypeLayerCntr       ||
-		   t == HircTypeSound           ||
 		   t == HircTypeDialogueEvent
+}
+
+var ContainerActorMixerHircTypes []HircType = []HircType{
+	HircTypeRanSeqCntr,
+	HircTypeSwitchCntr,
+	HircTypeActorMixer,
+	HircTypeLayerCntr,
+}
+
+func ContainerActorMixerHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeRanSeqCntr      ||
+		   t == HircTypeSwitchCntr      ||
+		   t == HircTypeActorMixer      ||
+		   t == HircTypeLayerCntr
 }
 
 func MusicHircType(o HircObj) bool {
@@ -90,6 +100,19 @@ func MusicHircType(o HircObj) bool {
 		   t == HircTypeMusicSegment    ||
 	       t == HircTypeMusicRanSeqCntr ||
 	       t == HircTypeMusicSwitchCntr
+}
+
+var ContainerMusicHircTypes []HircType = []HircType{
+	HircTypeMusicSegment,
+	HircTypeMusicSwitchCntr,
+	HircTypeMusicRanSeqCntr,
+}
+
+func ContainerMusicHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeMusicSegment    ||
+		   t == HircTypeMusicRanSeqCntr ||
+		   t == HircTypeMusicSwitchCntr
 }
 
 func NonHircType(o HircObj) bool {
