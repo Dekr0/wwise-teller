@@ -29,6 +29,7 @@ func renderRanSeqPlayList(t *BankTab, r *wwise.RanSeqCntr) {
 func renderRanSeqPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("PLTransfer", 3, 0, outerSize, 0) {
+		v := t.ActorMixerViewer
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthStretch, 0, 0)
@@ -43,7 +44,7 @@ func renderRanSeqPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 			for i := range r.Container.Children {
 				r.AddLeafToPlayList(i)
 			}
-			t.RanSeqPlaylistStorage.Clear()
+			v.RanSeqPlaylistStorage.Clear()
 		}
 
 		imgui.TableSetColumnIndex(2)
@@ -84,7 +85,7 @@ func renderRanSeqPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 			imgui.SetNextItemWidth(40)
 			imgui.PushIDStr(fmt.Sprintf("ToPlayList%d", i))
 			if imgui.Button(">") {
-				toPlayList = bindToRanSeqPlayList(t, r, i)
+				toPlayList = bindToRanSeqPlayList(&t.ActorMixerViewer, r, i)
 			}
 			imgui.PopID()
 
@@ -108,10 +109,10 @@ func renderRanSeqPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.EndChild()
 }
 
-func bindToRanSeqPlayList(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
+func bindToRanSeqPlayList(v *ActorMixerViewer, r *wwise.RanSeqCntr, i int) func() {
 	return func() {
 		r.AddLeafToPlayList(i)
-		t.RanSeqPlaylistStorage.Clear()
+		v.RanSeqPlaylistStorage.Clear()
 	}
 }
 
@@ -120,6 +121,7 @@ func renderRanSeqPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	size := imgui.NewVec2(0, 180)
 	if imgui.BeginTableV("PLTable", 5, flags, size, 0) {
+		v := t.ActorMixerViewer
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumn("Sequence")
 		imgui.TableSetupColumn("Target ID")
@@ -133,10 +135,10 @@ func renderRanSeqPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 		var delSel func() = nil
 
 		flags := imgui.MultiSelectFlagsClearOnEscape | imgui.MultiSelectFlagsBoxSelect2d
-		storageSize := t.RanSeqPlaylistStorage.Size()
+		storageSize := v.RanSeqPlaylistStorage.Size()
 		itemCount := int32(len(r.PlayListItems))
 		msIO := imgui.BeginMultiSelectV(flags, storageSize, itemCount)
-		t.RanSeqPlaylistStorage.ApplyRequests(msIO)
+		v.RanSeqPlaylistStorage.ApplyRequests(msIO)
 
 		hirc := t.Bank.HIRC()
 		for i, p := range r.PlayListItems {
@@ -147,7 +149,7 @@ func renderRanSeqPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 
 			imgui.PushIDStr(fmt.Sprintf("DelPlayListItem%d", i))
 			if imgui.Button("X") {
-				del = bindPendRanSeqPlayListItem(t, r, i)
+				del = bindPendRanSeqPlayListItem(&t.ActorMixerViewer, r, i)
 			}
 			imgui.PopID()
 
@@ -161,7 +163,7 @@ func renderRanSeqPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 			imgui.TableSetColumnIndex(2)
 			imgui.SetNextItemWidth(-1)
 
-			selected := t.RanSeqPlaylistStorage.Contains(imgui.ID(i))
+			selected := v.RanSeqPlaylistStorage.Contains(imgui.ID(i))
 			label := strconv.FormatUint(uint64(p.UniquePlayID), 10)
 			const flags = DefaultTableSelFlags
 			imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(i))
@@ -186,7 +188,7 @@ func renderRanSeqPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
 		}
 
 		imgui.EndMultiSelect()
-		t.RanSeqPlaylistStorage.ApplyRequests(msIO)
+		v.RanSeqPlaylistStorage.ApplyRequests(msIO)
 
 		if move != nil { 
 			move()
@@ -230,7 +232,7 @@ func renderRanSeqPlayListTableCtxMenu(t *BankTab, r *wwise.RanSeqCntr) func() {
 
 	if imgui.BeginPopupContextItem() {
 		if imgui.Button("Delete") {
-			delSel = bindPendSelectRanSeqPlayListItem(t, r)
+			delSel = bindPendSelectRanSeqPlayListItem(&t.ActorMixerViewer, r)
 			imgui.CloseCurrentPopup()
 		}
 		imgui.EndPopup()
@@ -245,25 +247,25 @@ func bindChangeRanSeqPlayListItemOrder(i, j int, r *wwise.RanSeqCntr) func() {
 	}
 }
 
-func bindPendRanSeqPlayListItem(t *BankTab, r *wwise.RanSeqCntr, i int) func() {
+func bindPendRanSeqPlayListItem(v *ActorMixerViewer, r *wwise.RanSeqCntr, i int) func() {
 	return func() {
 		r.RemoveLeafFromPlayList(i)
-		t.RanSeqPlaylistStorage.Clear()
+		v.RanSeqPlaylistStorage.Clear()
 	}
 }
 
-func bindPendSelectRanSeqPlayListItem(t *BankTab, r *wwise.RanSeqCntr) func() {
+func bindPendSelectRanSeqPlayListItem(v *ActorMixerViewer, r *wwise.RanSeqCntr) func() {
 	return func() {
 		mut := false
 		tids := []uint32{}
 		for i, p := range r.PlayListItems {
-			if t.RanSeqPlaylistStorage.Contains(imgui.ID(i)) {
+			if v.RanSeqPlaylistStorage.Contains(imgui.ID(i)) {
 				tids = append(tids, p.UniquePlayID)
 				mut = true
 			}
 		}
 		if mut {
-			t.RanSeqPlaylistStorage.Clear()
+			v.RanSeqPlaylistStorage.Clear()
 		}
 		r.RemoveLeafsFromPlayList(tids)
 	}
