@@ -22,12 +22,15 @@ func NewDockManager() *DockManager {
 	return &DockManager{
 		focused: 0,
 		dockWindows: []string{
+			"Attenuations",
+			"Actor Mixer Hierarchy Tree",
 			"Bank Explorer",
-			"Hierarchy View",
-			"File Explorer",
-			"Log",
-			"Object Editor",
 			"Events",
+			"File Explorer",
+			"Game Sync",
+			"Log",
+			"Object Editor (Actor Mixer)",
+			"Object Editor (Music)",
 		},
 		layout: Layout02,
 		rebuild: true,
@@ -75,14 +78,16 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 			mainDock, imgui.DirDown, 0.45, nil, &dock2,
 		)
 
-		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
-		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
-		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", dock2)
-		imgui.InternalDockBuilderDockWindow("Log", dock3)
-		imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
-		imgui.InternalDockBuilderDockWindow("Events", dock3)
+		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy Tree", dock2)
 		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
+		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
+		imgui.InternalDockBuilderDockWindow("Events", dock3)
+		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
+		imgui.InternalDockBuilderDockWindow("Log", dock3)
+		imgui.InternalDockBuilderDockWindow("Music Hierarchy Tree", dock2)
+		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", dock3)
+		imgui.InternalDockBuilderDockWindow("Object Editor (Music)", dock3)
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.rebuild = false
 	} else if d.layout == Layout02 {
@@ -100,14 +105,16 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 			mainDock, imgui.DirRight, 0.50, nil, &dock2,
 		)
 
-		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
-		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock1)
-		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", dock2)
-		imgui.InternalDockBuilderDockWindow("Log", dock3)
-		imgui.InternalDockBuilderDockWindow("Object Editor", dock3)
-		imgui.InternalDockBuilderDockWindow("Events", dock3)
+		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy Tree", dock2)
 		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
+		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock1)
+		imgui.InternalDockBuilderDockWindow("Events", dock3)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
+		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
+		imgui.InternalDockBuilderDockWindow("Log", dock3)
+		imgui.InternalDockBuilderDockWindow("Music Hierarchy Tree", dock2)
+		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", dock3)
+		imgui.InternalDockBuilderDockWindow("Object Editor (Music)", dock3)
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.rebuild = false
 	}
