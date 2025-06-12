@@ -1,13 +1,5 @@
 // TODO
-// - Clean up filter for hierarchy object listing
-//   - Action
-//   - Attenuation
-//   - Event
-//   - State
-//   - ...
-//
 // - Tree View Keyboard navigation
-// - Tree Render does not work when there's one not expanded root entry in the table
 package ui
 
 import (
@@ -70,8 +62,11 @@ func renderBankExplorer(bnkMngr *BankManager, saveActive bool, iType int) (
 func renderBankExplorerTab(path string, t *BankTab) {
 	imgui.Text("Sound bank: " + path)
 	if imgui.BeginTabBar("SubBankExplorerTabBar") {
-		if imgui.BeginTabItem("Hierarchy Listing") {
+		if imgui.BeginTabItem("Actor Mixer Hierarchy Listing") {
 			renderActorMixerHircTable(t)
+			imgui.EndTabItem()
+		}
+		if imgui.BeginTabItem("Music Hierarchy Listing") {
 			imgui.EndTabItem()
 		}
 		if imgui.BeginTabItem("Attenuation") {
@@ -129,7 +124,7 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, 
 	return saveTab, saveName, itype
 }
 
-func renderActorMixerHircTable(b *BankTab) {
+func renderActorMixerHircTable(t *BankTab) {
 	focusTable := false
 
 	useViUp()
@@ -137,27 +132,47 @@ func renderActorMixerHircTable(b *BankTab) {
 	useViDown()
 	useViShiftDown()
 
+	filterState := &t.ActorMixerViewer.ActorMixerHircFilter
+
 	imgui.SeparatorText("Filter")
 
 	imgui.SetNextItemShortcut(DefaultSearchSC)
 	imgui.SetNextItemWidth(96)
-	if imgui.InputScalar("By ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Id))) {
-		b.FilterHircs()
+	if imgui.InputScalar(
+		"By ID",
+		imgui.DataTypeU32,
+		uintptr(utils.Ptr(&filterState.Id)),
+	) {
+		t.FilterActorMixerHircs()
 	}
 
-	imgui.BeginDisabledV(b.HircFilter.Type != wwise.HircTypeAll && b.HircFilter.Type != wwise.HircTypeSound)
+	imgui.BeginDisabledV(filterState.Type != wwise.HircTypeAll && filterState.Type != wwise.HircTypeSound)
 	imgui.SetNextItemWidth(96)
-	if imgui.InputScalar("By source ID", imgui.DataTypeU32, uintptr(utils.Ptr(&b.HircFilter.Sid))) {
-		b.FilterHircs()
+	if imgui.InputScalar(
+		"By source ID",
+		imgui.DataTypeU32,
+		uintptr(utils.Ptr(&filterState.Sid)),
+	) {
+		t.FilterActorMixerHircs()
 	}
 	imgui.EndDisabled()
 
-	typeFilter := int32(b.HircFilter.Type)
 	imgui.SetNextItemWidth(256)
-	if imgui.ComboStrarr("By hierarchy object type", &typeFilter, wwise.HircTypeName, int32(len(wwise.HircTypeName)),
-	) {
-		b.HircFilter.Type = wwise.HircType(typeFilter)
-		b.FilterHircs()
+	preview := wwise.HircTypeName[filterState.Type]
+	if imgui.BeginCombo("By Type", preview) {
+		var filter func() = nil
+		for _, _type := range wwise.ActorMixerHircTypes {
+			selected := filterState.Type == _type
+			preview = wwise.HircTypeName[_type]
+			if imgui.SelectableBoolPtr(preview, &selected) {
+				filterState.Type = _type
+				filter = t.FilterActorMixerHircs
+			}
+		}
+		imgui.EndCombo()
+		if filter != nil {
+			filter()
+		}
 	}
 	imgui.SeparatorText("")
 
@@ -177,20 +192,24 @@ func renderActorMixerHircTable(b *BankTab) {
 			imgui.SetKeyboardFocusHere()
 		}
 
-		storage := b.LinearStorage
+		storage := t.ActorMixerViewer.LinearStorage
 
-		msIO := imgui.BeginMultiSelectV(DefaultMultiSelectFlags, storage.Size(), int32(len(b.HircFilter.HircObjs)))
+		msIO := imgui.BeginMultiSelectV(
+			DefaultMultiSelectFlags,
+			storage.Size(),
+			int32(len(filterState.ActorMixerHircs)),
+		)
 		storage.ApplyRequests(msIO)
 
 		clipper := imgui.NewListClipper()
-		clipper.Begin(int32(len(b.HircFilter.HircObjs)))
+		clipper.Begin(int32(len(filterState.ActorMixerHircs)))
 		if msIO.RangeSrcItem() != 1 {
 			// Ensure RangeSrc item is not clipped
 			clipper.IncludeItemByIndex(int32(msIO.RangeSrcItem()))
 		}
 		for clipper.Step() {
 			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-				o := b.HircFilter.HircObjs[n]
+				o := filterState.ActorMixerHircs[n]
 
 				imgui.TableNextRow()
 				imgui.TableSetColumnIndex(0)
@@ -236,7 +255,7 @@ func renderActorMixerHircTable(b *BankTab) {
 }
 
 func renderActorMixerHircTree(t *BankTab)  {
-	imgui.Begin("Actor Mixer Hierarchy")
+	imgui.Begin("Actor Mixer Hierarchy Tree")
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
 		imgui.End()
 		return
@@ -270,7 +289,7 @@ func renderActorMixerHircNode(t *BankTab, node *wwise.ActorMixerHircNode) {
 	if err != nil { panic("Panic Trap") }
 
 	sid = strconv.FormatUint(uint64(id), 10)
-	selected = t.LinearStorage.Contains(imgui.ID(id))
+	selected = t.ActorMixerViewer.LinearStorage.Contains(imgui.ID(id))
 
 	imgui.TableNextRow()
 	imgui.TableSetColumnIndex(0)
@@ -283,9 +302,9 @@ func renderActorMixerHircNode(t *BankTab, node *wwise.ActorMixerHircNode) {
 	open := imgui.TreeNodeExStrV(sid, flags)
 	if imgui.IsItemClicked() {
 		if !imgui.CurrentIO().KeyCtrl() {
-			t.LinearStorage.Clear()
+			t.ActorMixerViewer.LinearStorage.Clear()
 		}
-		t.LinearStorage.SetItemSelected(imgui.ID(id), true)
+		t.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(id), true)
 	}
 	imgui.TableSetColumnIndex(1)
 	st := wwise.HircTypeName[o.HircType()]
@@ -302,20 +321,4 @@ func renderActorMixerHircNode(t *BankTab, node *wwise.ActorMixerHircNode) {
 		}
 		imgui.TreePop()
 	}
-}
-
-func clippedHircNode(treeIdx *int, hircObjs []wwise.HircObj) bool {
-	l := len(hircObjs)
-	o := hircObjs[l - *treeIdx - 1]
-	*treeIdx += 1
-	freeFloat := false
-	if o.ParentID() == 0 {
-		freeFloat = true
-	}
-	for j := 0; j < o.NumLeaf(); {
-		if !clippedHircNode(treeIdx, hircObjs) {
-			j += 1
-		}
-	}
-	return freeFloat
 }
