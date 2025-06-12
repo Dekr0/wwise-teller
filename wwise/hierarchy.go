@@ -7,9 +7,7 @@ import (
 	"log/slog"
 	"slices"
 	"sync"
-	"sync/atomic"
 
-	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
@@ -18,141 +16,54 @@ const MaxEncodeRoutine = 6
 // # of hierarchy object (uint32)
 const SizeOfHIRCHeader = 4
 
-type HircType uint8
-
-const (
-	HircTypeAll             HircType = 0x00
-	HircTypeState           HircType = 0x01 // ???
-	HircTypeSound           HircType = 0x02
-	HircTypeAction          HircType = 0x03 // ???
-	HircTypeEvent           HircType = 0x04 // ???
-	HircTypeRanSeqCntr      HircType = 0x05
-	HircTypeSwitchCntr      HircType = 0x06
-	HircTypeActorMixer      HircType = 0x07
-	HircTypeBus             HircType = 0x08 // ???
-	HircTypeLayerCntr       HircType = 0x09
-	HircTypeMusicSegment    HircType = 0x0a
-	HircTypeMusicTrack      HircType = 0x0b // ???
-	HircTypeMusicSwitchCntr HircType = 0x0c // ???
-	HircTypeMusicRanSeqCntr HircType = 0x0d // ???
-	HircTypeAttenuation     HircType = 0x0e // ???
-	HircTypeDialogueEvent   HircType = 0x0f // ???
-	HircTypeFxShareSet      HircType = 0x10 // ???
-	HircTypeFxCustom        HircType = 0x11 // ???
-	HircTypeAuxBus          HircType = 0x12 // ???
-	HircTypeLFOModulator    HircType = 0x13 // ???
-	HircEnvelopeModulator   HircType = 0x14 // ???
-	HircAudioDevice         HircType = 0x15 // ???
-	HircTimeModulator       HircType = 0x16 // ???
-	HircTypeCount                    = 0x17
-)
-
-var KnownHircTypes []HircType = []HircType{
-	0x00,
-	HircTypeState,
-	HircTypeSound,
-	HircTypeAction,
-	HircTypeEvent,
-	HircTypeRanSeqCntr,
-	HircTypeSwitchCntr,
-	HircTypeActorMixer,
-	HircTypeBus,
-	HircTypeLayerCntr,
-	HircTypeMusicSegment,
-	HircTypeMusicTrack,
-	HircTypeMusicSwitchCntr,
-	HircTypeMusicRanSeqCntr,
-	HircTypeAttenuation,
-	HircTypeFxShareSet,
-	HircTypeFxCustom,
-}
-
-var ContainerHircTypes []HircType = []HircType{
-	HircTypeRanSeqCntr,
-	HircTypeSwitchCntr,
-	HircTypeActorMixer,
-	HircTypeLayerCntr,
-	HircTypeMusicSegment,
-	HircTypeMusicSwitchCntr,
-	HircTypeMusicRanSeqCntr,
-}
-
-func ContainerHircType(o HircObj) bool {
-	t := o.HircType()
-	return t == HircTypeRanSeqCntr      ||
-		   t == HircTypeSwitchCntr      ||
-		   t == HircTypeActorMixer      ||
-		   t == HircTypeLayerCntr       ||
-		   t == HircTypeMusicSegment    ||
-		   t == HircTypeMusicRanSeqCntr ||
-		   t == HircTypeMusicSwitchCntr
-}
-
-func NonHircType(o HircObj) bool {
-	t := o.HircType()
-	return t == HircTypeState       ||
-	       t == HircTypeAction      || 
-		   t == HircTypeEvent       || 
-		   t == HircTypeBus         ||
-	       t == HircTypeAttenuation ||
-		   t == HircTypeFxShareSet  ||
-		   t == HircTypeFxCustom
-}
-
-var HircTypeName []string = []string{
-	"",
-	"State",
-	"Sound",
-	"Action",
-	"Event",
-	"Random / Sequence Container",
-	"Switch Container",
-	"Actor Mixer",
-	"Bus",
-	"Layer Container",
-	"Music Segment",
-	"Music Track",
-	"Music Switch Container",
-	"Music Random / Sequence Container",
-	"Attenuation",
-	"Dialogue Event",
-	"FX Share Set",
-	"FX Custom",
-	"Aux Bus",
-	"LFO Modulator",
-	"Envelope Modulator",
-	"Audio Device",
-	"Time Modulator",
-}
-
 type HIRC struct {
 	I uint8
 	T []byte
 
 	// Retain the tree structure that comes from the decoding with minimal
 	// modification
-	HircObjs    []HircObj
-	HircObjsMap sync.Map
+	HircObjs        []HircObj
 
-	ActionCount      atomic.Uint32
-	AttenuationCount atomic.Uint32
-	BusCount         atomic.Uint32
-	EventCount       atomic.Uint32
-	FxCustomCount    atomic.Uint32
-	FxShareSetCount  atomic.Uint32
-	StateCount       atomic.Uint32
+	// 1
+	AudioDevices      sync.Map
+
+	// Master Mixer Hierarchy 8
+	Buses             sync.Map
+	Attenuations      sync.Map
+	FxShareSets       sync.Map
+	FxCustoms         sync.Map
+	AuxBuses          sync.Map
+	LFOModulators     sync.Map
+	EnvelopeModulator sync.Map
+	TimeModulator     sync.Map
+
+	// Sound
+	// Random / Sequence Container
+	// Switch Container
+	// Actor Mixer
+	// Layer Container
+	// Dialogue Event?
+	ActorMixerHirc    sync.Map // 6
+	ActorMixerRoots []ActorMixerHircNode
+
+	// Game Sync 3
+	Actions           sync.Map
+	Events            sync.Map
+	States            sync.Map
+
+	// Music Segment
+	// Music Track
+	// Music Switch Container
+	// Music Random Sequence Container
+	MusicHirc        sync.Map // 4
+	MusicHircRoots   []MusicHircNode
 }
 
 func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 	return &HIRC{
-		I:               I,
-		T:               T,
-		HircObjs:        make([]HircObj, numHircItem),
-		HircObjsMap:     sync.Map{},
-		ActionCount:     atomic.Uint32{},
-		AttenuationCount:atomic.Uint32{},
-		EventCount:      atomic.Uint32{},
-		StateCount:      atomic.Uint32{},
+		I:        I,
+		T:        T,
+		HircObjs: make([]HircObj, numHircItem),
 	}
 }
 
@@ -175,9 +86,9 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 	i := 0
 	for done < len(h.HircObjs) {
 		select {
-		case <-ctx.Done():
+		case <- ctx.Done():
 			return nil, ctx.Err()
-		case r := <-c:
+		case r := <- c:
 			results[r.i] = r.b
 			done += 1
 		case sem <- struct{}{}:
@@ -225,14 +136,42 @@ func (h *HIRC) Idx() uint8 {
 	return h.I
 }
 
-// NumHirc return the number of hierarchy objects excluding the following types 
-// of hierarchy objects:
-//   - Action
-//   - Attenuation
-//   - Event
-//   - State
-func (h *HIRC) NumHirc() uint32 {
-	return uint32(len(h.HircObjs)) - h.AttenuationCount.Load() - h.ActionCount.Load() - h.EventCount.Load() - h.StateCount.Load()
+type HircCount struct {
+	Attenuations    uint16
+	ActorMixerHircs uint16
+	ActorMixerRoots uint16
+	MusicHircs      uint16
+	MusicHircRoots  uint16
+	Events          uint16
+	States          uint16
+}
+
+// Use for deterministic allocation initially of different types of filter array
+func (h *HIRC) HierarchyCount() HircCount {
+	c := HircCount{}
+	for _, o := range h.HircObjs {
+		if ActorMixerHircType(o) {
+			c.ActorMixerHircs += 1
+			if ContainerActorMixerHircType(o) {
+				c.ActorMixerRoots += 1
+			}
+		} else if MusicHircType(o) {
+			c.MusicHircs += 1
+			if ContainerMusicHircType(o) {
+				c.MusicHircRoots += 1
+			}
+		} else {
+			switch o.HircType() {
+			case HircTypeAttenuation:
+				c.Attenuations += 1
+			case HircTypeEvent:
+				c.Events += 1
+			case HircTypeState:
+				c.States += 1
+			}
+		}
+	}
+	return c
 }
 
 func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
@@ -241,11 +180,19 @@ func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
 		return
 	}
 
-	v, in := h.HircObjsMap.Load(id)
-	if !in {
+	// Use this for now because using Map will have issue due to how Wwise 
+	// bundle hierarchy objects
+	idx := slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
+		i, err := h.HircID()
+		if err != nil {
+			return false
+		}
+		return i == id
+	})
+	if idx == -1 {
 		panic(fmt.Sprintf("ID %d has no associated hierarchy.", id))
 	}
-	leaf := v.(HircObj)
+	leaf := h.HircObjs[idx]
 	if b := leaf.BaseParameter(); b == nil {
 		panic(fmt.Sprintf("%d is not containable", id))
 	}
@@ -254,11 +201,17 @@ func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
 		panic(fmt.Sprintf("ID %d has an associated hiearchy but its HircID interface returns error.", id))
 	}
 
-	v, in = h.HircObjsMap.Load(newRootID)
-	if !in {
+	idx = slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
+		i, err := h.HircID()
+		if err != nil {
+			return false
+		}
+		return i == newRootID
+	})
+	if idx == -1 {
 		panic(fmt.Sprintf("ID %d has no associated hierarchy.", newRootID))
 	}
-	newRoot := v.(HircObj)
+	newRoot := h.HircObjs[idx]
 	_, err = newRoot.HircID()
 	if err != nil {
 		panic(fmt.Sprintf("ID %d has an associated hiearchy but its HircID interface returns error.", newRootID))
@@ -268,11 +221,17 @@ func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
 	}
 
 	if oldRootID != 0 {
-		v, in = h.HircObjsMap.Load(oldRootID)
-		if !in {
+		idx = slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
+			i, err := h.HircID()
+			if err != nil {
+				return false
+			}
+			return i == oldRootID
+		})
+		if idx == -1 {
 			panic(fmt.Sprintf("ID %d has no associated hierarchy.", oldRootID))
 		}
-		oldRoot := v.(HircObj)
+		oldRoot := h.HircObjs[idx]
 		_, err = oldRoot.HircID()
 		if err != nil {
 			panic(fmt.Sprintf("ID %d has an associated hiearchy but its HircID interface returns error.", oldRootID))
@@ -323,11 +282,17 @@ func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
 }
 
 func (h *HIRC) RemoveRoot(id, oldRootID uint32) {
-	v, in := h.HircObjsMap.Load(id)
-	if !in {
+	idx := slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
+		i, err := h.HircID()
+		if err != nil {
+			return false
+		}
+		return i == id
+	})
+	if idx == -1 {
 		panic(fmt.Sprintf("ID %d has no associated hierarchy.", id))
 	}
-	leaf := v.(HircObj)
+	leaf := h.HircObjs[idx]
 	if b := leaf.BaseParameter(); b == nil {
 		panic(fmt.Sprintf("%d is not containable", id))
 	}
@@ -341,11 +306,17 @@ func (h *HIRC) RemoveRoot(id, oldRootID uint32) {
 	}
 
 	if oldRootID != 0 {
-		v, in = h.HircObjsMap.Load(oldRootID)
-		if !in {
+		idx := slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
+			i, err := h.HircID()
+			if err != nil {
+				return false
+			}
+			return i == oldRootID
+		})
+		if idx == -1 {
 			panic(fmt.Sprintf("ID %d has no associated hierarchy.", oldRootID))
 		}
-		oldRoot := v.(HircObj)
+		oldRoot := h.HircObjs[idx]
 		_, err = oldRoot.HircID()
 		if err != nil {
 			panic(fmt.Sprintf("ID %d has an associated hiearchy but its HircID interface returns error.", oldRootID))
@@ -367,7 +338,8 @@ func (h *HIRC) RemoveRoot(id, oldRootID uint32) {
 			panic(fmt.Sprintf("%d does not exists in the HIRC", id))
 		}
 
-		idx := slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
+		// Find the first action hierarchy, and put it next to that action
+		idx = slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
 			return h.HircType() == HircTypeAction
 		})
 		l = len(h.HircObjs)
@@ -394,80 +366,4 @@ func (h *HIRC) TreeArrIdx(tid uint32) int {
 			return id == tid
 		}
 	})
-}
-
-type HircObj interface {
-	Encode() []byte
-	BaseParameter() *BaseParameter
-	HircID() (uint32, error)
-	HircType() HircType
-	IsCntr() bool
-	NumLeaf() int
-	ParentID() uint32
-	// Modify DirectParentId,
-	// pre condition: o.DirectParentId == 0
-	// post condition: o.DirectParentId == HircObj.HircID
-	AddLeaf(o HircObj)
-	// Modify DirectParentId,
-	// pre condition: o.DirectParentId == HircObj.HircID
-	// post condition: DirectParentId = 0
-	RemoveLeaf(o HircObj)
-}
-
-const SizeOfHircObjHeader = 1 + 4
-
-type HircObjHeader struct {
-	Type HircType // U8x
-	Size uint32   // U32
-}
-
-type Unknown struct {
-	HircObj
-	Header *HircObjHeader
-	Data   []byte
-}
-
-func NewUnknown(t HircType, s uint32, b []byte) *Unknown {
-	return &Unknown{
-		Header: &HircObjHeader{Type: t, Size: s},
-		Data:   b,
-	}
-}
-
-func (u *Unknown) Encode() []byte {
-	assert.Equal(
-		u.Header.Size,
-		uint32(len(u.Data)),
-		"Header size does not equal to actual data size",
-	)
-
-	bw := wio.NewWriter(uint64(SizeOfHircObjHeader + len(u.Data)))
-
-	/* Header */
-	bw.Append(u.Header)
-	bw.AppendBytes(u.Data)
-
-	return bw.Bytes()
-}
-
-func (u *Unknown) BaseParameter() *BaseParameter { return nil }
-
-func (u *Unknown) HircID() (uint32, error) {
-	return 0, fmt.Errorf("Hierarchy object type %d has yet implement GetHircID.", u.Header.Type)
-}
-
-func (u *Unknown) HircType() HircType { return u.Header.Type }
-
-func (u *Unknown) IsCntr() bool { return false }
-
-func (u *Unknown) NumLeaf() int { return 0 }
-
-func (u *Unknown) ParentID() uint32 { return 0 }
-
-func (u *Unknown) AddLeaf(o HircObj) {
-	panic("Work in development hierarchy object type is calling AddLeaf.")
-}
-
-func (u *Unknown) RemoveLeaf(o HircObj) {
-	panic("Work in development hierarchy object type is calling RemoveLeaf.")
 }
