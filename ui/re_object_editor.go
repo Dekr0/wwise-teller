@@ -11,8 +11,8 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderObjEditor(t *BankTab) {
-	imgui.Begin("Object Editor")
+func renderObjEditorActorMixer(t *BankTab) {
+	imgui.Begin("Object Editor (Actor Mixer)")
 
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
 		imgui.End()
@@ -22,78 +22,125 @@ func renderObjEditor(t *BankTab) {
 	useViUp()
 	useViDown()
 
-	if imgui.BeginTabBarV(
-		"ObjectEditorTabBar",
-		imgui.TabBarFlagsReorderable |
-		imgui.TabBarFlagsAutoSelectNewTabs |
-		imgui.TabBarFlagsTabListPopupButton | imgui.TabBarFlagsFittingPolicyScroll,
-	) {
+	if imgui.BeginTabBarV("ObjectEditorTabBar", DefaultTabFlags) {
 		s := []wwise.HircObj{}
 		for _, h := range t.Bank.HIRC().HircObjs {
 			id, err := h.HircID()
-			if err != nil {
-				continue
-			}
-			if t.LinearStorage.Contains(imgui.ID(id)) {
+			if err != nil { panic(err) }
+			if t.ActorMixerViewer.LinearStorage.Contains(imgui.ID(id)) {
 				s = append(s, h)
 			}
 		}
-
-		for i, h := range s {
-			renderHircTab(t, i, h)
+		for _, h := range s {
+			renderActorMixerTab(t, h)
 		}
-
 		imgui.EndTabBar()
 	}
 
 	imgui.End()
 }
 
-func renderHircTab(t *BankTab, i int, h wwise.HircObj) {
-	var label string
-	switch h.(type) {
-	case *wwise.Unknown:
-		label = fmt.Sprintf("Unknown Object %d", i)
-	default:
-		id, _ := h.HircID()
-		label = fmt.Sprintf("%s %d", wwise.HircTypeName[h.HircType()], id)
+func renderActorMixerTab(t *BankTab, h wwise.HircObj) {
+	viewer := &t.ActorMixerViewer
+	id, err := h.HircID()
+	if err != nil {
+		panic(err)
 	}
-
+	label := fmt.Sprintf("%s %d", wwise.HircTypeName[h.HircType()], id)
 	open := true
 	if imgui.BeginTabItemV(label, &open, imgui.TabItemFlagsNone) {
-		if t.ActiveHirc != h {
-			t.CntrStorage.Clear()
-			t.RanSeqPlaylistStorage.Clear()
+		if viewer.ActiveActorMixerHirc != h {
+			viewer.CntrStorage.Clear()
+			viewer.RanSeqPlaylistStorage.Clear()
 		}
-		t.ActiveHirc = h
-		switch h.(type) {
+		viewer.ActiveActorMixerHirc = h
+		switch ah := h.(type) {
 		case *wwise.ActorMixer:
-			renderActorMixer(t, h.(*wwise.ActorMixer))
+			renderActorMixer(t, ah)
 		case *wwise.LayerCntr:
-			renderLayerCntr(t, h.(*wwise.LayerCntr))
-		case *wwise.MusicTrack:
-			renderMusicTrack(t, h.(*wwise.MusicTrack))
+			renderLayerCntr(t, ah)
 		case *wwise.RanSeqCntr:
-			renderRanSeqCntr(t, h.(*wwise.RanSeqCntr))
+			renderRanSeqCntr(t, ah)
 		case *wwise.SwitchCntr:
-			renderSwitchCntr(t, h.(*wwise.SwitchCntr))
+			renderSwitchCntr(t, ah)
 		case *wwise.Sound:
-			renderSound(t, h.(*wwise.Sound))
-		case *wwise.Unknown:
-			renderUnknown(h.(*wwise.Unknown))
+			renderSound(t, ah)
+		default:
+			panic("Panic Trap")
 		}
 		imgui.EndTabItem()
 	}
 	if !open {
-		if id, err := h.HircID(); err == nil {
-			t.LinearStorage.SetItemSelected(imgui.ID(id), false)
+		viewer.LinearStorage.SetItemSelected(imgui.ID(id), false)
+		viewer.CntrStorage.Clear()
+		viewer.RanSeqPlaylistStorage.Clear()
+	}
+}
+
+func renderObjEditorMusic(t *BankTab) {
+	imgui.Begin("Object Editor (Music)")
+
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
+		imgui.End()
+		return
+	}
+
+	useViUp()
+	useViDown()
+
+	if imgui.BeginTabBarV("ObjectEditorTabBar", DefaultTabFlags) {
+		s := []wwise.HircObj{}
+		for _, h := range t.Bank.HIRC().HircObjs {
+			id, err := h.HircID()
+			if err != nil { panic(err) }
+			if t.MusicHircViewer.LinearStorage.Contains(imgui.ID(id)) {
+				s = append(s, h)
+			}
 		}
+		for _, h := range s {
+			renderMusicTab(t, h)
+		}
+		imgui.EndTabBar()
+	}
+	imgui.End()
+}
+
+func renderMusicTab(t *BankTab, h wwise.HircObj) {
+	viewer := &t.MusicHircViewer
+	id, err := h.HircID()
+	if err != nil {
+		panic(err)
+	}
+	label := fmt.Sprintf("%s %d", wwise.HircTypeName[h.HircType()], id)
+	open := true
+	if imgui.BeginTabItemV(label, &open, imgui.TabItemFlagsNone) {
+		if viewer.ActiveMusicHirc != h {
+			viewer.CntrStorage.Clear()
+		}
+		viewer.ActiveMusicHirc = h
+		switch mh := h.(type) {
+		case *wwise.MusicTrack:
+			renderMusicTrack(t, mh)
+		case *wwise.MusicSegment:
+			renderMusicSegment(t, mh)
+		case *wwise.MusicRanSeqCntr:
+			renderMusicRanSeqCntr(t, mh)
+		case *wwise.MusicSwitchCntr:
+			renderMusicSwitchCntr(t, mh)
+		default:
+			panic("Panic Trap")
+		}
+		imgui.EndTabItem()
+	}
+	if !open {
+		viewer.LinearStorage.SetItemSelected(imgui.ID(id), false)
+		viewer.CntrStorage.Clear()
 	}
 }
 
 func renderActorMixer(t *BankTab, o *wwise.ActorMixer) {
 	renderBaseParam(t, o)
-	renderActorMixerHircContainer(t, o.Id, o.Container)
+	renderContainer(t, o.Id, o.Container, wwise.ActorMixerHircType(o))
 }
 
 func renderLayerCntr(t *BankTab, o *wwise.LayerCntr) {
@@ -102,7 +149,7 @@ func renderLayerCntr(t *BankTab, o *wwise.LayerCntr) {
 
 func renderRanSeqCntr(t *BankTab, o *wwise.RanSeqCntr) {
 	renderBaseParam(t, o)
-	renderActorMixerHircContainer(t, o.Id, o.Container)
+	renderContainer(t, o.Id, o.Container, wwise.ActorMixerHircType(o))
 	renderRanSeqPlayList(t, o)
 }
 
@@ -115,16 +162,19 @@ func renderSound(t *BankTab, o *wwise.Sound) {
 	renderBaseParam(t, o)
 }
 
-func renderUnknown(o *wwise.Unknown) {
-	imgui.Text(
-		fmt.Sprintf(
-			"Support for hierarchy object type %s is still under construction.",
-			wwise.HircTypeName[o.HircType()],
-		),
-	)
+func renderMusicSegment(t *BankTab, o *wwise.MusicSegment) {
+	imgui.Text("Under construction")
 }
 
-func renderActorMixerHircContainer(t *BankTab, id uint32, cntr *wwise.Container) {
+func renderMusicSwitchCntr(t *BankTab, o *wwise.MusicSwitchCntr) {
+	imgui.Text("Under construction")
+}
+
+func renderMusicRanSeqCntr(t *BankTab, o *wwise.MusicRanSeqCntr) {
+	imgui.Text("Under construction")
+}
+
+func renderContainer(t *BankTab, id uint32, cntr *wwise.Container, actorMixer bool) {
 	if imgui.TreeNodeExStr("Container") {
 		imgui.BeginDisabled()
 		imgui.Button("Add New Children")
@@ -178,7 +228,11 @@ func renderActorMixerHircContainer(t *BankTab, id uint32, cntr *wwise.Container)
 				imgui.SetNextItemWidth(56)
 				imgui.BeginDisabledV(!ok)
 				if imgui.ArrowButton("CntrGoTo" + strconv.FormatUint(uint64(i), 10), imgui.DirRight) {
-					t.LinearStorage.SetItemSelected(imgui.ID(i), true)
+					if actorMixer {
+						t.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(i), true)
+					} else {
+						t.MusicHircViewer.LinearStorage.SetItemSelected(imgui.ID(i), true)
+					}
 				}
 				imgui.EndDisabled()
 			}
