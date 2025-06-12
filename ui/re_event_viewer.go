@@ -91,10 +91,12 @@ func renderEventsViewer(t *BankTab) {
 			}
 			imgui.SameLine()
 			id := "GoTo" + preview
+			imgui.BeginDisabled()
 			if imgui.ArrowButton(id, imgui.DirRight) {
-				t.LinearStorage.Clear()
-				t.LinearStorage.SetItemSelected(imgui.ID(t.EventViewer.ActiveAction.IdExt), true)
+				// t.LinearStorage.Clear()
+				// t.LinearStorage.SetItemSelected(imgui.ID(t.EventViewer.ActiveAction.IdExt), true)
 			}
+			imgui.End()
 
 			// renderActionProp(t.ActiveAction)
 			// renderActionRangeProp(t.ActiveAction)
