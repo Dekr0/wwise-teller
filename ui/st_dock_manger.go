@@ -27,6 +27,7 @@ func NewDockManager() *DockManager {
 			"Actor Mixer Hierarchy",
 			"Bank Explorer",
 			"Buses",
+			"Debug",
 			"Events",
 			"File Explorer",
 			"Game Sync",
@@ -85,6 +86,7 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
 		imgui.InternalDockBuilderDockWindow("Buses", dock3)
+		imgui.InternalDockBuilderDockWindow("Debug", dock3)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
@@ -113,6 +115,7 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Buses", dock3)
+		imgui.InternalDockBuilderDockWindow("Debug", dock3)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
