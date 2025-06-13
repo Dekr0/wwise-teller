@@ -44,16 +44,3 @@ func renderDebug(bnkMngr *BankManager, loop *async.EventLoop, modalQ *ModalQ) {
 	imgui.PopTextWrapPos()
 	imgui.End()
 }
-
-func renderLog(gLog *GuiLog) {
-	imgui.Begin("Log")
-	gLog.log.Logs.Do(func(a any) {
-		if a == nil {
-			return
-		}
-		imgui.PushTextWrapPos()
-		imgui.Text(a.(string))
-		imgui.PopTextWrapPos()
-	})
-	imgui.End()
-}
