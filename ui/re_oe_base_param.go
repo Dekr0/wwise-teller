@@ -433,8 +433,9 @@ func renderAdvSetting(b *wwise.BaseParameter, a *wwise.AdvanceSetting) {
 
 		// HDR Setting
 		size.X = 0
-		size.Y = 80
+		size.Y = 128
 		imgui.BeginChildStrV("HDRSetting", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+		imgui.SeparatorText("HDR Setting")
 		imgui.BeginDisabledV(b.DirectParentId == 0)
 		overrideHDREnvelope := a.OverrideHDREnvelope()
 		if imgui.Checkbox("Override Parent", &overrideHDREnvelope) {
