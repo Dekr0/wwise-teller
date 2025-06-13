@@ -1,5 +1,3 @@
-// TODO
-// - Tree View Keyboard navigation
 package ui
 
 import (
@@ -62,11 +60,11 @@ func renderBankExplorer(bnkMngr *BankManager, saveActive bool, iType int) (
 func renderBankExplorerTab(path string, t *BankTab) {
 	imgui.Text("Sound bank: " + path)
 	if imgui.BeginTabBar("SubBankExplorerTabBar") {
-		if imgui.BeginTabItem("Actor Mixer Hierarchy Listing") {
+		if imgui.BeginTabItem("Actor Mixer Hierarchy") {
 			renderActorMixerHircTable(t)
 			imgui.EndTabItem()
 		}
-		if imgui.BeginTabItem("Music Hierarchy Listing") {
+		if imgui.BeginTabItem("Interative Music Hierarchy") {
 			imgui.EndTabItem()
 		}
 		if imgui.BeginTabItem("Attenuation") {
@@ -87,39 +85,72 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, 
 	var saveTab *BankTab = nil
 	saveName := ""
 
-	if !imgui.BeginMenuBar() {
-		return saveTab, saveName, itype
-	}
-
-	if imgui.BeginMenu("File") {
-		if imgui.BeginMenuV("Save", !bnkMngr.WriteLock.Load()) {
-			bnkMngr.Banks.Range(func(key, value any) bool {
-				if imgui.MenuItemBool(key.(string)) {
-					saveTab = value.(*BankTab)
-					saveName = key.(string)
-					itype = -1
-				}
-				return true
-			})
-			imgui.EndMenu()
-		}
-		if imgui.BeginMenu("Integration") {
-			if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
+	if imgui.BeginMenuBar() {
+		if imgui.BeginMenu("File") {
+			if imgui.BeginMenuV("Save", !bnkMngr.WriteLock.Load()) {
 				bnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
 						saveTab = value.(*BankTab)
 						saveName = key.(string)
-						itype = int(helldivers.IntegrationTypeHelldivers2)
+						itype = -1
+						return false
 					}
 					return true
 				})
 				imgui.EndMenu()
 			}
+			if imgui.BeginMenu("Project") {
+				if imgui.MenuItemBool("Set Selected Bank As Init.bnk") {
+					bnkMngr.InitBank = bnkMngr.ActiveBank.Bank
+					deleteKey := ""
+					bnkMngr.Banks.Range(func(key, value any) bool {
+						if value.(*BankTab) == bnkMngr.ActiveBank {
+							deleteKey = key.(string)
+							return false
+						}
+						return true
+					})
+					bnkMngr.ActiveBank = nil
+					bnkMngr.CloseBank(deleteKey)
+				}
+				if imgui.BeginMenu("Set Init.bnk Using Existed Banks") {
+					deleteKey := ""
+					bnkMngr.Banks.Range(func(key, value any) bool {
+						if imgui.MenuItemBool(key.(string)) {
+							bnkMngr.InitBank = value.(*BankTab).Bank
+							if bnkMngr.ActiveBank == value.(*BankTab) {
+								bnkMngr.ActiveBank = nil
+							}
+							deleteKey = key.(string)
+							return false
+						}
+						return true
+					})
+					bnkMngr.CloseBank(deleteKey)
+				}
+				if imgui.BeginMenu("Unmount Init.bnk") {
+					bnkMngr.InitBank = nil
+				}
+			}
+			if imgui.BeginMenu("Integration") {
+				if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
+					bnkMngr.Banks.Range(func(key, value any) bool {
+						if imgui.MenuItemBool(key.(string)) {
+							saveTab = value.(*BankTab)
+							saveName = key.(string)
+							itype = int(helldivers.IntegrationTypeHelldivers2)
+							return false
+						}
+						return true
+					})
+					imgui.EndMenu()
+				}
+				imgui.EndMenu()
+			}
 			imgui.EndMenu()
 		}
-		imgui.EndMenu()
+		imgui.EndMenuBar()
 	}
-	imgui.EndMenuBar()
 
 	return saveTab, saveName, itype
 }
@@ -251,74 +282,5 @@ func renderActorMixerHircTable(t *BankTab) {
 		msIO = imgui.EndMultiSelect()
 		storage.ApplyRequests(msIO)
 		imgui.EndTable()
-	}
-}
-
-func renderActorMixerHircTree(t *BankTab)  {
-	imgui.Begin("Actor Mixer Hierarchy Tree")
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
-		imgui.End()
-		return
-	}
-	renderActorMixerHircTreeTable(t)
-	imgui.End()
-}
-
-func renderActorMixerHircTreeTable(t *BankTab) {
-	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("TreeTable", 2, flags, outerSize, 0) {
-		imgui.TableSetupColumn("Hierarchy ID")
-		imgui.TableSetupColumn("Hierarchy Type")
-		imgui.TableSetupScrollFreeze(0, 1)
-		imgui.TableHeadersRow()
-		// Clipper does not play well with Tree Node :(
-		for _, root := range t.Bank.HIRC().ActorMixerRoots {
-			renderActorMixerHircNode(t, &root)
-		}
-		imgui.EndTable()
-	}
-}
-
-func renderActorMixerHircNode(t *BankTab, node *wwise.ActorMixerHircNode) {
-	o := node.Obj
-
-	var sid string
-	selected := false
-	id, err := o.HircID()
-	if err != nil { panic("Panic Trap") }
-
-	sid = strconv.FormatUint(uint64(id), 10)
-	selected = t.ActorMixerViewer.LinearStorage.Contains(imgui.ID(id))
-
-	imgui.TableNextRow()
-	imgui.TableSetColumnIndex(0)
-
-	flags := imgui.TreeNodeFlagsSpanAllColumns | imgui.TreeNodeFlagsOpenOnDoubleClick
-	if selected {
-		flags |= imgui.TreeNodeFlagsSelected
-	}
-
-	open := imgui.TreeNodeExStrV(sid, flags)
-	if imgui.IsItemClicked() {
-		if !imgui.CurrentIO().KeyCtrl() {
-			t.ActorMixerViewer.LinearStorage.Clear()
-		}
-		t.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(id), true)
-	}
-	imgui.TableSetColumnIndex(1)
-	st := wwise.HircTypeName[o.HircType()]
-	if o.HircType() == wwise.HircTypeSound {
-		st = fmt.Sprintf(
-			"%s (Audio Source %d)",
-			st, o.(*wwise.Sound).BankSourceData.SourceID,
-		)
-	}
-	imgui.Text(st)
-	if open {
-		for _, leaf := range node.Leafs {
-			renderActorMixerHircNode(t, &leaf)
-		}
-		imgui.TreePop()
 	}
 }
