@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/log"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	glog "github.com/Dekr0/wwise-teller/ui/log"
+	"github.com/Dekr0/wwise-teller/ui/notify"
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
@@ -37,20 +40,21 @@ const DockSpaceFlags imgui.DockNodeFlags =
 	imgui.DockNodeFlags(imgui.DockNodeFlagsNoWindowMenuButton)
 
 func Run() error {
+	runtime.LockOSThread()
 	// Begin of app state
-	gLog := &GuiLog{
-		log: &log.InMemoryLog{Logs: ring.New(log.DefaultSize)},
-		debug: true,
-		info: true,
-		warn: true,
-		error: true,
+	gLog := &glog.GuiLog{
+		Log: log.InMemoryLog{Logs: ring.New(log.DefaultSize)},
+		Debug: true,
+		Info: true,
+		Warn: true,
+		Error: true,
 	}
 	logF, err := os.OpenFile("wwise_teller.log", os.O_APPEND | os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(
-		io.MultiWriter(gLog.log, logF),
+		io.MultiWriter(&gLog.Log, logF),
 		&slog.HandlerOptions{Level: slog.LevelInfo},
 	)))
 
@@ -83,7 +87,7 @@ func Run() error {
 	}
 	slog.Info("Created file explorer backend for file exploring")
 
-	nQ := &NotifyQ{make([]*notfiy, 0, 16)}
+	nQ := &notify.NotifyQ{Queue: make([]notify.Notfiy, 0, 16)}
 	// End of app state
 
 	backend, err := setupBackend()
@@ -142,12 +146,10 @@ func setupImGUI() error {
 	return nil
 }
 
-func createAfterRenderHook(loop *async.EventLoop, nQ *NotifyQ) func() {
+func createAfterRenderHook(loop *async.EventLoop, nQ *notify.NotifyQ) func() {
 	return func() {
 		for _, onDone := range loop.Update() {
-			nQ.queue = append(nQ.queue, &notfiy{
-				onDone, time.NewTimer(time.Second * 8),
-			})
+			nQ.Q(onDone, time.Second * 8)
 		}
 	}
 }
@@ -164,8 +166,8 @@ func createLoop(
 	fileExplorer *FileExplorer,
 	cmdPaletteMngr *CmdPaletteMngr,
 	bnkMngr *BankManager,
-	nQ *NotifyQ,
-	gLog *GuiLog,
+	nQ *notify.NotifyQ,
+	gLog *glog.GuiLog,
 ) func() {
 	return func() {
 		imgui.ClearSizeCallbackPool()
@@ -196,7 +198,7 @@ func createLoop(
 
 		renderMainMenuBar(dockMngr, conf, cmdPaletteMngr, modalQ, loop)
 		modalQ.renderModal()
-		renderLog(gLog)
+		glog.RenderLog(gLog)
 		renderDebug(bnkMngr, loop, modalQ)
 		renderFileExplorer(fileExplorer, modalQ)
 		renderBankExplorer(bnkMngr, conf, modalQ, loop)
@@ -205,7 +207,7 @@ func createLoop(
 		renderObjEditorActorMixer(bnkMngr.ActiveBank, bnkMngr.InitBank)
 		renderObjEditorMusic(bnkMngr.ActiveBank, bnkMngr.InitBank)
 		renderEventsViewer(bnkMngr.ActiveBank)
-		renderNotfiy(nQ)
+		notify.RenderNotify(nQ)
 		imgui.End()
 	}
 }
