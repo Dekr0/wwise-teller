@@ -7,19 +7,16 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
-	"github.com/Dekr0/wwise-teller/integration/helldivers"
+	"github.com/Dekr0/wwise-teller/config"
+	"github.com/Dekr0/wwise-teller/ui/async"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBankExplorer(bnkMngr *BankManager, saveActive bool, iType int) (
-	string, *BankTab, string, int,
-) {
-	closedPath := "" 
-
+func renderBankExplorer(bnkMngr *BankManager, conf *config.Config, modalQ *ModalQ, loop *async.EventLoop) {
 	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
-
-	savedTab, savedName, iType := renderBankExplorerMenu(bnkMngr, iType)
+	renderBankExplorerMenu(bnkMngr, conf, modalQ, loop)
 	if imgui.BeginTabBarV("BankExplorerTabBar", DefaultTabFlags) {
+		paths := []string{}
 		bnkMngr.Banks.Range(func(key any, value any) bool {
 			open := true
 			path := key.(string)
@@ -39,22 +36,17 @@ func renderBankExplorer(bnkMngr *BankManager, saveActive bool, iType int) (
 					bnkMngr.ActiveBank = nil
 					bnkMngr.ActivePath = ""
 				}
-				closedPath = path
+				paths = append(paths, path)
 			}
 
 			return true
 		})
 		imgui.EndTabBar()
+		for _, path := range paths {
+			bnkMngr.CloseBank(path)
+		}
 	}
 	imgui.End()
-
-
-	if saveActive {
-		savedTab = bnkMngr.ActiveBank
-		savedName = bnkMngr.ActivePath
-	}
-
-	return closedPath, savedTab, savedName, iType
 }
 
 func renderBankExplorerTab(path string, t *BankTab) {
@@ -81,18 +73,18 @@ func renderBankExplorerTab(path string, t *BankTab) {
 	}
 }
 
-func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, int) {
-	var saveTab *BankTab = nil
-	saveName := ""
-
+func renderBankExplorerMenu(
+	bnkMngr *BankManager,
+	conf *config.Config,
+	modalQ *ModalQ,
+	loop *async.EventLoop,
+) {
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("File") {
 			if imgui.BeginMenuV("Save", !bnkMngr.WriteLock.Load()) {
 				bnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
-						saveTab = value.(*BankTab)
-						saveName = key.(string)
-						itype = -1
+						pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, value.(*BankTab), key.(string))
 						return false
 					}
 					return true
@@ -136,9 +128,7 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, 
 				if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
 					bnkMngr.Banks.Range(func(key, value any) bool {
 						if imgui.MenuItemBool(key.(string)) {
-							saveTab = value.(*BankTab)
-							saveName = key.(string)
-							itype = int(helldivers.IntegrationTypeHelldivers2)
+							pushHD2PatchModal(modalQ, loop, conf, bnkMngr, value.(*BankTab), key.(string))
 							return false
 						}
 						return true
@@ -151,8 +141,6 @@ func renderBankExplorerMenu(bnkMngr *BankManager, itype int) (*BankTab, string, 
 		}
 		imgui.EndMenuBar()
 	}
-
-	return saveTab, saveName, itype
 }
 
 func renderActorMixerHircTable(t *BankTab) {
