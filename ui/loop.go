@@ -18,8 +18,10 @@ import (
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/log"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	"github.com/Dekr0/wwise-teller/ui/dock_manager"
 	glog "github.com/Dekr0/wwise-teller/ui/log"
 	"github.com/Dekr0/wwise-teller/ui/notify"
+	"github.com/Dekr0/wwise-teller/ui/style"
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
@@ -34,10 +36,6 @@ const MainDockFlags imgui.WindowFlags =
 	imgui.WindowFlagsNoBringToFrontOnFocus |
 	imgui.WindowFlagsNoNavFocus |
 	imgui.WindowFlagsMenuBar
-
-const DockSpaceFlags imgui.DockNodeFlags = 
-	imgui.DockNodeFlagsNone |
-	imgui.DockNodeFlags(imgui.DockNodeFlagsNoWindowMenuButton)
 
 func Run() error {
 	runtime.LockOSThread()
@@ -77,7 +75,7 @@ func Run() error {
 	bnkMngr.WriteLock.Store(false)
 	slog.Info("Created bank manager")
 
-	dockMngr := NewDockManager()
+	dockMngr := dockmanager.NewDockManager()
 
 	fileExplorer, err := newFileExplorer(
 		openSoundBankFunc(loop, bnkMngr), conf.Home,
@@ -162,7 +160,7 @@ func createLoop(
 	conf *config.Config,
 	loop *async.EventLoop,
 	modalQ *ModalQ,
-	dockMngr *DockManager,
+	dockMngr *dockmanager.DockManager,
 	fileExplorer *FileExplorer,
 	cmdPaletteMngr *CmdPaletteMngr,
 	bnkMngr *BankManager,
@@ -192,9 +190,13 @@ func createLoop(
 
 		imgui.BeginV("MainDock", nil, MainDockFlags)
 
-		dockSpaceID := dockMngr.buildDockSpace()
-		size := imgui.NewVec2(0, 0)
-		imgui.DockSpaceV(dockSpaceID, size, DockSpaceFlags, imgui.NewEmptyWindowClass())
+		dockSpaceID := dockMngr.BuildDockSpace()
+		imgui.DockSpaceV(
+			dockSpaceID,
+			style.DefaultSize,
+			dockmanager.DockSpaceFlags,
+			imgui.NewEmptyWindowClass(),
+		)
 
 		renderMainMenuBar(dockMngr, conf, cmdPaletteMngr, modalQ, loop)
 		modalQ.renderModal()

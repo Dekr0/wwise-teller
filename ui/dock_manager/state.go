@@ -1,4 +1,4 @@
-package ui
+package dockmanager
 
 import (
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -18,6 +18,10 @@ type DockManager struct {
 	Layout      Layout
 	Rebuild     bool
 }
+
+const DockSpaceFlags imgui.DockNodeFlags = 
+	imgui.DockNodeFlagsNone |
+	imgui.DockNodeFlags(imgui.DockNodeFlagsNoWindowMenuButton)
 
 func NewDockManager() *DockManager {
 	return &DockManager{
@@ -61,7 +65,7 @@ func (d *DockManager) Focus() string {
 	return d.DockWindows[d.Focused]
 }
 
-func (d *DockManager) buildDockSpace() imgui.ID {
+func (d *DockManager) BuildDockSpace() imgui.ID {
 	dockSpaceID := imgui.IDStr("MainDock")
 	if !d.Rebuild {
 		return dockSpaceID
