@@ -4,6 +4,18 @@
     - Automation as first class citizen 
 - The ability to pack multiple sound banks for Helldivers 2 integration
 
+# Uncategorized Feature Idea
+
+- Information copying
+- Show all properties (read only)
+- Modify the destination file name
+- Ability to delete / rename file in file explorer and file dialog
+- Reverse engineering on `wwise_properties` and `wwise_metadata` that appears in 
+different archive file.
+- Reverse engineering on the wwise configuration and asset path that appear in 
+the `setting.ini` file.
+- Experiment the possibility of packing sound bank without its Wwise dependency
+
 # Features
 
 ## Rewiring
@@ -30,15 +42,12 @@
 
 ## UI & UX 
 
-- Display audio source ID in playlist setting.
 - Command palette should contain "save sound banks" option
     - It might be better put them into command palette that is dedicated for 
     bank explorer.
 - For file explorer and file dialog, split a file path into individual segment.
 When clicking on a segment, it will jump to a specific file location.
 - Overhaul configuration setting
-- Object editor requires Bank explore to present so it can display all selected 
-hierarchy objects.
 
 # Performance
 
@@ -113,4 +122,3 @@ encoding go routines.
         - buses / streams transform into new types of buses / streams by applying 
         functional like primitives such as `map`, `buffer`, `reduce`, etc.
         - consumer consume data emitted from buses / streams
-
