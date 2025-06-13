@@ -22,9 +22,9 @@ func renderBaseParam(t *BankTab, o wwise.HircObj) {
 			panic(err)
 		}
 		b := o.BaseParameter()
-		renderChangeParentQuery(t, b, hid, o.HircType() != wwise.HircTypeSound)
+		renderChangeParentQuery(t, b, hid, wwise.ActorMixerHircType(o), o.HircType() != wwise.HircTypeSound)
 		imgui.SameLine()
-		renderChangeParentListing(t)
+		renderChangeParentListing(t, wwise.ActorMixerHircType(o))
 		renderByBitVec(b)
 		renderAuxParam(t, o)
 		renderBaseProp(&b.PropBundle)
@@ -35,31 +35,73 @@ func renderBaseParam(t *BankTab, o wwise.HircObj) {
 	}
 }
 
-func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, disable bool) {
+func renderChangeParentQuery(
+	t *BankTab,
+	b *wwise.BaseParameter,
+	hid uint32,
+	actorMixerHirc bool,
+	disable bool,
+) {
 	size := imgui.NewVec2(imgui.ContentRegionAvail().X * 0.40, 160)
 	imgui.BeginChildStrV("ChangeParentQuery", size, 0, 0)
 
 	var filter func() = nil
 	imgui.Text("Filtered parent by ID")
-	if imgui.InputScalar("##FilteredParentByID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.HircRootFilter.Id))) {
-		filter = t.FilterRoots
+	if actorMixerHirc {
+		if imgui.InputScalar(
+			"##FilteredParentByID",
+			imgui.DataTypeU32,
+			uintptr(utils.Ptr(&t.ActorMixerViewer.ActorMixerRootFilter.Id)),
+		) {
+			filter = t.FilterActorMixerRoots
+		}
+	} else {
+		if imgui.InputScalar(
+			"##FilteredParentByID",
+			imgui.DataTypeU32,
+			uintptr(utils.Ptr(&t.MusicHircViewer.MusicHircRootFilter.Id)),
+		) {
+			filter = t.FilterMusicHircRoots
+		}
 	}
 
-	preview := wwise.HircTypeName[t.HircRootFilter.Type]
-	imgui.Text("Filtered by hierarchy type")
-	if imgui.BeginComboV("##FilteredByHierarchyType", preview, 0) {
-		for _, _type := range wwise.ContainerHircTypes {
-			selected := t.HircRootFilter.Type == _type
-			preview = wwise.HircTypeName[_type]
-			if imgui.SelectableBoolPtr(preview, &selected) {
-				t.HircRootFilter.Type = _type
-				filter = t.FilterRoots
+	preview := ""
+	if actorMixerHirc {
+		rootFilter := &t.ActorMixerViewer.ActorMixerRootFilter
+		preview = wwise.HircTypeName[rootFilter.Type]
+		imgui.Text("Filtered by type")
+		if imgui.BeginComboV("##FilteredByType", preview, 0) {
+			for _, xtype := range wwise.ContainerActorMixerHircTypes {
+				selected := rootFilter.Type == xtype
+				preview = wwise.HircTypeName[xtype]
+				if imgui.SelectableBoolPtr(preview, &selected) {
+					rootFilter.Type = xtype
+					filter = t.FilterActorMixerRoots
+				}
+				if selected {
+					imgui.SetItemDefaultFocus()
+				}
 			}
-			if selected {
-				imgui.SetItemDefaultFocus()
-			}
+			imgui.EndCombo()
 		}
-		imgui.EndCombo()
+	} else {
+		rootFilter := &t.MusicHircViewer.MusicHircRootFilter
+		preview = wwise.HircTypeName[rootFilter.Type]
+		imgui.Text("Filtered by type")
+		if imgui.BeginComboV("##FilteredByType", preview, 0) {
+			for _, xtype := range wwise.ContainerMusicHircTypes {
+				selected := rootFilter.Type == xtype
+				preview = wwise.HircTypeName[xtype]
+				if imgui.SelectableBoolPtr(preview, &selected) {
+					rootFilter.Type = xtype
+					filter = t.FilterMusicHircRoots
+				}
+				if selected {
+					imgui.SetItemDefaultFocus()
+				}
+			}
+			imgui.EndCombo()
+		}
 	}
 
 	if filter != nil {
@@ -71,8 +113,14 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 	imgui.Text("Direct Parent ID")
 	if imgui.BeginComboV("##Direct Parent ID", preview, 0) {
 		var changeParent func() = nil
+		var roots []wwise.HircObj
+		if actorMixerHirc {
+			roots = t.ActorMixerViewer.ActorMixerRootFilter.ActorMixerRoots
+		} else {
+			roots = t.MusicHircViewer.MusicHircFilter.MusicHircs
+		}
 
-		for _, p := range t.HircRootFilter.HircObjs {
+		for _, p := range roots {
 			id, err := p.HircID()
 			if err != nil {
 				continue
@@ -106,7 +154,11 @@ func renderChangeParentQuery(t *BankTab, b *wwise.BaseParameter, hid uint32, dis
 			return id == b.DirectParentId
 		})
 		if idx != -1 {
-			t.LinearStorage.SetItemSelected(imgui.ID(b.DirectParentId), true)
+			if actorMixerHirc {
+				t.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(b.DirectParentId), true)
+			} else {
+				t.MusicHircViewer.LinearStorage.SetItemSelected(imgui.ID(b.DirectParentId), true)
+			}
 		}
 	}
 
@@ -125,7 +177,7 @@ func bindRemoveRoot(t *BankTab, hid, op uint32) func() {
 	}
 }
 
-func renderChangeParentListing(t *BankTab) {
+func renderChangeParentListing(t *BankTab, actorMixer bool) {
 	size := imgui.NewVec2(0, 160)
 	imgui.BeginChildStrV("ChangeParentListing", size, 0, 0)
 
@@ -138,10 +190,18 @@ func renderChangeParentListing(t *BankTab) {
 		imgui.TableHeadersRow()
 
 		clipper := imgui.NewListClipper()
-		clipper.Begin(int32(len(t.HircRootFilter.HircObjs)))
+
+		var roots []wwise.HircObj
+		if actorMixer {
+			roots = t.ActorMixerViewer.ActorMixerRootFilter.ActorMixerRoots
+		} else {
+			roots = t.MusicHircViewer.MusicHircRootFilter.MusicHircRoots
+		}
+
+		clipper.Begin(int32(len(roots)))
 		for clipper.Step() {
 			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-				o := t.HircRootFilter.HircObjs[n]
+				o := roots[n]
 
 				imgui.TableNextRow()
 
