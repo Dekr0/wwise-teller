@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"slices"
+	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 
@@ -23,8 +24,7 @@ func renderBaseProp(p *wwise.PropBundle) {
 
 func renderBasePropTable(p *wwise.PropBundle) {
 	const flags = DefaultTableFlags
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("PropTable", 4, flags, outerSize, 0) {
+	if imgui.BeginTableV("PropTable", 4, flags, DefaultSize, 0) {
 		var removeBaseProp func() = nil
 		var changeBaseProp func() = nil
 
@@ -425,4 +425,69 @@ func bindChangeBaseRangeProp(r *wwise.RangePropBundle, idx int, nextPid wwise.Pr
 	return func() {
 		r.ChangeBaseProp(idx, nextPid)
 	}
+}
+
+func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
+	if imgui.TreeNodeExStr("All Property (Read-Only)") {
+		DefaultSize.Y = 24
+		if len(p.PropValues) == 0 {
+			DefaultSize.Y += 10
+		} else {
+			DefaultSize.Y += 22 * float32(len(p.PropValues))
+		}
+		if imgui.BeginTableV("AllPropReadOnly", 2, DefaultTableFlagsY, DefaultSize, 0) {
+			imgui.TableSetupColumn("Property")
+			imgui.TableSetupColumn("Value")
+			imgui.TableSetupScrollFreeze(0, 1)
+			imgui.TableHeadersRow()
+			var attenuationID uint32
+			var value float32
+			for _, p := range p.PropValues {
+				imgui.TableNextRow()
+				imgui.TableSetColumnIndex(0)
+				imgui.Text(wwise.PropLabel_140[p.P])
+				imgui.TableSetColumnIndex(1)
+				if p.P == wwise.PropType(wwise.PropTypeAttenuationID) {
+					binary.Decode(p.V, wio.ByteOrder, &attenuationID)
+					imgui.Text(strconv.FormatUint(uint64(attenuationID), 10))
+				} else {
+					binary.Decode(p.V, wio.ByteOrder, &value)
+					imgui.Text(strconv.FormatFloat(float64(value), 'f', 4, 32))
+				}
+			}
+			imgui.EndTable()
+		}
+		imgui.TreePop()
+	}
+	if imgui.TreeNodeExStr("All Range Property (Read-Only)") {
+		DefaultSize.Y = 24
+		if len(r.RangeValues) == 0 {
+			DefaultSize.Y += 10
+		} else {
+			DefaultSize.Y += 22 * float32(len(r.RangeValues))
+		}
+		if imgui.BeginTableV("AllRangePropReadOnly", 3, DefaultTableFlagsY, DefaultSize, 0) {
+			imgui.TableSetupColumn("Property")
+			imgui.TableSetupColumn("Min")
+			imgui.TableSetupColumn("Max")
+			imgui.TableSetupScrollFreeze(0, 1)
+			imgui.TableHeadersRow()
+			var min float32
+			var max float32
+			for _, r := range r.RangeValues {
+				imgui.TableNextRow()
+				binary.Decode(r.Min, wio.ByteOrder, &min)
+				binary.Decode(r.Max, wio.ByteOrder, &max)
+				imgui.TableSetColumnIndex(0)
+				imgui.Text(wwise.PropLabel_140[r.P])
+				imgui.TableSetColumnIndex(1)
+				imgui.Text(strconv.FormatFloat(float64(min), 'f', 4, 32))
+				imgui.TableSetColumnIndex(2)
+				imgui.Text(strconv.FormatFloat(float64(max), 'f', 4, 32))
+			}
+			imgui.EndTable()
+		}
+		imgui.TreePop()
+	}
+	DefaultSize.Y = 0
 }
