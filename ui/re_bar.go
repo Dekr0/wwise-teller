@@ -17,13 +17,10 @@ func renderMainMenuBar(
 ) {
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("Layout") {
-			if imgui.MenuItemBool("Layout 1") {
-				dockMngr.layout = Layout01
-				dockMngr.rebuild = true
-			}
-			if imgui.MenuItemBool("Layout 2") {
-				dockMngr.layout = Layout02
-				dockMngr.rebuild = true
+			for i := range LayoutCount {
+				if imgui.MenuItemBool(fmt.Sprintf("Layout %d", i),) {
+					dockMngr.SetLayout(i)
+				}
 			}
 			imgui.EndMenu()
 		}
