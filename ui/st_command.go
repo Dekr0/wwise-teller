@@ -5,9 +5,9 @@
 package ui
 
 import (
+	"fmt"
 	"slices"
 
-	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/ui/async"
 	"github.com/lithammer/fuzzysearch/fuzzy"
@@ -46,37 +46,20 @@ func NewCmdPaletteMngr(
 		"config",
 		func() { pushConfigModalFunc(modalQ, conf) },
 	})
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-		"focus file explorer",
-		func() { imgui.SetWindowFocusStr("File Explorer") },
-	})
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-		"focus bank explorer",
-		func() { imgui.SetWindowFocusStr("Bank Explorer") },
-	})
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-		"focus log",
-		func() { imgui.SetWindowFocusStr("Log") },
-	})
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-		"focus object editor",
-		func() { imgui.SetWindowFocusStr("Object Editor") },
-	})
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-		"Use docking layout 1",
-		func() {
-			dockMngr.layout = Layout01
-			dockMngr.rebuild = true
-		},
-	})
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-		"Use docking layout 2",
-		func() {
-			dockMngr.layout = Layout02
-			dockMngr.rebuild = true
-		},
-	})
-
+	for _, dw := range dockMngr.DockWindows {
+		c := dw
+		mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+			fmt.Sprintf("focus %s", dw),
+			func() { dockMngr.SetFocus(c) },
+		})
+	}
+	for i := range LayoutCount {
+		li := i
+		mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+			fmt.Sprintf("use layout %d", i),
+			func() { dockMngr.SetLayout(li) },
+		})
+	}
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
 		"integration: extract sound banks from Helldivers 2 game archives",
 		func() { pushSelectGameArchiveModal(modalQ, loop, conf) },
@@ -86,7 +69,6 @@ func NewCmdPaletteMngr(
 		"Disable All Guard Rails",
 		func() { ModifiyEverything = !ModifiyEverything },
 	})
-
 	mngr.filtered = make([]*RankCmdPalette, len(mngr.cmdPalette))
 	for i, c := range mngr.cmdPalette {
 		mngr.filtered[i] = &RankCmdPalette{-1, c}
