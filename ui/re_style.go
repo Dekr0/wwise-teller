@@ -21,3 +21,5 @@ const DefaultMultiSelectFlags = imgui.MultiSelectFlagsClearOnEscape |
 const DefaultTabFlags = imgui.TabBarFlagsReorderable | 
 		         imgui.TabBarFlagsTabListPopupButton | 
 	             imgui.TabBarFlagsFittingPolicyScroll
+
+var DefaultSize = imgui.NewVec2(0, 0)
