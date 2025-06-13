@@ -1,4 +1,4 @@
-package ui
+package fs
 
 import (
 	"os"
@@ -12,43 +12,43 @@ func TestFileExplorer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f, err := newFileSystem(home, false, []string{".bnk", ".st_bnk"})
+	f, err := NewFileSystem(home, false, []string{".bnk", ".st_bnk"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.pwd)
-	for _, e := range f.entries {
+	t.Log(f.Pwd)
+	for _, e := range f.Entries {
 		t.Log(e)
 	}
 
-	err = f.cdParent()
+	err = f.Parent()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.pwd)
-	for _, e := range f.entries {
+	t.Log(f.Pwd)
+	for _, e := range f.Entries {
 		t.Log(e)
 	}
 
-	err = f.cdParent()
+	err = f.Parent()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.pwd)
-	for _, e := range f.entries {
+	t.Log(f.Pwd)
+	for _, e := range f.Entries {
 		t.Log(e)
 	}
 
-	err = f.cdParent()
+	err = f.Parent()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("\n")
-	t.Log(f.pwd)
-	for _, e := range f.entries {
+	t.Log(f.Pwd)
+	for _, e := range f.Entries {
 		t.Log(e)
 	}
 }
