@@ -31,7 +31,7 @@ func (f *MusicHircFilter) Filter(objs []wwise.HircObj) {
 		if !wwise.MusicHircType(obj) {
 			continue
 		}
-		if f.Type > 0 && f.Type != obj.HircType() {
+		if f.Type > wwise.HircTypeAll && f.Type != obj.HircType() {
 			continue
 		}
 		id, err := obj.HircID()
@@ -69,7 +69,7 @@ func (f *MusicHircRootFilter) Filter(objs []wwise.HircObj) {
 		if !wwise.ContainerMusicHircType(obj) {
 			continue
 		}
-		if f.Type > 0 && f.Type != obj.HircType() {
+		if f.Type > wwise.HircTypeAll && f.Type != obj.HircType() {
 			continue
 		}
 		id, err := obj.HircID()

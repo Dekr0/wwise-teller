@@ -33,7 +33,7 @@ func (f *ActorMixerHircFilter) Filter(objs []wwise.HircObj) {
 		if !wwise.ActorMixerHircType(obj) {
 			continue
 		}
-		if f.Type > 0 && f.Type != obj.HircType() {
+		if f.Type > wwise.HircTypeAll && f.Type != obj.HircType() {
 			continue
 		}
 		sound := obj.HircType() == wwise.HircTypeSound
@@ -82,7 +82,7 @@ func (f *ActorMixerRootFilter) Filter(objs []wwise.HircObj) {
 		if !wwise.ContainerActorMixerHircType(obj) {
 			continue
 		}
-		if f.Type > 0 && f.Type != obj.HircType() {
+		if f.Type > wwise.HircTypeAll && f.Type != obj.HircType() {
 			continue
 		}
 		id, err := obj.HircID()

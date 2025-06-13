@@ -54,6 +54,7 @@ var KnownHircTypes []HircType = []HircType{
 }
 
 var MusicHircTypes []HircType = []HircType{
+	HircTypeAll,
 	HircTypeMusicTrack,
 	HircTypeMusicSegment,
 	HircTypeMusicSwitchCntr,
@@ -61,6 +62,7 @@ var MusicHircTypes []HircType = []HircType{
 }
 
 var ActorMixerHircTypes []HircType = []HircType{
+	HircTypeAll,
 	HircTypeSound,
 	HircTypeRanSeqCntr,
 	HircTypeSwitchCntr,
@@ -80,6 +82,7 @@ func ActorMixerHircType(o HircObj) bool {
 }
 
 var ContainerActorMixerHircTypes []HircType = []HircType{
+	HircTypeAll,
 	HircTypeRanSeqCntr,
 	HircTypeSwitchCntr,
 	HircTypeActorMixer,
@@ -103,6 +106,7 @@ func MusicHircType(o HircObj) bool {
 }
 
 var ContainerMusicHircTypes []HircType = []HircType{
+	HircTypeAll,
 	HircTypeMusicSegment,
 	HircTypeMusicSwitchCntr,
 	HircTypeMusicRanSeqCntr,
@@ -131,7 +135,7 @@ func NonHircType(o HircObj) bool {
 }
 
 var HircTypeName []string = []string{
-	"",
+	"All",
 	"State",
 	"Sound",
 	"Action",
