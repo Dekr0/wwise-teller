@@ -130,12 +130,25 @@ func (e *EventLoop) Update() []string {
 	return onDones
 }
 
-func (e *EventLoop) NumTasks() uint8 {
-	asyncTaskCount := 0
+type TaskStat struct  {
+	TotalNumAsyncTask   uint8
+	TotalNumSyncTask    uint8
+	NumRunningAsyncTask uint8
+	NumPendingAsyncTask uint8
+}
+
+func (e *EventLoop) TaskStatus() TaskStat {
+	stat := TaskStat{}
 	for i := range e.AsyncTasks {
 		if e.AsyncTasks[i] != nil {
-			asyncTaskCount += 1
+			stat.TotalNumAsyncTask += 1
+			if e.AsyncTasks[i].Pending {
+				stat.NumPendingAsyncTask += 1
+			} else {
+				stat.NumRunningAsyncTask += 1
+			}
 		}
 	}
-	return uint8(asyncTaskCount)
+	stat.TotalNumSyncTask = uint8(len(e.SyncTasks))
+	return stat
 }
