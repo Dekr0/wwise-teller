@@ -8,7 +8,7 @@ import (
 const DefaultSize = 1000
 
 type InMemoryLog struct {
-	io.Writer
+	io.   Writer
 	Logs *ring.Ring
 }
 
