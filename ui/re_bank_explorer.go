@@ -52,11 +52,11 @@ func renderBankExplorer(bnkMngr *BankManager, conf *config.Config, modalQ *Modal
 func renderBankExplorerTab(path string, t *BankTab) {
 	imgui.Text("Sound bank: " + path)
 	if imgui.BeginTabBar("SubBankExplorerTabBar") {
-		if imgui.BeginTabItem("Actor Mixer Hierarchy") {
+		if imgui.BeginTabItem("Actor Mixer") {
 			renderActorMixerHircTable(t)
 			imgui.EndTabItem()
 		}
-		if imgui.BeginTabItem("Interative Music Hierarchy") {
+		if imgui.BeginTabItem("Music") {
 			imgui.EndTabItem()
 		}
 		if imgui.BeginTabItem("Attenuation") {
