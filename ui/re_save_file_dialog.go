@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/Dekr0/wwise-teller/ui/fs"
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
@@ -16,7 +17,7 @@ func saveFileDialogFunc(
 	initialDir string,
 ) (func(), *bool, error) {
 	done := false
-	d, err := NewSaveFileDialog(callback, initialDir)
+	d, err := fs.NewSaveFileDialog(callback, initialDir)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -29,20 +30,20 @@ func saveFileDialogFunc(
 		imgui.SetNextItemShortcut(
 			imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),
 		)
-		if imgui.InputTextWithHint("Query", "", &d.fs.query, 0, nil) {
-			d.filter()
+		if imgui.InputTextWithHint("Query", "", &d.Fs.Query, 0, nil) {
+			d.Filter()
 		}
 		imgui.SameLine()
 		align := imgui.CursorPos().X
 		imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyS))
 		if imgui.Button("Save") {
-			d.save()
+			d.Save()
 			done = true
 			return
 		}
 
 		if imgui.ArrowButton("SaveFileDialogArrowButton", imgui.DirLeft) {
-			if err := d.cdParent(); err != nil {
+			if err := d.Parent(); err != nil {
 				slog.Error(
 					"Failed to change current directory to parent directory",
 					"error", err,
@@ -50,7 +51,7 @@ func saveFileDialogFunc(
 			}
 		}
 		imgui.SameLine()
-		imgui.Text(d.fs.pwd)
+		imgui.Text(d.Fs.Pwd)
 		imgui.SameLine()
 		imgui.SetCursorPosX(align)
 		if imgui.Button("Cancel") {
@@ -67,9 +68,9 @@ func saveFileDialogFunc(
 	}, &done, nil
 }
 
-func saveFileDialogShortcut(d *SaveFileDialog) {
+func saveFileDialogShortcut(d *fs.SaveFileDialog) {
 	if isLeftShortcut() {
-		if err := d.cdParent(); err != nil {
+		if err := d.Parent(); err != nil {
 			slog.Error(
 				"Failed to change current directory to parent directory",
 				"error", err,
@@ -80,7 +81,7 @@ func saveFileDialogShortcut(d *SaveFileDialog) {
 	useViDown()
 }
 
-func saveFileDialogVol(d *SaveFileDialog) {
+func saveFileDialogVol(d *fs.SaveFileDialog) {
 	if runtime.GOOS != "windows" {
 		return
 	}
@@ -88,7 +89,7 @@ func saveFileDialogVol(d *SaveFileDialog) {
 		return
 	}
 
-	vol := d.vol()
+	vol := d.Vol()
 	idx := int32(slices.IndexFunc(utils.Vols, func(v string) bool {
 		return strings.Compare(v, vol) == 0
 	}))
@@ -100,7 +101,7 @@ func saveFileDialogVol(d *SaveFileDialog) {
 	imgui.PushItemWidth(imgui.CalcTextSize("C:\\").X + 24.0)
 	if imgui.ComboStrarr("", &idx, utils.Vols, int32(len(utils.Vols))) {
 		vol := utils.Vols[idx]
-		if err := d.switchVol(vol); err != nil {
+		if err := d.SwitchVol(vol); err != nil {
 			slog.Error("Failed to switch volume to " + vol, "error", err)
 		}
 	}
@@ -108,7 +109,7 @@ func saveFileDialogVol(d *SaveFileDialog) {
 	imgui.PopID()
 }
 
-func saveFileDialogTable(d *SaveFileDialog, focusTable bool) {
+func saveFileDialogTable(d *fs.SaveFileDialog, focusTable bool) {
 	if !imgui.BeginTableV("SaveFileDialogTable",
 		1, imgui.TableFlagsRowBg | imgui.TableFlagsScrollY,
 		imgui.NewVec2(0.0, 0.0), 0.0,
@@ -133,7 +134,7 @@ func saveFileDialogTable(d *SaveFileDialog, focusTable bool) {
 	doubleClicked := imgui.IsMouseDoubleClicked(0)
 	righted := isRightShortcut()
 	if focused && (doubleClicked || righted) {
-		if err := d.cdParent(); err != nil {
+		if err := d.Parent(); err != nil {
 			slog.Error(
 				"Failed to change current directory to parent directory",
 				"error", err,
@@ -141,35 +142,35 @@ func saveFileDialogTable(d *SaveFileDialog, focusTable bool) {
 		}
 	}
 
-	filtered := d.fs.filtered
+	filtered := d.Fs.Filtered
 	clipper := imgui.NewListClipper()
 	clipper.Begin(int32(len(filtered)))
 	clipper:
 	for clipper.Step() {
 		for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-			entry := filtered[n].entry
+			entry := filtered[n].Entry
 
 			imgui.TableNextRow()
 			imgui.TableSetColumnIndex(0)
 			label := fmt.Sprintf("%s/", entry.Name())
 			if imgui.SelectableBoolV(
-				label, n == int32(d.selected), 
+				label, n == int32(d.Selected), 
 				imgui.SelectableFlagsSpanAllColumns | 
 				imgui.SelectableFlagsAllowOverlap,
 				imgui.NewVec2(0, 0),
 			) {
-				d.selected = int(n)
+				d.Selected = int(n)
 			}
 
 			focused := imgui.IsItemFocused()
 			if focused {
-				d.selected = int(n)
+				d.Selected = int(n)
 			}
 
 			doubleClicked := imgui.IsMouseDoubleClicked(0)
 			righted := isRightShortcut() 
 			if focused && (doubleClicked || righted) {
-				if err := d.cdSelected(); err != nil {
+				if err := d.CD(); err != nil {
 					slog.Error(
 						"Failed to change current directory selected directory",
 						"error", err,

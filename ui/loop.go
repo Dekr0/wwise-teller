@@ -20,6 +20,7 @@ import (
 	"github.com/Dekr0/wwise-teller/ui/async"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/ui/dock_manager"
+	"github.com/Dekr0/wwise-teller/ui/fs"
 	glog "github.com/Dekr0/wwise-teller/ui/log"
 	"github.com/Dekr0/wwise-teller/ui/notify"
 	"github.com/Dekr0/wwise-teller/utils"
@@ -77,7 +78,7 @@ func Run() error {
 
 	dockMngr := dockmanager.NewDockManager()
 
-	fileExplorer, err := newFileExplorer(
+	fileExplorer, err := fs.NewFileExplorer(
 		openSoundBankFunc(loop, bnkMngr), conf.Home,
 	)
 	if err != nil {
@@ -161,7 +162,7 @@ func createLoop(
 	loop *async.EventLoop,
 	modalQ *ModalQ,
 	dockMngr *dockmanager.DockManager,
-	fileExplorer *FileExplorer,
+	fileExplorer *fs.FileExplorer,
 	cmdPaletteMngr *CmdPaletteMngr,
 	bnkMngr *be.BankManager,
 	nQ *notify.NotifyQ,

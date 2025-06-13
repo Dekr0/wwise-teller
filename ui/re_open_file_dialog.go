@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/Dekr0/wwise-teller/ui/fs"
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
@@ -17,7 +18,7 @@ func openFileDialogFunc(
 	initialDir string, 
 	exts       []string,
 ) (func(), *bool, error) {
-	d, err := NewOpenFileDialog(callback, dirOnly, initialDir, exts)
+	d, err := fs.NewOpenFileDialog(callback, dirOnly, initialDir, exts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -31,20 +32,20 @@ func openFileDialogFunc(
 		imgui.SetNextItemShortcut(
 			imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyF),
 		)
-		if imgui.InputTextWithHint("Query", "", &d.fs.query, 0, nil) {
-			d.filter()
+		if imgui.InputTextWithHint("Query", "", &d.Fs.Query, 0, nil) {
+			d.Filter()
 		}
 		imgui.SameLine()
 		align := imgui.CursorPos().X
 		imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyS))
 		if imgui.Button("Open") {
-			d.openSelective()
+			d.Open()
 			done = true
 			return
 		}
 
 		if imgui.ArrowButton("OpenFileDialogArrowButton", imgui.DirLeft) {
-			if err := d.cdParent(); err != nil {
+			if err := d.Parent(); err != nil {
 				slog.Error(
 					"Failed to change current directory to parent directory",
 					"error", err,
@@ -52,7 +53,7 @@ func openFileDialogFunc(
 			}
 		}
 		imgui.SameLine()
-		imgui.Text(d.fs.pwd)
+		imgui.Text(d.Fs.Pwd)
 		imgui.SameLine()
 		imgui.SetCursorPosX(align)
 		if imgui.Button("Cancel") {
@@ -69,9 +70,9 @@ func openFileDialogFunc(
 	}, &done, nil
 }
 
-func openFileDialogShortcut(d *OpenFileDialog) {
+func openFileDialogShortcut(d *fs.OpenFileDialog) {
 	if isLeftShortcut() {
-		if err := d.cdParent(); err != nil {
+		if err := d.Parent(); err != nil {
 			slog.Error(
 				"Failed to change current directory to parent directory",
 				"error", err,
@@ -84,7 +85,7 @@ func openFileDialogShortcut(d *OpenFileDialog) {
 	useViShiftDown()
 }
 
-func openFileDialogVol(d *OpenFileDialog) {
+func openFileDialogVol(d *fs.OpenFileDialog) {
 	if runtime.GOOS != "windows" {
 		return
 	}
@@ -92,7 +93,7 @@ func openFileDialogVol(d *OpenFileDialog) {
 		return
 	}
 
-	vol := d.vol()
+	vol := d.Vol()
 	idx := int32(slices.IndexFunc(utils.Vols, func(v string) bool {
 		return strings.Compare(v, vol) == 0
 	}))
@@ -104,7 +105,7 @@ func openFileDialogVol(d *OpenFileDialog) {
 	imgui.PushItemWidth(imgui.CalcTextSize("C:\\").X + 24.0)
 	if imgui.ComboStrarr("", &idx, utils.Vols, int32(len(utils.Vols))) {
 		vol := utils.Vols[idx]
-		if err := d.switchVol(vol); err != nil {
+		if err := d.SwitchVol(vol); err != nil {
 			slog.Error("Failed to switch volume to " + vol, "error", err)
 		}
 	}
@@ -112,7 +113,7 @@ func openFileDialogVol(d *OpenFileDialog) {
 	imgui.PopID()
 }
 
-func openFileDialogTable(d *OpenFileDialog, focusTable bool) {
+func openFileDialogTable(d *fs.OpenFileDialog, focusTable bool) {
 	if !imgui.BeginTableV("OpenFileDialogTable",
 		1, imgui.TableFlagsRowBg | imgui.TableFlagsScrollY,
 		imgui.NewVec2(0.0, 0.0), 0.0,
@@ -138,7 +139,7 @@ func openFileDialogTable(d *OpenFileDialog, focusTable bool) {
 	doubleClicked := imgui.IsMouseDoubleClicked(0)
 	righted := isRightShortcut()
 	if focused && (doubleClicked || righted) {
-		if err := d.cdParent(); err != nil {
+		if err := d.Parent(); err != nil {
 			slog.Error(
 				"Failed to change current directory to parent directory",
 				"error", err,
@@ -146,8 +147,8 @@ func openFileDialogTable(d *OpenFileDialog, focusTable bool) {
 		}
 	}
 
-	filtered := d.fs.filtered
-	storage := d.storage
+	filtered := d.Fs.Filtered
+	storage := d.Storage
 	msIO := imgui.BeginMultiSelectV(
 		imgui.MultiSelectFlagsClearOnEscape | imgui.MultiSelectFlagsBoxSelect2d,
 		storage.Size(),
@@ -163,7 +164,7 @@ func openFileDialogTable(d *OpenFileDialog, focusTable bool) {
 	clipper:
 	for clipper.Step() {
 		for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-			entry := filtered[n].entry
+			entry := filtered[n].Entry
 
 			imgui.TableNextRow()
 			imgui.TableSetColumnIndex(0)
@@ -187,8 +188,8 @@ func openFileDialogTable(d *OpenFileDialog, focusTable bool) {
 			doubleClicked := imgui.IsMouseDoubleClicked(0)
 			righted := isRightShortcut()
 			if focused && (doubleClicked || righted) {
-				if d.isFocusDir(int(n)) {
-					if err := d.cdFocus(int(n)); err != nil {
+				if d.FocusDir(int(n)) {
+					if err := d.CD(int(n)); err != nil {
 						slog.Error(
 							"Failed to change current directory to selective directory",
 							"error", err,
