@@ -91,7 +91,9 @@ func renderBankExplorerMenu(
 				})
 				imgui.EndMenu()
 			}
+
 			if imgui.BeginMenu("Project") {
+				imgui.BeginDisabledV(bnkMngr.ActiveBank == nil)
 				if imgui.MenuItemBool("Set Selected Bank As Init.bnk") {
 					bnkMngr.InitBank = bnkMngr.ActiveBank.Bank
 					deleteKey := ""
@@ -105,6 +107,7 @@ func renderBankExplorerMenu(
 					bnkMngr.ActiveBank = nil
 					bnkMngr.CloseBank(deleteKey)
 				}
+				imgui.EndDisabled()
 				if imgui.BeginMenu("Set Init.bnk Using Existed Banks") {
 					deleteKey := ""
 					bnkMngr.Banks.Range(func(key, value any) bool {
@@ -119,11 +122,14 @@ func renderBankExplorerMenu(
 						return true
 					})
 					bnkMngr.CloseBank(deleteKey)
+					imgui.EndMenu()
 				}
-				if imgui.BeginMenu("Unmount Init.bnk") {
+				if imgui.MenuItemBool("Unmount Init.bnk") {
 					bnkMngr.InitBank = nil
 				}
+				imgui.EndMenu()
 			}
+
 			if imgui.BeginMenu("Integration") {
 				if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
 					bnkMngr.Banks.Range(func(key, value any) bool {
@@ -137,6 +143,7 @@ func renderBankExplorerMenu(
 				}
 				imgui.EndMenu()
 			}
+
 			imgui.EndMenu()
 		}
 		imgui.EndMenuBar()
