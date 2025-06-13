@@ -1,4 +1,4 @@
-package ui
+package bank_explorer
 
 import (
 	"log/slog"
