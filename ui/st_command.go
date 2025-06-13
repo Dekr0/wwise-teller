@@ -10,6 +10,7 @@ import (
 
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
@@ -31,7 +32,7 @@ type CmdPaletteMngr struct {
 }
 
 func NewCmdPaletteMngr(
-	dockMngr *DockManager,
+	dockMngr *dockmanager.DockManager,
 	conf *config.Config,
 	loop *async.EventLoop,
 	modalQ *ModalQ,
@@ -53,7 +54,7 @@ func NewCmdPaletteMngr(
 			func() { dockMngr.SetFocus(c) },
 		})
 	}
-	for i := range LayoutCount {
+	for i := range dockmanager.LayoutCount {
 		li := i
 		mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
 			fmt.Sprintf("use layout %d", i),
