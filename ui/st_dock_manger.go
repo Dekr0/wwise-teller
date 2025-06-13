@@ -23,7 +23,7 @@ func NewDockManager() *DockManager {
 		focused: 0,
 		dockWindows: []string{
 			"Attenuations",
-			"Actor Mixer Hierarchy Tree",
+			"Actor Mixer Hierarchy",
 			"Bank Explorer",
 			"Events",
 			"File Explorer",
@@ -78,14 +78,14 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 			mainDock, imgui.DirDown, 0.45, nil, &dock2,
 		)
 
-		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy Tree", dock2)
+		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
-		imgui.InternalDockBuilderDockWindow("Music Hierarchy Tree", dock2)
+		imgui.InternalDockBuilderDockWindow("Interactive Music Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Music)", dock3)
 		imgui.InternalDockBuilderFinish(mainDock)
@@ -105,14 +105,14 @@ func (d *DockManager) buildDockSpace() imgui.ID {
 			mainDock, imgui.DirRight, 0.50, nil, &dock2,
 		)
 
-		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy Tree", dock2)
+		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
-		imgui.InternalDockBuilderDockWindow("Music Hierarchy Tree", dock2)
+		imgui.InternalDockBuilderDockWindow("Interactive Music Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Music)", dock3)
 		imgui.InternalDockBuilderFinish(mainDock)
