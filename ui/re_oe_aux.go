@@ -11,7 +11,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderAuxParam(t *BankTab, o wwise.HircObj) {
+func renderAuxParam(t *BankTab, init *wwise.Bank, o wwise.HircObj) {
 	if imgui.TreeNodeExStr("User-Defined Auxiliary Send") {
 		b := o.BaseParameter()
 		a := &o.BaseParameter().AuxParam
@@ -35,7 +35,7 @@ func renderAuxParam(t *BankTab, o wwise.HircObj) {
 			renderUserAuxSendVolumeTable(p)
 		}
 
-		renderAuxBusIDTable(t, parentID, a)
+		renderAuxBusIDTable(t, init, parentID, a)
 
 		overrideReflectionAuxBus := a.OverrideReflectionAuxBus()
 		// Hierarchy object without parent bypass the requirement of enabling
@@ -164,7 +164,7 @@ func bindChangeUserAuxSendVolumeProp(p *wwise.PropBundle, idx int, nextPid wwise
 	return func() { p.ChangeUserAuxSendVolumeProp(idx, nextPid) }
 }
 
-func renderAuxBusIDTable(t *BankTab, parentID uint32, a *wwise.AuxParam) {
+func renderAuxBusIDTable(t *BankTab, init *wwise.Bank, parentID uint32, a *wwise.AuxParam) {
 	const flags = DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("AuxiliaryBusIDTable", 2, flags, outerSize, 0) {
@@ -181,7 +181,7 @@ func renderAuxBusIDTable(t *BankTab, parentID uint32, a *wwise.AuxParam) {
 
 			imgui.TableSetColumnIndex(1)
 			imgui.SetNextItemWidth(-1)
-			imgui.BeginDisabledV(t.InitBank == nil || (parentID != 0 && !a.OverrideAuxSends()))
+			imgui.BeginDisabledV(init == nil || (parentID != 0 && !a.OverrideAuxSends()))
 			label := fmt.Sprintf("##AuxiliaryBus%d", i)
 			preview := strconv.FormatUint(uint64(aid), 10) 
 			if imgui.BeginCombo(label, preview) {
