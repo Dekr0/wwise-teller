@@ -10,10 +10,11 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderEventsViewer(t *BankTab) {
+func renderEventsViewer(t *be.BankTab) {
 	imgui.Begin("Events")
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
 		imgui.End()
@@ -110,7 +111,7 @@ func renderEventsViewer(t *BankTab) {
 	imgui.End()
 }
 
-func renderEventsTable(t *BankTab) {
+func renderEventsTable(t *be.BankTab) {
 	imgui.SeparatorText("Filter")
 	imgui.SetNextItemWidth(96)
 	if imgui.InputScalar("By event ID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.EventViewer.EventFilter.Id))) {

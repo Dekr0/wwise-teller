@@ -9,12 +9,13 @@ import (
 
 	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
 func openSoundBankFunc(
 	loop *async.EventLoop,
-	bnkMngr *BankManager,
+	bnkMngr *be.BankManager,
 ) func([]string) {
 	return func(paths []string) {
 		for _, path := range paths {
@@ -25,7 +26,7 @@ func openSoundBankFunc(
 
 func dispatchOpenSoundBank(
 	path string,
-	bnkMngr *BankManager,
+	bnkMngr *be.BankManager,
 	loop *async.EventLoop,
 ) {
 	timeout, cancel := context.WithTimeout(
@@ -56,8 +57,8 @@ func dispatchOpenSoundBank(
 
 func saveSoundBankFunc(
 	loop *async.EventLoop,
-	bnkMngr *BankManager,
-	saveTab *BankTab,
+	bnkMngr *be.BankManager,
+	saveTab *be.BankTab,
 	saveName string,
 ) func(string) {
 	return func(path string) {
@@ -106,8 +107,8 @@ func saveSoundBankFunc(
 
 func HD2PatchFunc(
 	loop *async.EventLoop,
-	bnkMngr *BankManager,
-	saveTab *BankTab,
+	bnkMngr *be.BankManager,
+	saveTab *be.BankTab,
 	saveName string,
 ) func(string) {
 	return func(path string) {

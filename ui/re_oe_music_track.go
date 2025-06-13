@@ -7,10 +7,11 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
 
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderMusicTrack(t *BankTab, init *wwise.Bank, o *wwise.MusicTrack) {
+func renderMusicTrack(t *be.BankTab, init *wwise.Bank, o *wwise.MusicTrack) {
 	if imgui.TreeNodeExStr("Music Override Flags") {
 		imgui.BeginDisabledV(o.BaseParam.DirectParentId == 0)
 		overrideParentMIDITempo := o.OverrideParentMIDITempo()
@@ -38,7 +39,7 @@ func renderMusicTrack(t *BankTab, init *wwise.Bank, o *wwise.MusicTrack) {
 	renderTransitionParam(&o.TransitionParam)
 }
 
-func renderMusicTrackPlayList(t *BankTab, o *wwise.MusicTrack) {
+func renderMusicTrackPlayList(t *be.BankTab, o *wwise.MusicTrack) {
 	if imgui.TreeNodeExStr("Music Track Play List") {
 		const flags = DefaultTableFlags
 		outerSize := imgui.NewVec2(0, 0)
@@ -108,7 +109,7 @@ func renderMusicTrackPlayList(t *BankTab, o *wwise.MusicTrack) {
 	}
 }
 
-func renderClipAutomation(t *BankTab, o *wwise.MusicTrack) {
+func renderClipAutomation(t *be.BankTab, o *wwise.MusicTrack) {
 	if imgui.TreeNodeExStr("Clip Automations") {
 		if imgui.Button("Add New Automation") {
 			o.AddNewAutomation()
@@ -291,7 +292,7 @@ func renderTransitionParam(p *wwise.MusicTrackTransitionParam) {
 	}
 }
 
-func renderSwitchParam(t *BankTab, m *wwise.MusicTrack) {
+func renderSwitchParam(t *be.BankTab, m *wwise.MusicTrack) {
 	if imgui.TreeNodeStr("Music Track Switch Parameter") {
 		imgui.Text("Group Type: " + wwise.GroupTypeName[m.SwitchParam.GroupType])
 		imgui.Text(fmt.Sprintf("Group ID: %d", m.SwitchParam.GroupID))

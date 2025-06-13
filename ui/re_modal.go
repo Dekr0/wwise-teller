@@ -7,6 +7,7 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 )
 
 func (m *ModalQ) renderModal() {
@@ -104,8 +105,8 @@ func pushSaveSoundBankModal(
 	modalQ *ModalQ,
 	loop *async.EventLoop,
 	conf *config.Config,
-	bnkMngr *BankManager,
-	saveTab *BankTab,
+	bnkMngr *be.BankManager,
+	saveTab *be.BankTab,
 	saveName string,
 ) {
 	onSave := saveSoundBankFunc(loop, bnkMngr, saveTab, saveName)
@@ -131,8 +132,8 @@ func pushHD2PatchModal(
 	modalQ *ModalQ,
 	loop *async.EventLoop,
 	conf *config.Config,
-	bnkMngr *BankManager,
-	saveTab *BankTab,
+	bnkMngr *be.BankManager,
+	saveTab *be.BankTab,
 	saveName string,
 ) {
 	onSave := HD2PatchFunc(loop, bnkMngr, saveTab, saveName)

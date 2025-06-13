@@ -6,10 +6,11 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 )
 
 func renderMainMenuBar(
-	dockMngr       *DockManager,
+	dockMngr       *dockmanager.DockManager,
 	conf           *config.Config,
 	cmdPaletteMngr *CmdPaletteMngr,
 	modalQ         *ModalQ,
@@ -17,7 +18,7 @@ func renderMainMenuBar(
 ) {
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("Layout") {
-			for i := range LayoutCount {
+			for i := range dockmanager.LayoutCount {
 				if imgui.MenuItemBool(fmt.Sprintf("Layout %d", i),) {
 					dockMngr.SetLayout(i)
 				}

@@ -7,10 +7,11 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
 
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBankSourceData(t *BankTab, o *wwise.Sound) {
+func renderBankSourceData(t *be.BankTab, o *wwise.Sound) {
 	if imgui.TreeNodeExStr("Bank Source Data") {
 		bsd := &o.BankSourceData
 		imgui.Text(fmt.Sprintf("Plugin Type ID: %d", bsd.PluginType()))
@@ -35,7 +36,7 @@ func renderBankSourceData(t *BankTab, o *wwise.Sound) {
 	}
 }
 
-func renderChangeSourceQuery(t *BankTab, bsd *wwise.BankSourceData) {
+func renderChangeSourceQuery(t *be.BankTab, bsd *wwise.BankSourceData) {
 	size := imgui.NewVec2(imgui.ContentRegionAvail().X * 0.45, 128)
 	imgui.BeginChildStrV("ChangeSourceChild", size, 0, 0)
 
@@ -74,7 +75,7 @@ func bindChangeSource(bsd *wwise.BankSourceData, sid, inMemorySize uint32) func(
 	}
 }
 
-func renderChangeSourceTable(t *BankTab) {
+func renderChangeSourceTable(t *be.BankTab) {
 	size := imgui.NewVec2(0, 256)
 	imgui.BeginChildStrV("ChangeSourceChildTable", size, 0, 0)
 

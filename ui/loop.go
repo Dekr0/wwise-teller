@@ -18,10 +18,10 @@ import (
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/log"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/ui/dock_manager"
 	glog "github.com/Dekr0/wwise-teller/ui/log"
 	"github.com/Dekr0/wwise-teller/ui/notify"
-	"github.com/Dekr0/wwise-teller/ui/style"
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
@@ -71,7 +71,7 @@ func Run() error {
 	slog.Info("Created event loop")
 	modalQ := NewModalQ()
 
-	bnkMngr := &BankManager{WriteLock: atomic.Bool{}}
+	bnkMngr := &be.BankManager{WriteLock: atomic.Bool{}}
 	bnkMngr.WriteLock.Store(false)
 	slog.Info("Created bank manager")
 
@@ -163,7 +163,7 @@ func createLoop(
 	dockMngr *dockmanager.DockManager,
 	fileExplorer *FileExplorer,
 	cmdPaletteMngr *CmdPaletteMngr,
-	bnkMngr *BankManager,
+	bnkMngr *be.BankManager,
 	nQ *notify.NotifyQ,
 	gLog *glog.GuiLog,
 ) func() {
@@ -193,7 +193,7 @@ func createLoop(
 		dockSpaceID := dockMngr.BuildDockSpace()
 		imgui.DockSpaceV(
 			dockSpaceID,
-			style.DefaultSize,
+			DefaultSize,
 			dockmanager.DockSpaceFlags,
 			imgui.NewEmptyWindowClass(),
 		)

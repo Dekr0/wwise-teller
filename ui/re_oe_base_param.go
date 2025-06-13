@@ -10,11 +10,12 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
 
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBaseParam(t *BankTab, init *wwise.Bank, o wwise.HircObj) {
+func renderBaseParam(t *be.BankTab, init *wwise.Bank, o wwise.HircObj) {
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyB))
 	if imgui.TreeNodeExStr("Base Parameter") {
 		hid, err := o.HircID()
@@ -36,7 +37,7 @@ func renderBaseParam(t *BankTab, init *wwise.Bank, o wwise.HircObj) {
 }
 
 func renderChangeParentQuery(
-	t *BankTab,
+	t *be.BankTab,
 	b *wwise.BaseParameter,
 	hid uint32,
 	actorMixerHirc bool,
@@ -165,19 +166,19 @@ func renderChangeParentQuery(
 	imgui.EndChild()
 }
 
-func bindChangeRoot(t *BankTab, hid, np, op uint32) func() {
+func bindChangeRoot(t *be.BankTab, hid, np, op uint32) func() {
 	return func() {
 		t.ChangeRoot(hid, np, op)
 	}
 }
 
-func bindRemoveRoot(t *BankTab, hid, op uint32) func() {
+func bindRemoveRoot(t *be.BankTab, hid, op uint32) func() {
 	return func() {
 		t.RemoveRoot(hid, op)
 	}
 }
 
-func renderChangeParentListing(t *BankTab, actorMixer bool) {
+func renderChangeParentListing(t *be.BankTab, actorMixer bool) {
 	size := imgui.NewVec2(0, 160)
 	imgui.BeginChildStrV("ChangeParentListing", size, 0, 0)
 

@@ -7,10 +7,11 @@ import (
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderActorMixerHircTree(t *BankTab)  {
+func renderActorMixerHircTree(t *be.BankTab)  {
 	imgui.Begin("Actor Mixer Hierarchy")
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
 		imgui.End()
@@ -20,7 +21,7 @@ func renderActorMixerHircTree(t *BankTab)  {
 	imgui.End()
 }
 
-func renderActorMixerHircTreeTable(t *BankTab) {
+func renderActorMixerHircTreeTable(t *be.BankTab) {
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("TreeTable", 2, flags, outerSize, 0) {
@@ -36,7 +37,7 @@ func renderActorMixerHircTreeTable(t *BankTab) {
 	}
 }
 
-func renderActorMixerHircNode(t *BankTab, node *wwise.ActorMixerHircNode) {
+func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 	o := node.Obj
 
 	var sid string
@@ -79,7 +80,7 @@ func renderActorMixerHircNode(t *BankTab, node *wwise.ActorMixerHircNode) {
 	}
 }
 
-func renderMusicHircTree(t *BankTab) {
+func renderMusicHircTree(t *be.BankTab) {
 	imgui.Begin("Music Hierarchy")
 	imgui.End()
 }

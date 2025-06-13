@@ -7,11 +7,11 @@ import (
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
-
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderObjEditorActorMixer(t *BankTab, init *wwise.Bank) {
+func renderObjEditorActorMixer(t *be.BankTab, init *wwise.Bank) {
 	imgui.Begin("Object Editor (Actor Mixer)")
 
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
@@ -40,7 +40,7 @@ func renderObjEditorActorMixer(t *BankTab, init *wwise.Bank) {
 	imgui.End()
 }
 
-func renderActorMixerTab(t *BankTab, init *wwise.Bank, h wwise.HircObj) {
+func renderActorMixerTab(t *be.BankTab, init *wwise.Bank, h wwise.HircObj) {
 	viewer := &t.ActorMixerViewer
 	id, err := h.HircID()
 	if err != nil {
@@ -77,7 +77,7 @@ func renderActorMixerTab(t *BankTab, init *wwise.Bank, h wwise.HircObj) {
 	}
 }
 
-func renderObjEditorMusic(t *BankTab, init *wwise.Bank) {
+func renderObjEditorMusic(t *be.BankTab, init *wwise.Bank) {
 	imgui.Begin("Object Editor (Music)")
 
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
@@ -105,7 +105,7 @@ func renderObjEditorMusic(t *BankTab, init *wwise.Bank) {
 	imgui.End()
 }
 
-func renderMusicTab(t *BankTab, init *wwise.Bank, h wwise.HircObj) {
+func renderMusicTab(t *be.BankTab, init *wwise.Bank, h wwise.HircObj) {
 	viewer := &t.MusicHircViewer
 	id, err := h.HircID()
 	if err != nil {
@@ -138,43 +138,43 @@ func renderMusicTab(t *BankTab, init *wwise.Bank, h wwise.HircObj) {
 	}
 }
 
-func renderActorMixer(t *BankTab, init *wwise.Bank, o *wwise.ActorMixer) {
+func renderActorMixer(t *be.BankTab, init *wwise.Bank, o *wwise.ActorMixer) {
 	renderBaseParam(t, init, o)
 	renderContainer(t, o.Id, o.Container, wwise.ActorMixerHircType(o))
 }
 
-func renderLayerCntr(t *BankTab, init *wwise.Bank, o *wwise.LayerCntr) {
+func renderLayerCntr(t *be.BankTab, init *wwise.Bank, o *wwise.LayerCntr) {
 	renderBaseParam(t, init, o)
 }
 
-func renderRanSeqCntr(t *BankTab, init *wwise.Bank, o *wwise.RanSeqCntr) {
+func renderRanSeqCntr(t *be.BankTab, init *wwise.Bank, o *wwise.RanSeqCntr) {
 	renderBaseParam(t, init, o)
 	renderContainer(t, o.Id, o.Container, wwise.ActorMixerHircType(o))
 	renderRanSeqPlayList(t, o)
 }
 
-func renderSwitchCntr(t *BankTab, init *wwise.Bank, o *wwise.SwitchCntr) {
+func renderSwitchCntr(t *be.BankTab, init *wwise.Bank, o *wwise.SwitchCntr) {
 	renderBaseParam(t, init, o)
 }
 
-func renderSound(t *BankTab, init *wwise.Bank, o *wwise.Sound) {
+func renderSound(t *be.BankTab, init *wwise.Bank, o *wwise.Sound) {
 	renderBankSourceData(t, o)
 	renderBaseParam(t, init, o)
 }
 
-func renderMusicSegment(t *BankTab, o *wwise.MusicSegment) {
+func renderMusicSegment(t *be.BankTab, o *wwise.MusicSegment) {
 	imgui.Text("Under construction")
 }
 
-func renderMusicSwitchCntr(t *BankTab, o *wwise.MusicSwitchCntr) {
+func renderMusicSwitchCntr(t *be.BankTab, o *wwise.MusicSwitchCntr) {
 	imgui.Text("Under construction")
 }
 
-func renderMusicRanSeqCntr(t *BankTab, o *wwise.MusicRanSeqCntr) {
+func renderMusicRanSeqCntr(t *be.BankTab, o *wwise.MusicRanSeqCntr) {
 	imgui.Text("Under construction")
 }
 
-func renderContainer(t *BankTab, id uint32, cntr *wwise.Container, actorMixer bool) {
+func renderContainer(t *be.BankTab, id uint32, cntr *wwise.Container, actorMixer bool) {
 	if imgui.TreeNodeExStr("Container") {
 		imgui.BeginDisabled()
 		imgui.Button("Add New Children")

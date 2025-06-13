@@ -8,11 +8,11 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
-
 	"github.com/Dekr0/wwise-teller/wwise"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 )
 
-func renderRanSeqPlayList(t *BankTab, r *wwise.RanSeqCntr) {
+func renderRanSeqPlayList(t *be.BankTab, r *wwise.RanSeqCntr) {
 	if imgui.TreeNodeExStr("Random / Sequence Container Playlist Setting") {
 		imgui.PushItemWidth(160)
 
@@ -26,7 +26,7 @@ func renderRanSeqPlayList(t *BankTab, r *wwise.RanSeqCntr) {
 	}
 }
 
-func renderRanSeqPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
+func renderRanSeqPlayListTableSet(t *be.BankTab, r *wwise.RanSeqCntr) {
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("PLTransfer", 3, 0, outerSize, 0) {
 		v := t.ActorMixerViewer
@@ -54,7 +54,7 @@ func renderRanSeqPlayListTableSet(t *BankTab, r *wwise.RanSeqCntr) {
 	}
 }
 
-func renderRanSeqPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
+func renderRanSeqPlayListPendingTable(t *be.BankTab, r *wwise.RanSeqCntr) {
 	size := imgui.NewVec2(200, 0)
 	imgui.BeginChildStrV("PLPendingCell", size, imgui.ChildFlagsNone, imgui.WindowFlagsNone)
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
@@ -109,14 +109,14 @@ func renderRanSeqPlayListPendingTable(t *BankTab, r *wwise.RanSeqCntr) {
 	imgui.EndChild()
 }
 
-func bindToRanSeqPlayList(v *ActorMixerViewer, r *wwise.RanSeqCntr, i int) func() {
+func bindToRanSeqPlayList(v *be.ActorMixerViewer, r *wwise.RanSeqCntr, i int) func() {
 	return func() {
 		r.AddLeafToPlayList(i)
 		v.RanSeqPlaylistStorage.Clear()
 	}
 }
 
-func renderRanSeqPlayListTable(t *BankTab, r *wwise.RanSeqCntr) {
+func renderRanSeqPlayListTable(t *be.BankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLCell")
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	size := imgui.NewVec2(0, 180)
@@ -227,7 +227,7 @@ func renderRanSeqPlayListItemOrderCombo(i int, r *wwise.RanSeqCntr) func() {
 	return move
 }
 
-func renderRanSeqPlayListTableCtxMenu(t *BankTab, r *wwise.RanSeqCntr) func() {
+func renderRanSeqPlayListTableCtxMenu(t *be.BankTab, r *wwise.RanSeqCntr) func() {
 	var delSel func() = nil
 
 	if imgui.BeginPopupContextItem() {
@@ -247,14 +247,14 @@ func bindChangeRanSeqPlayListItemOrder(i, j int, r *wwise.RanSeqCntr) func() {
 	}
 }
 
-func bindPendRanSeqPlayListItem(v *ActorMixerViewer, r *wwise.RanSeqCntr, i int) func() {
+func bindPendRanSeqPlayListItem(v *be.ActorMixerViewer, r *wwise.RanSeqCntr, i int) func() {
 	return func() {
 		r.RemoveLeafFromPlayList(i)
 		v.RanSeqPlaylistStorage.Clear()
 	}
 }
 
-func bindPendSelectRanSeqPlayListItem(v *ActorMixerViewer, r *wwise.RanSeqCntr) func() {
+func bindPendSelectRanSeqPlayListItem(v *be.ActorMixerViewer, r *wwise.RanSeqCntr) func() {
 	return func() {
 		mut := false
 		tids := []uint32{}

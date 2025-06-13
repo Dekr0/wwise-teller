@@ -9,10 +9,11 @@ import (
 	"github.com/AllenDang/cimgui-go/utils"
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBankExplorer(bnkMngr *BankManager, conf *config.Config, modalQ *ModalQ, loop *async.EventLoop) {
+func renderBankExplorer(bnkMngr *be.BankManager, conf *config.Config, modalQ *ModalQ, loop *async.EventLoop) {
 	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
 	renderBankExplorerMenu(bnkMngr, conf, modalQ, loop)
 	if imgui.BeginTabBarV("BankExplorerTabBar", DefaultTabFlags) {
@@ -20,11 +21,11 @@ func renderBankExplorer(bnkMngr *BankManager, conf *config.Config, modalQ *Modal
 		bnkMngr.Banks.Range(func(key any, value any) bool {
 			open := true
 			path := key.(string)
-			tab := value.(*BankTab)
+			tab := value.(*be.BankTab)
 
 			imgui.PushIDStr(path)
 			if imgui.BeginTabItemV(filepath.Base(path), &open, 0) {
-				renderBankExplorerTab(path, value.(*BankTab))
+				renderBankExplorerTab(path, value.(*be.BankTab))
 				bnkMngr.ActiveBank = tab
 				bnkMngr.ActivePath = path
 				imgui.EndTabItem()
@@ -49,7 +50,7 @@ func renderBankExplorer(bnkMngr *BankManager, conf *config.Config, modalQ *Modal
 	imgui.End()
 }
 
-func renderBankExplorerTab(path string, t *BankTab) {
+func renderBankExplorerTab(path string, t *be.BankTab) {
 	imgui.Text("Sound bank: " + path)
 	if imgui.BeginTabBar("SubBankExplorerTabBar") {
 		if imgui.BeginTabItem("Actor Mixer") {
@@ -74,7 +75,7 @@ func renderBankExplorerTab(path string, t *BankTab) {
 }
 
 func renderBankExplorerMenu(
-	bnkMngr *BankManager,
+	bnkMngr *be.BankManager,
 	conf *config.Config,
 	modalQ *ModalQ,
 	loop *async.EventLoop,
@@ -84,7 +85,7 @@ func renderBankExplorerMenu(
 			if imgui.BeginMenuV("Save", !bnkMngr.WriteLock.Load()) {
 				bnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
-						pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, value.(*BankTab), key.(string))
+						pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, value.(*be.BankTab), key.(string))
 						return false
 					}
 					return true
@@ -98,7 +99,7 @@ func renderBankExplorerMenu(
 					bnkMngr.InitBank = bnkMngr.ActiveBank.Bank
 					deleteKey := ""
 					bnkMngr.Banks.Range(func(key, value any) bool {
-						if value.(*BankTab) == bnkMngr.ActiveBank {
+						if value.(*be.BankTab) == bnkMngr.ActiveBank {
 							deleteKey = key.(string)
 							return false
 						}
@@ -112,8 +113,8 @@ func renderBankExplorerMenu(
 					deleteKey := ""
 					bnkMngr.Banks.Range(func(key, value any) bool {
 						if imgui.MenuItemBool(key.(string)) {
-							bnkMngr.InitBank = value.(*BankTab).Bank
-							if bnkMngr.ActiveBank == value.(*BankTab) {
+							bnkMngr.InitBank = value.(*be.BankTab).Bank
+							if bnkMngr.ActiveBank == value.(*be.BankTab) {
 								bnkMngr.ActiveBank = nil
 							}
 							deleteKey = key.(string)
@@ -134,7 +135,7 @@ func renderBankExplorerMenu(
 				if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
 					bnkMngr.Banks.Range(func(key, value any) bool {
 						if imgui.MenuItemBool(key.(string)) {
-							pushHD2PatchModal(modalQ, loop, conf, bnkMngr, value.(*BankTab), key.(string))
+							pushHD2PatchModal(modalQ, loop, conf, bnkMngr, value.(*be.BankTab), key.(string))
 							return false
 						}
 						return true
@@ -150,7 +151,7 @@ func renderBankExplorerMenu(
 	}
 }
 
-func renderActorMixerHircTable(t *BankTab) {
+func renderActorMixerHircTable(t *be.BankTab) {
 	focusTable := false
 
 	useViUp()

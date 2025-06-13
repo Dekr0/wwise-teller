@@ -7,11 +7,12 @@ import (
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderAuxParam(t *BankTab, init *wwise.Bank, o wwise.HircObj) {
+func renderAuxParam(t *be.BankTab, init *wwise.Bank, o wwise.HircObj) {
 	if imgui.TreeNodeExStr("User-Defined Auxiliary Send") {
 		b := o.BaseParameter()
 		a := &o.BaseParameter().AuxParam
@@ -164,7 +165,7 @@ func bindChangeUserAuxSendVolumeProp(p *wwise.PropBundle, idx int, nextPid wwise
 	return func() { p.ChangeUserAuxSendVolumeProp(idx, nextPid) }
 }
 
-func renderAuxBusIDTable(t *BankTab, init *wwise.Bank, parentID uint32, a *wwise.AuxParam) {
+func renderAuxBusIDTable(t *be.BankTab, init *wwise.Bank, parentID uint32, a *wwise.AuxParam) {
 	const flags = DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("AuxiliaryBusIDTable", 2, flags, outerSize, 0) {

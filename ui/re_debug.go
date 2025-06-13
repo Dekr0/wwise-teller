@@ -5,9 +5,10 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 )
 
-func renderDebug(bnkMngr *BankManager, loop *async.EventLoop, modalQ *ModalQ) {
+func renderDebug(bnkMngr *be.BankManager, loop *async.EventLoop, modalQ *ModalQ) {
 	imgui.Begin("Debug")
 	imgui.PushTextWrapPos()
 
@@ -19,7 +20,7 @@ func renderDebug(bnkMngr *BankManager, loop *async.EventLoop, modalQ *ModalQ) {
 
 	activeBankName := ""
 	bnkMngr.Banks.Range(func(key, value any) bool {
-		if value.(*BankTab) == bnkMngr.ActiveBank {
+		if value.(*be.BankTab) == bnkMngr.ActiveBank {
 			activeBankName = key.(string)
 			return false
 		}
