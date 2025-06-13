@@ -15,7 +15,6 @@ import (
 	"github.com/AllenDang/cimgui-go/imguizmo"
 	"github.com/AllenDang/cimgui-go/implot"
 	"github.com/Dekr0/wwise-teller/config"
-	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	"github.com/Dekr0/wwise-teller/log"
 	"github.com/Dekr0/wwise-teller/ui/async"
 	"github.com/Dekr0/wwise-teller/utils"
@@ -172,18 +171,8 @@ func createLoop(
 		imgui.ClearSizeCallbackPool()
 		imguizmo.BeginFrame()
 
-		saveActive := false
-		iType := -1
 		viewport := imgui.MainViewport()
 
-		if imgui.ShortcutNilV(DefaultSaveAsSC, imgui.InputFlagsRouteGlobal) {
-			saveActive = true
-			iType = -1
-		}
-		if imgui.ShortcutNilV(ModCtrlShift | imgui.KeyChord(imgui.KeyI), imgui.InputFlagsRouteGlobal) {
-			saveActive = true
-			iType = int(helldivers.IntegrationTypeHelldivers2)
-		}
 		if imgui.ShortcutNilV(DefaultNavPrevSC, imgui.InputFlagsRouteGlobal) {
 			dockMngr.FocusPrev()
 			imgui.SetWindowFocusStr(dockMngr.Focus())
@@ -209,26 +198,14 @@ func createLoop(
 		modalQ.renderModal()
 		renderLog(gLog)
 		renderFileExplorer(fileExplorer, modalQ)
-		closeTab, saveTab, saveName, iType := renderBankExplorer(
-			bnkMngr, saveActive, iType,
-		)
-		if saveTab != nil {
-			switch iType {
-			case -1:
-				pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
-			case int(helldivers.IntegrationTypeHelldivers2):
-				pushHD2PatchModal(modalQ, loop, conf, bnkMngr, saveTab, saveName)
-			}
-		}
+		renderBankExplorer(bnkMngr, conf, modalQ, loop)
 		renderActorMixerHircTree(bnkMngr.ActiveBank)
+		renderMusicHircTree(bnkMngr.ActiveBank)
 		renderObjEditorActorMixer(bnkMngr.ActiveBank, bnkMngr.InitBank)
 		renderObjEditorMusic(bnkMngr.ActiveBank, bnkMngr.InitBank)
 		renderEventsViewer(bnkMngr.ActiveBank)
 		renderNotfiy(nQ)
 		imgui.End()
-		if closeTab != "" {
-			bnkMngr.CloseBank(closeTab)
-		}
 	}
 }
 
