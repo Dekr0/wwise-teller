@@ -197,6 +197,7 @@ func createLoop(
 		renderMainMenuBar(dockMngr, conf, cmdPaletteMngr, modalQ, loop)
 		modalQ.renderModal()
 		renderLog(gLog)
+		renderDebug(bnkMngr, loop, modalQ)
 		renderFileExplorer(fileExplorer, modalQ)
 		renderBankExplorer(bnkMngr, conf, modalQ, loop)
 		renderActorMixerHircTree(bnkMngr.ActiveBank)
@@ -241,25 +242,4 @@ func renderTasks(asyncTasks []*async.Task) {
 		)
 	}
 	imgui.EndPopup()
-}
-
-func renderLog(gLog *GuiLog) {
-	imgui.BeginV("Log", nil, imgui.WindowFlagsHorizontalScrollbar)
-	gLog.log.Logs.Do(func(a any) {
-		if a == nil {
-			return
-		}
-		imgui.Text(a.(string))
-	})
-	imgui.End()
-}
-
-func renderDebug(
-	loop *async.EventLoop,
-	modalQ *ModalQ,
-) {
-	imgui.Begin("Debug")
-	imgui.Text(fmt.Sprintf("Number of modals: %d", len(modalQ.modals)))
-	imgui.Text(fmt.Sprintf("Number of asynchronous tasks: %d", loop.NumTasks()))
-	imgui.End()
 }
