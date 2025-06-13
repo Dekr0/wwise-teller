@@ -17,13 +17,13 @@ import (
 type BankManager struct {
 	Banks        sync.Map
 	ActiveBank  *BankTab
+	InitBank    *wwise.Bank
 	ActivePath   string
 	WriteLock    atomic.Bool
 }
 
 type BankTab struct {
 	Bank                  *wwise.Bank
-	InitBank              *wwise.Bank
 
 	// Filter
 	MediaIndexFilter       MediaIndexFilter
