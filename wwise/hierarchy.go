@@ -140,9 +140,11 @@ type HircCount struct {
 	Attenuations    uint16
 	ActorMixerHircs uint16
 	ActorMixerRoots uint16
+	Buses           uint16
+	FxS             uint16
+	Events          uint16
 	MusicHircs      uint16
 	MusicHircRoots  uint16
-	Events          uint16
 	States          uint16
 }
 
@@ -160,6 +162,10 @@ func (h *HIRC) HierarchyCount() HircCount {
 			if ContainerMusicHircType(o) {
 				c.MusicHircRoots += 1
 			}
+		} else if BusHircType(o) {
+			c.Buses += 1
+		} else if FxHircType(o) {
+			c.FxS += 1
 		} else {
 			switch o.HircType() {
 			case HircTypeAttenuation:
