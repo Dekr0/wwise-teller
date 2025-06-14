@@ -48,6 +48,53 @@ func (f *AttenuationFilter) Filter(objs []wwise.HircObj) {
 }
 
 type AttenuationViewer struct {
-	AttenuationFilter  AttenuationFilter
+	Filter             AttenuationFilter
 	ActiveAttenuation *wwise.Attenuation
+}
+
+type FxFilter struct {
+	Id     uint32
+	Type   wwise.HircType
+	Fxs  []wwise.HircObj
+}
+
+func (f *FxFilter) Filter(objs []wwise.HircObj) {
+	curr := 0
+	prev := len(f.Fxs)
+	for _, obj := range objs {
+		if !wwise.FxHircType(obj) {
+			continue
+		}
+		if f.Type > wwise.HircTypeAll && f.Type != obj.HircType() {
+			continue
+		}
+		id, err := obj.HircID()
+		if err != nil {
+			slog.Error(
+				"Error message before panic",
+				"error", "Attenuation struct does not implement HircObj.HircID?",
+			)
+			panic("Panic Trap")
+		}
+		if !fuzzy.Match(
+			strconv.FormatUint(uint64(f.Id), 10),
+			strconv.FormatUint(uint64(id), 10),
+		) {
+			continue
+		}
+		if curr < len(f.Fxs) {
+			f.Fxs[curr] = obj
+		} else {
+			f.Fxs = append(f.Fxs, obj)
+		}
+		curr += 1
+	}
+	if curr < prev {
+		f.Fxs = slices.Delete(f.Fxs, curr, prev)
+	}
+}
+
+type FxViewer struct {
+	Filter   FxFilter
+	ActiveFx wwise.HircObj
 }
