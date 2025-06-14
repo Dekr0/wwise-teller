@@ -9,9 +9,9 @@ import (
 )
 
 type ActorMixerViewer struct {
-	ActorMixerHircFilter ActorMixerHircFilter
-	ActorMixerRootFilter ActorMixerRootFilter
-	ActiveActorMixerHirc wwise.HircObj
+	HircFilter ActorMixerHircFilter
+	RootFilter ActorMixerRootFilter
+	ActiveHirc wwise.HircObj
 
 	// Storage
 	LinearStorage         *imgui.SelectionBasicStorage
@@ -20,15 +20,15 @@ type ActorMixerViewer struct {
 }
 
 type ActorMixerHircFilter struct {
-	Id                uint32
-	Sid               uint32
-	Type              wwise.HircType
-	ActorMixerHircs []wwise.HircObj
+	Id    uint32
+	Sid   uint32
+	Type  wwise.HircType
+	Hircs []wwise.HircObj
 }
 
 func (f *ActorMixerHircFilter) Filter(objs []wwise.HircObj) {
 	curr := 0 
-	prev := len(f.ActorMixerHircs)
+	prev := len(f.Hircs)
 	for _, obj := range objs {
 		if !wwise.ActorMixerHircType(obj) {
 			continue
@@ -57,27 +57,27 @@ func (f *ActorMixerHircFilter) Filter(objs []wwise.HircObj) {
 		) {
 			continue
 		}
-		if curr < len(f.ActorMixerHircs) {
-			f.ActorMixerHircs[curr] = obj
+		if curr < len(f.Hircs) {
+			f.Hircs[curr] = obj
 		} else {
-			f.ActorMixerHircs = append(f.ActorMixerHircs, obj)
+			f.Hircs = append(f.Hircs, obj)
 		}
 		curr += 1
 	}
 	if curr < prev {
-		f.ActorMixerHircs = slices.Delete(f.ActorMixerHircs, curr, prev)
+		f.Hircs = slices.Delete(f.Hircs, curr, prev)
 	}
 }
 
 type ActorMixerRootFilter struct {
-	Id                uint32
-	Type              wwise.HircType
-	ActorMixerRoots []wwise.HircObj
+	Id    uint32
+	Type  wwise.HircType
+	Roots []wwise.HircObj
 }
 
 func (f *ActorMixerRootFilter) Filter(objs []wwise.HircObj) {
 	curr := 0
-	prev := len(f.ActorMixerRoots)
+	prev := len(f.Roots)
 	for _, obj := range objs {
 		if !wwise.ContainerActorMixerHircType(obj) {
 			continue
@@ -95,14 +95,14 @@ func (f *ActorMixerRootFilter) Filter(objs []wwise.HircObj) {
 		) {
 			continue
 		}
-		if curr < len(f.ActorMixerRoots) {
-			f.ActorMixerRoots[curr] = obj
+		if curr < len(f.Roots) {
+			f.Roots[curr] = obj
 		} else {
-			f.ActorMixerRoots = append(f.ActorMixerRoots, obj)
+			f.Roots = append(f.Roots, obj)
 		}
 		curr += 1
 	}
 	if curr < prev {
-		f.ActorMixerRoots = slices.Delete(f.ActorMixerRoots, curr, prev)
+		f.Roots = slices.Delete(f.Roots, curr, prev)
 	}
 }
