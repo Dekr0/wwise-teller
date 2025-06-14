@@ -119,19 +119,42 @@ func ContainerMusicHircType(o HircObj) bool {
 		   t == HircTypeMusicSwitchCntr
 }
 
-func NonHircType(o HircObj) bool {
+var FxHircTypes []HircType = []HircType{
+	HircTypeAll,
+	HircTypeAttenuation,
+	HircTypeFxShareSet,
+	HircTypeFxCustom,
+	HircTypeLFOModulator,
+	HircTypeEnvelopeModulator,
+	HircTypeTimeModulator,
+}
+
+func FxHircType(o HircObj) bool {
 	t := o.HircType()
-	return t == HircTypeState             ||
-	       t == HircTypeAction            || 
-		   t == HircTypeEvent             || 
-		   t == HircTypeBus               ||
-	       t == HircTypeAttenuation       ||
-		   t == HircTypeFxShareSet        ||
+	return t == HircTypeAttenuation       ||
+	       t == HircTypeFxShareSet        ||
 		   t == HircTypeFxCustom          ||
-		   t == HircTypeAuxBus            ||
 		   t == HircTypeLFOModulator      ||
 	       t == HircTypeEnvelopeModulator ||
 	       t == HircTypeTimeModulator
+}
+
+var BusHircTypes []HircType = []HircType{
+	HircTypeAll,
+	HircTypeBus,
+	HircTypeAuxBus,
+}
+
+func BusHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeBus ||  t == HircTypeAuxBus
+}
+
+func NonHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeState  ||
+	       t == HircTypeAction || 
+		   t == HircTypeEvent  
 }
 
 var HircTypeName []string = []string{
