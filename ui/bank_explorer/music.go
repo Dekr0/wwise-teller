@@ -9,8 +9,8 @@ import (
 )
 
 type MusicHircViewer struct {
-	MusicHircFilter        MusicHircFilter
-	MusicHircRootFilter    MusicHircRootFilter
+	HircFilter        MusicHircFilter
+	HircRootFilter    MusicHircRootFilter
 	ActiveMusicHirc        wwise.HircObj             
 
 	// Storage
