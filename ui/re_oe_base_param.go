@@ -15,7 +15,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBaseParam(t *be.BankTab, init *wwise.Bank, o wwise.HircObj) {
+func renderBaseParam(t *be.BankTab, init *be.BankTab, o wwise.HircObj) {
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyB))
 	if imgui.TreeNodeExStr("Base Parameter") {
 		hid, err := o.HircID()
@@ -53,7 +53,7 @@ func renderChangeParentQuery(
 		if imgui.InputScalar(
 			"##FilteredParentByID",
 			imgui.DataTypeU32,
-			uintptr(utils.Ptr(&t.ActorMixerViewer.ActorMixerRootFilter.Id)),
+			uintptr(utils.Ptr(&t.ActorMixerViewer.RootFilter.Id)),
 		) {
 			filter = t.FilterActorMixerRoots
 		}
@@ -61,7 +61,7 @@ func renderChangeParentQuery(
 		if imgui.InputScalar(
 			"##FilteredParentByID",
 			imgui.DataTypeU32,
-			uintptr(utils.Ptr(&t.MusicHircViewer.MusicHircRootFilter.Id)),
+			uintptr(utils.Ptr(&t.MusicHircViewer.HircRootFilter.Id)),
 		) {
 			filter = t.FilterMusicHircRoots
 		}
@@ -69,7 +69,7 @@ func renderChangeParentQuery(
 
 	preview := ""
 	if actorMixerHirc {
-		rootFilter := &t.ActorMixerViewer.ActorMixerRootFilter
+		rootFilter := &t.ActorMixerViewer.RootFilter
 		preview = wwise.HircTypeName[rootFilter.Type]
 		imgui.Text("Filtered by type")
 		if imgui.BeginComboV("##FilteredByType", preview, 0) {
@@ -87,7 +87,7 @@ func renderChangeParentQuery(
 			imgui.EndCombo()
 		}
 	} else {
-		rootFilter := &t.MusicHircViewer.MusicHircRootFilter
+		rootFilter := &t.MusicHircViewer.HircRootFilter
 		preview = wwise.HircTypeName[rootFilter.Type]
 		imgui.Text("Filtered by type")
 		if imgui.BeginComboV("##FilteredByType", preview, 0) {
@@ -117,9 +117,9 @@ func renderChangeParentQuery(
 		var changeParent func() = nil
 		var roots []wwise.HircObj
 		if actorMixerHirc {
-			roots = t.ActorMixerViewer.ActorMixerRootFilter.ActorMixerRoots
+			roots = t.ActorMixerViewer.RootFilter.Roots
 		} else {
-			roots = t.MusicHircViewer.MusicHircFilter.MusicHircs
+			roots = t.MusicHircViewer.HircFilter.MusicHircs
 		}
 
 		for _, p := range roots {
@@ -195,9 +195,9 @@ func renderChangeParentListing(t *be.BankTab, actorMixer bool) {
 
 		var roots []wwise.HircObj
 		if actorMixer {
-			roots = t.ActorMixerViewer.ActorMixerRootFilter.ActorMixerRoots
+			roots = t.ActorMixerViewer.RootFilter.Roots
 		} else {
-			roots = t.MusicHircViewer.MusicHircRootFilter.MusicHircRoots
+			roots = t.MusicHircViewer.HircRootFilter.MusicHircRoots
 		}
 
 		clipper.Begin(int32(len(roots)))
