@@ -30,7 +30,17 @@ func renderDebug(bnkMngr *be.BankManager, loop *async.EventLoop, modalQ *ModalQ)
 	imgui.SeparatorText("Bank Manager")
 	imgui.Text(fmt.Sprintf("# of bank tabs: %d", numBnks))
 	imgui.Text(fmt.Sprintf("Active bank: %s", activeBankName))
-	imgui.Text(fmt.Sprintf("Mounted Init.bnk? %v", bnkMngr.InitBank != nil))
+	mountedBnk := "None"
+	if bnkMngr.InitBank != nil {
+		bnkMngr.Banks.Range(func(key, value any) bool {
+			if value.(*be.BankTab) == bnkMngr.InitBank {
+				mountedBnk = key.(string)
+				return false
+			}
+			return true
+		})
+	}
+	imgui.Text(fmt.Sprintf("Mounted Init.bnk: %s", mountedBnk))
 	imgui.SeparatorText("Modal")
 	imgui.Text(fmt.Sprintf("# of modals: %d", len(modalQ.modals)))
 	imgui.SeparatorText("Event Loop")
