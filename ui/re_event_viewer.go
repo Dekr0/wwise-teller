@@ -114,27 +114,24 @@ func renderEventsViewer(t *be.BankTab) {
 func renderEventsTable(t *be.BankTab) {
 	imgui.SeparatorText("Filter")
 	imgui.SetNextItemWidth(96)
-	if imgui.InputScalar("By event ID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.EventViewer.EventFilter.Id))) {
+	if imgui.InputScalar("By event ID", imgui.DataTypeU32, uintptr(utils.Ptr(&t.EventViewer.Filter.Id))) {
 		t.FilterEvents()
 	}
 	imgui.SeparatorText("")
 
-	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
-	size := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("EventsTable", 1, flags, size, 0) {
+	if imgui.BeginTableV("EventsTable", 1, DefaultTableFlagsY, DefaultSize, 0) {
 		imgui.TableSetupColumn("Event ID")
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
 		clipper := imgui.NewListClipper()
-		clipper.Begin(int32(len(t.EventViewer.EventFilter.Events)))
+		clipper.Begin(int32(len(t.EventViewer.Filter.Events)))
 		for clipper.Step() {
 			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-				event := t.EventViewer.EventFilter.Events[n]
+				event := t.EventViewer.Filter.Events[n]
 				imgui.TableNextRow()
 				imgui.TableSetColumnIndex(0)
 
-				size.X, size.Y = 0, 0
 				if t.EventViewer.ActiveEvent == nil {
 					t.EventViewer.ActiveEvent = event
 				}
