@@ -17,7 +17,7 @@ import (
 type BankManager struct {
 	Banks        sync.Map
 	ActiveBank  *BankTab
-	InitBank    *wwise.Bank
+	InitBank    *BankTab
 	ActivePath   string
 	WriteLock    atomic.Bool
 }
@@ -30,7 +30,9 @@ type BankTab struct {
 
 	ActorMixerViewer       ActorMixerViewer
 	AttenuationViewer      AttenuationViewer
+	BusViewer              BusViewer
 	EventViewer            EventViewer
+	FxViewer               FxViewer
 	GameSyncViewer         GameSyncViewer
 	MusicHircViewer        MusicHircViewer
 
@@ -56,35 +58,49 @@ func (b *BankTab) FilterActorMixerHircs() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
-	b.ActorMixerViewer.ActorMixerHircFilter.Filter(b.Bank.HIRC().HircObjs)
+	b.ActorMixerViewer.HircFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
 func (b *BankTab) FilterActorMixerRoots() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
-	b.ActorMixerViewer.ActorMixerRootFilter.Filter(b.Bank.HIRC().HircObjs)
+	b.ActorMixerViewer.RootFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
-func (b *BankTab) FilterMusicHircs() {
+func (b *BankTab) FilterBuses() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
-	b.MusicHircViewer.MusicHircFilter.Filter(b.Bank.HIRC().HircObjs)
-}
-
-func (b *BankTab) FilterMusicHircRoots() {
-	if b.Bank.HIRC() == nil {
-		return
-	}
-	b.MusicHircViewer.MusicHircRootFilter.Filter(b.Bank.HIRC().HircObjs)
+	b.BusViewer.Filter.Filter(b.Bank.HIRC().HircObjs)
 }
 
 func (b *BankTab) FilterEvents() {
 	if b.Bank.HIRC() == nil {
 		return
 	}
-	b.EventViewer.EventFilter.Filter(b.Bank.HIRC().HircObjs)
+	b.EventViewer.Filter.Filter(b.Bank.HIRC().HircObjs)
+}
+
+func (b *BankTab) FilterFxS() {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	b.FxViewer.Filter.Filter(b.Bank.HIRC().HircObjs)
+}
+
+func (b *BankTab) FilterMusicHircs() {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	b.MusicHircViewer.HircFilter.Filter(b.Bank.HIRC().HircObjs)
+}
+
+func (b *BankTab) FilterMusicHircRoots() {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	b.MusicHircViewer.HircRootFilter.Filter(b.Bank.HIRC().HircObjs)
 }
 
 func (b *BankTab) FilterMediaIndices() {
@@ -150,11 +166,13 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 
 	actorMixerHircs := []wwise.HircObj{}
 	actorMixerRoots := []wwise.HircObj{}
+	attenuations := []*wwise.Attenuation{}
+	buses := []wwise.HircObj{}
+	events := []*wwise.Event{}
+	fxS := []wwise.HircObj{}
 	musicHircs := []wwise.HircObj{}
 	musicHircRoots := []wwise.HircObj{}
-	events := []*wwise.Event{}
 	states := []*wwise.State{}
-	attenuations := []*wwise.Attenuation{}
 
 	if bank.HIRC() != nil {
 		hirc := bank.HIRC()
@@ -163,11 +181,13 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 
 		actorMixerHircs = make([]wwise.HircObj, 0, c.ActorMixerHircs)
 		actorMixerRoots = make([]wwise.HircObj, 0, c.ActorMixerRoots)
+		attenuations = make([]*wwise.Attenuation, 0, c.Attenuations)
+		buses = make([]wwise.HircObj, 0, c.Buses)
+		events = make([]*wwise.Event, 0, c.Events)
+		fxS = make([]wwise.HircObj, 0, c.FxS)
 		musicHircs = make([]wwise.HircObj, 0, c.MusicHircs)
 		musicHircRoots = make([]wwise.HircObj, 0, c.MusicHircRoots)
-		events = make([]*wwise.Event, 0, c.Events)
 		states = make([]*wwise.State, 0, c.States)
-		attenuations = make([]*wwise.Attenuation, 0, c.Attenuations)
 		for _, o := range hirc.HircObjs {
 			if wwise.ActorMixerHircType(o) {
 				actorMixerHircs = append(actorMixerHircs, o)
@@ -179,6 +199,10 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 				if wwise.ContainerMusicHircType(o) {
 					musicHircRoots = append(musicHircRoots, o)
 				}
+			} else if wwise.BusHircType(o) {
+				buses = append(buses, o)
+			} else if wwise.FxHircType(o) {
+				fxS = append(fxS, o)
 			} else {
 				switch t := o.(type) {
 				case *wwise.Attenuation:
@@ -211,50 +235,66 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 		},
 
 		ActorMixerViewer: ActorMixerViewer{
-			ActorMixerHircFilter: ActorMixerHircFilter{
+			HircFilter: ActorMixerHircFilter{
 				Id: 0,
 				Sid: 0,
 				Type : wwise.HircTypeAll,
-				ActorMixerHircs: actorMixerHircs,
+				Hircs: actorMixerHircs,
 			},
-			ActorMixerRootFilter: ActorMixerRootFilter{
+			RootFilter: ActorMixerRootFilter{
 				Id: 0,
 				Type: wwise.HircTypeAll,
-				ActorMixerRoots: actorMixerRoots,
+				Roots: actorMixerRoots,
 			},
 			LinearStorage: imgui.NewSelectionBasicStorage(),
 			CntrStorage: imgui.NewSelectionBasicStorage(),
 			RanSeqPlaylistStorage: imgui.NewSelectionBasicStorage(),
 		},
 		AttenuationViewer: AttenuationViewer{
-			AttenuationFilter: AttenuationFilter{
+			Filter: AttenuationFilter{
 				Id: 0,
 				Attenuations: attenuations,
 			},
 			ActiveAttenuation: nil,
 		},
+		BusViewer: BusViewer{
+			Filter: BusFilter{
+				Id: 0,
+				Type: wwise.HircTypeAll,
+				Buses: buses,
+			},
+			ActiveBus: nil,
+		},
 		EventViewer: EventViewer{
-			EventFilter: EventFilter{
+			Filter: EventFilter{
 				Id: 0,
 				Events: events,
 			},
 			ActiveEvent: nil,
 			ActiveAction: nil,
 		},
+		FxViewer: FxViewer{
+			Filter: FxFilter{
+				Id: 0,
+				Type: wwise.HircTypeAll,
+				Fxs: fxS,
+			},
+			ActiveFx: nil,
+		},
 		GameSyncViewer: GameSyncViewer{
-			StateFilter: StateFilter{
+			Filter: StateFilter{
 				Id: 0,
 				States: states,
 			},
 			ActiveState: nil,
 		},
 		MusicHircViewer: MusicHircViewer{
-			MusicHircFilter: MusicHircFilter{
+			HircFilter: MusicHircFilter{
 				Id: 0,
 				Type: wwise.HircTypeAll,
 				MusicHircs: musicHircs,
 			},
-			MusicHircRootFilter: MusicHircRootFilter{
+			HircRootFilter: MusicHircRootFilter{
 				Id: 0,
 				Type: wwise.HircTypeAll,
 				MusicHircRoots: musicHircRoots,
