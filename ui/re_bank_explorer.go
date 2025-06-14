@@ -37,6 +37,9 @@ func renderBankExplorer(bnkMngr *be.BankManager, conf *config.Config, modalQ *Mo
 					bnkMngr.ActiveBank = nil
 					bnkMngr.ActivePath = ""
 				}
+				if bnkMngr.InitBank == tab {
+					bnkMngr.InitBank = nil
+				}
 				paths = append(paths, path)
 			}
 
@@ -61,6 +64,13 @@ func renderBankExplorerTab(path string, t *be.BankTab) {
 			imgui.EndTabItem()
 		}
 		if imgui.BeginTabItem("Attenuation") {
+			imgui.EndTabItem()
+		}
+		if imgui.BeginTabItem("Buses") {
+			imgui.EndTabItem()
+		}
+		if imgui.BeginTabItem("Fx") {
+			renderFxTable(t)
 			imgui.EndTabItem()
 		}
 		if imgui.BeginTabItem("Events") {
@@ -96,33 +106,17 @@ func renderBankExplorerMenu(
 			if imgui.BeginMenu("Project") {
 				imgui.BeginDisabledV(bnkMngr.ActiveBank == nil)
 				if imgui.MenuItemBool("Set Selected Bank As Init.bnk") {
-					bnkMngr.InitBank = bnkMngr.ActiveBank.Bank
-					deleteKey := ""
-					bnkMngr.Banks.Range(func(key, value any) bool {
-						if value.(*be.BankTab) == bnkMngr.ActiveBank {
-							deleteKey = key.(string)
-							return false
-						}
-						return true
-					})
-					bnkMngr.ActiveBank = nil
-					bnkMngr.CloseBank(deleteKey)
+					bnkMngr.InitBank = bnkMngr.ActiveBank
 				}
 				imgui.EndDisabled()
 				if imgui.BeginMenu("Set Init.bnk Using Existed Banks") {
-					deleteKey := ""
 					bnkMngr.Banks.Range(func(key, value any) bool {
 						if imgui.MenuItemBool(key.(string)) {
-							bnkMngr.InitBank = value.(*be.BankTab).Bank
-							if bnkMngr.ActiveBank == value.(*be.BankTab) {
-								bnkMngr.ActiveBank = nil
-							}
-							deleteKey = key.(string)
+							bnkMngr.InitBank = value.(*be.BankTab)
 							return false
 						}
 						return true
 					})
-					bnkMngr.CloseBank(deleteKey)
 					imgui.EndMenu()
 				}
 				if imgui.MenuItemBool("Unmount Init.bnk") {
@@ -159,7 +153,7 @@ func renderActorMixerHircTable(t *be.BankTab) {
 	useViDown()
 	useViShiftDown()
 
-	filterState := &t.ActorMixerViewer.ActorMixerHircFilter
+	filterState := &t.ActorMixerViewer.HircFilter
 
 	imgui.SeparatorText("Filter")
 
@@ -208,9 +202,7 @@ func renderActorMixerHircTable(t *be.BankTab) {
 		imgui.SetKeyboardFocusHere()
 	}
 
-	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("LinearTable", 2, flags, outerSize, 0) {
+	if imgui.BeginTableV("LinearTable", 2, DefaultTableFlagsY, DefaultSize, 0) {
 		imgui.TableSetupColumn("Hierarchy ID")
 		imgui.TableSetupColumn("Hierarchy Type")
 		imgui.TableSetupScrollFreeze(0, 1)
@@ -224,19 +216,19 @@ func renderActorMixerHircTable(t *be.BankTab) {
 		msIO := imgui.BeginMultiSelectV(
 			DefaultMultiSelectFlags,
 			storage.Size(),
-			int32(len(filterState.ActorMixerHircs)),
+			int32(len(filterState.Hircs)),
 		)
 		storage.ApplyRequests(msIO)
 
 		clipper := imgui.NewListClipper()
-		clipper.Begin(int32(len(filterState.ActorMixerHircs)))
+		clipper.Begin(int32(len(filterState.Hircs)))
 		if msIO.RangeSrcItem() != 1 {
 			// Ensure RangeSrc item is not clipped
 			clipper.IncludeItemByIndex(int32(msIO.RangeSrcItem()))
 		}
 		for clipper.Step() {
 			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
-				o := filterState.ActorMixerHircs[n]
+				o := filterState.Hircs[n]
 
 				imgui.TableNextRow()
 				imgui.TableSetColumnIndex(0)
