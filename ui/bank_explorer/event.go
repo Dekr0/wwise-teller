@@ -48,7 +48,7 @@ func (f *EventFilter) Filter(objs []wwise.HircObj) {
 }
 
 type EventViewer struct {
-	EventFilter   EventFilter
+	Filter   EventFilter
 	ActiveEvent  *wwise.Event
 	ActiveAction *wwise.Action   
 }
@@ -92,6 +92,6 @@ func (f *StateFilter) Filter(objs []wwise.HircObj) {
 }
 
 type GameSyncViewer struct {
-	StateFilter StateFilter
+	Filter StateFilter
 	ActiveState *wwise.State
 }
