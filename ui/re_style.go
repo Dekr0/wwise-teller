@@ -18,6 +18,8 @@ const DefaultTableSelFlags = imgui.SelectableFlagsSpanAllColumns |
 const DefaultMultiSelectFlags = imgui.MultiSelectFlagsClearOnEscape | 
 		                        imgui.MultiSelectFlagsBoxSelect2d
 
+const DefaultSelectableFlags = imgui.SelectableFlagsSpanAllColumns
+
 const DefaultTabFlags = imgui.TabBarFlagsReorderable | 
 		         imgui.TabBarFlagsTabListPopupButton | 
 	             imgui.TabBarFlagsFittingPolicyScroll
