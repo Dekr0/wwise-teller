@@ -14,13 +14,8 @@ func ParseFxCustom(size uint32, r *wio.Reader) *wwise.FxCustom {
 		PluginTypeId: r.U32Unsafe(),
 	}
 	if f.HasParam() {
-		f.PluginParam = &wwise.PluginParam{
-			PluginParamSize: r.U32Unsafe(),
-			PluginParamData: []byte{},
-		}
-		if f.PluginParam.PluginParamSize > 0 {
-			f.PluginParam.PluginParamData = r.ReadNUnsafe(uint64(f.PluginParam.PluginParamSize), 0)
-		}
+		f.PluginParam = &wwise.PluginParam{}
+		ParsePluginParam(r, f.PluginParam, f.PluginTypeId)
 	}
 	f.MediaMap = make([]wwise.MediaMapItem, r.U8Unsafe())
 	for i := range f.MediaMap {
@@ -54,13 +49,8 @@ func ParseFxShareSet(size uint32, r *wio.Reader) *wwise.FxShareSet {
 		PluginTypeId: r.U32Unsafe(),
 	}
 	if f.HasParam() {
-		f.PluginParam = &wwise.PluginParam{
-			PluginParamSize: r.U32Unsafe(),
-			PluginParamData: []byte{},
-		}
-		if f.PluginParam.PluginParamSize > 0 {
-			f.PluginParam.PluginParamData = r.ReadNUnsafe(uint64(f.PluginParam.PluginParamSize), 0)
-		}
+		f.PluginParam = &wwise.PluginParam{}
+		ParsePluginParam(r, f.PluginParam, f.PluginTypeId)
 	}
 	f.MediaMap = make([]wwise.MediaMapItem, r.U8Unsafe())
 	for i := range f.MediaMap {

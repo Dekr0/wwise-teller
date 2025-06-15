@@ -22,15 +22,13 @@ func ParseBankSourceData(r *wio.Reader) wwise.BankSourceData {
 		return b
 	}
 	b.PluginParam = &wwise.PluginParam{
-		PluginParamSize: r.U32Unsafe(), PluginParamData: []byte{},
+		PluginParamSize: r.U32Unsafe(), PluginParamData: &wwise.FxPlaceholder{Data: []byte{}},
 	}
 	if b.PluginParam.PluginParamSize <= 0 {
 		return b
 	}
 	begin := r.Pos()
-	b.PluginParam.PluginParamData = r.ReadNUnsafe(
-		uint64(b.PluginParam.PluginParamSize), 0,
-	)
+	ParsePluginParam(r, b.PluginParam, b.PluginID)
 	end := r.Pos()
 	if begin >= end {
 		panic("Reader consume zero byte.")
