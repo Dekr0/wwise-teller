@@ -4,12 +4,59 @@ import (
 	// "context"
 	// "slices"
 	// "context"
+	"context"
+	"os"
 	"testing"
+	"time"
 
-	// "time"
-	// "github.com/Dekr0/wwise-teller/parser"
-	// "github.com/Dekr0/wwise-teller/wwise"
+	"github.com/Dekr0/wwise-teller/integration/helldivers"
+	"github.com/Dekr0/wwise-teller/parser"
+	"github.com/Dekr0/wwise-teller/wwise"
 )
+
+func TestAppendAudio(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 2)
+	defer cancel()
+	bnk, err := parser.ParseBank("./tests/st_bnks/wep_cr1_adjudicator.st_bnk", ctx)
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	hirc := bnk.HIRC()
+
+	audioData, err := os.ReadFile("./tests/wems/reflection_close_desert.wem")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bnk.AppendAudio(audioData, 26007159)
+	for _, h := range hirc.HircObjs {
+		switch s := h.(type) {
+		case *wwise.Sound:
+			if s.BaseParam.DirectParentId == 274049716 {
+				s.BankSourceData.PluginID = 0x00040001
+				s.BankSourceData.SourceID = 26007159
+				s.BankSourceData.InMemoryMediaSize = uint32(len(audioData))
+			}
+		case *wwise.RanSeqCntr:
+			if s.Id == 274049716 {
+				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, 6.4)
+			}
+		}
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second * 2)
+	defer cancel()
+	data, err := bnk.Encode(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	helldivers.GenHelldiversPatchStable(data, bnk.META().B, "./tests/patch")
+}
+
+func TestMain(t *testing.T) {
+	main()
+}
 
 /*
 func TestRemoveActorMixerCntrChild2(t *testing.T) {
@@ -433,7 +480,3 @@ func TestChangeSoundPartial(t *testing.T) {
 	}
 }
 */
-
-func TestMain(t *testing.T) {
-	main()
-}
