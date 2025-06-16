@@ -6,6 +6,8 @@
 
 # Uncategorized Feature Idea
 
+- Attempt to add new Sound object in the hierarchy
+    - If this work, this mean hierarchy modification is completely possible
 - Information copying
 - Show all properties (read only)
 - Modify the destination file name
