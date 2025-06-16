@@ -1,12 +1,20 @@
 package wwise
 
-import "github.com/Dekr0/wwise-teller/wio"
+import (
+	"slices"
+
+	"github.com/Dekr0/wwise-teller/wio"
+)
 
 
 type FxChunk struct {
 	// UniqueNumFx uint8
 	BitsFxByPass uint8
 	FxChunkItems []FxChunkItem
+}
+
+func (f *FxChunk) Clone() FxChunk {
+	return FxChunk{f.BitsFxByPass, slices.Clone(f.FxChunkItems)}
 }
 
 func (f *FxChunk) Encode() []byte {
@@ -42,6 +50,10 @@ type FxChunkMetadata struct {
 	BitIsOverrideParentMetadata uint8
 	// UniqueNumFxMetadata uint8
 	FxMetaDataChunkItems []FxChunkMetadataItem
+}
+
+func (f *FxChunkMetadata) Clone() FxChunkMetadata {
+	return FxChunkMetadata{f.BitIsOverrideParentMetadata, slices.Clone(f.FxMetaDataChunkItems)}
 }
 
 func (f *FxChunkMetadata) Encode() []byte {
