@@ -452,6 +452,8 @@ func ParseDIDX(r *wio.Reader, I uint8, T []byte, size uint32) (
 		"There are data that is not consumed after parsing all media index blob",
 	)
 
+	didx.GuessAlignment()
+
 	return didx, nil
 }
 
