@@ -34,6 +34,16 @@ type AdvanceSetting struct {
 	HDRBitVector uint8 // U8x
 }
 
+func (a *AdvanceSetting) Clone() AdvanceSetting {
+	return AdvanceSetting{
+		a.AdvanceSettingBitVector,
+		a.VirtualQueueBehavior,
+		a.MaxNumInstance,
+		a.BelowThresholdBehavior,
+		a.HDRBitVector,
+	}
+}
+
 func (a *AdvanceSetting) KillNewest() bool {
 	return wio.GetBit(a.AdvanceSettingBitVector, 0)
 }
