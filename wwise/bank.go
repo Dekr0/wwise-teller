@@ -5,12 +5,16 @@ package wwise
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
 )
 
 var BankVersion = -1
+
+var NoDIDX = errors.New("This sound bank does not have DIDX chunk.")
+var NoDATA = errors.New("This sound bank does not have DATA chunk.")
 
 const SizeOfChunkHeader = 4 + 4
 
@@ -54,6 +58,15 @@ func (b *Bank) DIDX() *DIDX {
 	for _, chunk := range b.Chunks {
 		if bytes.Compare(chunk.Tag(), []byte{'D', 'I', 'D', 'X'}) == 0 {
 			return chunk.(*DIDX)
+		}
+	}
+	return nil
+}
+
+func (b *Bank) DATA() *DATA {
+	for _, chunk := range b.Chunks {
+		if bytes.Compare(chunk.Tag(), []byte{'D', 'A', 'T', 'A'}) == 0 {
+			return chunk.(*DATA)
 		}
 	}
 	return nil
@@ -126,4 +139,21 @@ func (bnk *Bank) Encode(ctx context.Context) ([]byte, error) {
 	}
 
 	return bytes.Join(chunks, []byte{}), nil
+}
+
+func (b *Bank) AppendAudio(audioData []byte, sid uint32) error {
+	didx := b.DIDX()
+	if didx == nil {
+		return NoDIDX
+	}
+	data := b.DATA()
+	if data == nil {
+		return NoDATA
+	}
+	err := didx.Append(sid, uint32(len(audioData)))
+	if err != nil {
+		return err
+	}
+	data.B = append(data.B, audioData...)
+	return nil
 }
