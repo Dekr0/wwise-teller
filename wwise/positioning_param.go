@@ -2,6 +2,7 @@ package wwise
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
@@ -19,13 +20,25 @@ type PositioningParam struct {
 	Ak3DAutomationParams []Ak3DAutomationParam // NumPositionPlayListItem * sizeof(Ak3DAutomationParams)
 }
 
-func NewPositioningParam() *PositioningParam {
-	return &PositioningParam{
+func NewPositioningParam() PositioningParam {
+	return PositioningParam{
 		0, 0, 0, 0, 
 		[]PositionVertex{}, 
 		[]PositionPlayListItem{},
 		[]Ak3DAutomationParam{},
 	}
+}
+
+func (p *PositioningParam) Clone() PositioningParam {
+	cp := NewPositioningParam()
+	cp.BitsPositioning = p.BitsPositioning
+	cp.Bits3D = p.Bits3D
+	cp.PathMode = p.PathMode
+	cp.TransitionTime = p.TransitionTime
+	cp.PositionVertices = slices.Clone(p.PositionVertices)
+	cp.PositionPlayListItems = slices.Clone(p.PositionPlayListItems)
+	cp.Ak3DAutomationParams = slices.Clone(p.Ak3DAutomationParams)
+	return cp
 }
 
 func (p *PositioningParam) HasPositioning() bool {
