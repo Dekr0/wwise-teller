@@ -364,6 +364,29 @@ func (h *HIRC) RemoveRoot(id, oldRootID uint32) {
 	}
 }
 
+// Prototyping
+func (h *HIRC) AppendNewSoundToRanSeqContainer(s *Sound, rsId uint32) error {
+	if s.BaseParam.DirectParentId != 0 {
+		return fmt.Errorf("Sound %d already has a parent", s.Id)
+	}
+	idx := slices.IndexFunc(h.HircObjs, func(o HircObj) bool {
+		id, err := o.HircID()
+		if err != nil {
+			return false
+		}
+		return rsId == id
+	})
+	if idx == -1 {
+		return fmt.Errorf("No random / sequence container has ID of %d", rsId)
+	}
+	r := h.HircObjs[idx].(*RanSeqCntr)
+	r.Container.Children = append(r.Container.Children, s.Id)
+	r.AddLeafToPlayList(len(r.Container.Children) - 1)
+	s.BaseParam.DirectParentId = rsId
+	h.HircObjs = slices.Insert(h.HircObjs, idx, HircObj(s))
+	return nil
+}
+
 func (h *HIRC) TreeArrIdx(tid uint32) int {
 	return slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
 		if id, err := h.HircID(); err != nil {
