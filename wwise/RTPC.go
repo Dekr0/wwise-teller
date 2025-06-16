@@ -233,6 +233,14 @@ type RTPC struct {
 	RTPCItems []RTPCItem
 }
 
+func (r *RTPC) Clone() RTPC {
+	cr := RTPC{RTPCItems: make([]RTPCItem, len(r.RTPCItems))}
+	for i := range r.RTPCItems {
+		cr.RTPCItems[i] = r.RTPCItems[i].Clone()
+	}
+	return cr
+}
+
 func (r *RTPC) RemoveRTPCItem(i int) {
 	r.RTPCItems = slices.Delete(r.RTPCItems, i, i + 1)
 }
@@ -266,8 +274,20 @@ type RTPCItem struct {
 	RTPCGraphPoints []RTPCGraphPoint 
 }
 
-func NewRTPCItem() *RTPCItem {
-	return &RTPCItem{0, 0, 0, 0, 0, 0, []RTPCGraphPoint{}}
+func (r *RTPCItem) Clone() RTPCItem {
+	return RTPCItem{
+		r.RTPCID,
+		r.RTPCType,
+		r.RTPCAccum,
+		r.ParamID,
+		r.RTPCCurveID,
+		r.Scaling,
+		slices.Clone(r.RTPCGraphPoints),
+	}
+}
+
+func NewRTPCItem() RTPCItem {
+	return RTPCItem{0, 0, 0, 0, 0, 0, []RTPCGraphPoint{}}
 }
 
 func (r *RTPCItem) Encode() []byte {
