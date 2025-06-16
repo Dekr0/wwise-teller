@@ -2,19 +2,26 @@ package wwise
 
 import (
 	"context"
+	"fmt"
+	"slices"
 
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
+// 1 mean no alignment
+var PossibleDataAlignments []uint8 = []uint8{ 1, 2, 4, 8, 16, 24, 32, 64 }
+
 type DIDX struct {
-	I uint8
-	T []byte
-	MediaIndexs []MediaIndex
+	I                    uint8
+	T                  []byte
+	Alignment            uint8 // guess
+	AvailableAlignment []uint8
+	MediaIndexs        []MediaIndex
 }
 
 func NewDIDX(I uint8, T []byte, num uint32) *DIDX {
-	return &DIDX{I, T, make([]MediaIndex, 0, num)}
+	return &DIDX{I, T, 1, []uint8{}, make([]MediaIndex, 0, num)}
 }
 
 func (d *DIDX) Encode(ctx context.Context) ([]byte, error) {
@@ -37,6 +44,44 @@ func (d *DIDX) Tag() []byte {
 
 func (d *DIDX) Idx() uint8 {
 	return d.I
+}
+
+func (d *DIDX) GuessAlignment() {
+	d.Alignment = 1
+	for _, a := range PossibleDataAlignments {
+		algined := true
+		for _, m := range d.MediaIndexs {
+			if m.Offset % uint32(a) != 0 {
+				algined = false
+				break
+			}
+		}
+		if algined {
+			d.AvailableAlignment = append(d.AvailableAlignment, a)
+			d.Alignment = max(a, d.Alignment)
+		}
+	}
+}
+
+func (d *DIDX) Append(sid uint32, size uint32) error {
+	if len(d.MediaIndexs) == 0 {
+		d.MediaIndexs = append(d.MediaIndexs, MediaIndex{sid, 0, size})
+		return nil
+	}
+	// Use Map!
+	last := d.MediaIndexs[len(d.MediaIndexs) - 1]
+	in := slices.ContainsFunc(d.MediaIndexs, func (m MediaIndex) bool {
+		return m.Sid == sid
+	})
+	if in {
+		return fmt.Errorf("Source ID %d alreay exists.", sid)
+	}
+	d.MediaIndexs = append(d.MediaIndexs, MediaIndex{
+		sid,
+		last.Offset + last.Size,
+		size,
+	})
+	return nil
 }
 
 const SizeOfMediaIndex = 12
