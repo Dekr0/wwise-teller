@@ -1,6 +1,7 @@
 package wwise
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"slices"
@@ -25,6 +26,15 @@ type PropBundle struct {
 
 	Modulator    bool
 	PropValues []PropValue
+}
+
+func (p *PropBundle) Clone() PropBundle {
+	np := PropBundle{PropValues: make([]PropValue, len(p.PropValues))}
+	for i, pv := range p.PropValues {
+		np.PropValues[i].P = pv.P
+		np.PropValues[i].V = bytes.Clone(pv.V)
+	}
+	return np
 }
 
 func (p *PropBundle) Encode() []byte {
@@ -214,6 +224,16 @@ type RangePropBundle struct {
 	// PIds []uint8 // CProps * u8i
 	Modulator     bool
 	RangeValues []RangeValue // CProps * sizeof(RangeValue)
+}
+
+func (r *RangePropBundle) Clone() RangePropBundle {
+	rp := RangePropBundle{RangeValues: make([]RangeValue, len(r.RangeValues))}
+	for i, rv := range r.RangeValues {
+		rp.RangeValues[i].P = rv.P
+		rp.RangeValues[i].Min = bytes.Clone(rv.Min)
+		rp.RangeValues[i].Max = bytes.Clone(rv.Max)
+	}
+	return rp
 }
 
 func (r *RangePropBundle) Encode() []byte {
