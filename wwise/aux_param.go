@@ -7,12 +7,12 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
-// At decoding phase, the array of auxiliary bus IDs  must have four elements 
-// regardless whether if it uses user-definded auxiliary send. If it uses it, 
-// decode all the auxiliary bus IDs. Otherwise, it will zero out the entire 
+// At decoding phase, the array of auxiliary bus IDs  must have four elements
+// regardless whether if it uses user-definded auxiliary send. If it uses it,
+// decode all the auxiliary bus IDs. Otherwise, it will zero out the entire
 // array.
-// At encoding phase, if all auxiliary bus IDs are zero, that means it doesn't 
-// use user-defined auxiliary send. It needs to set the corresponding bit to 
+// At encoding phase, if all auxiliary bus IDs are zero, that means it doesn't
+// use user-defined auxiliary send. It needs to set the corresponding bit to
 // zero.
 type AuxParam struct {
 	AuxBitVector            uint8     // U8x
@@ -22,8 +22,20 @@ type AuxParam struct {
 	RestoreReflectionAuxBus uint32
 }
 
-func NewAuxParam() *AuxParam {
-	return &AuxParam{0, [4]uint32{0, 0, 0, 0}, [4]uint32{0, 0, 0, 0}, 0, 0}
+func (a *AuxParam) Clone() AuxParam {
+	ca := NewAuxParam()
+	ca.AuxBitVector = a.AuxBitVector
+	for i := range a.AuxIds {
+		ca.AuxIds[i] = a.AuxIds[i]
+		ca.RestoreAuxIds[i] = a.RestoreAuxIds[i]
+	}
+	ca.ReflectionAuxBus = a.ReflectionAuxBus
+	ca.RestoreReflectionAuxBus = a.RestoreReflectionAuxBus
+	return ca
+}
+
+func NewAuxParam() AuxParam {
+	return AuxParam{0, [4]uint32{0, 0, 0, 0}, [4]uint32{0, 0, 0, 0}, 0, 0}
 }
 
 func (a *AuxParam) OverrideAuxSends() bool {
