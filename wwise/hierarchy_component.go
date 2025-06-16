@@ -3,6 +3,8 @@
 package wwise
 
 import (
+	"slices"
+
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
@@ -22,6 +24,30 @@ type BaseParameter struct {
 	StateProp StateProp
 	StateGroup StateGroup
 	RTPC RTPC
+}
+
+func (b *BaseParameter) Clone(withParent bool) *BaseParameter {
+	cb := &BaseParameter{
+		BitIsOverrideParentFx: b.BitIsOverrideParentFx,
+		FxChunk: b.FxChunk.Clone(),
+		FxChunkMetadata: b.FxChunkMetadata.Clone(),
+		BitOverrideAttachmentParams: b.BitOverrideAttachmentParams,
+		OverrideBusId: b.OverrideBusId,
+		DirectParentId: 0,
+		ByBitVectorA: b.ByBitVectorA,
+		PropBundle: b.PropBundle.Clone(),
+		RangePropBundle: b.RangePropBundle.Clone(),
+		PositioningParam: b.PositioningParam.Clone(),
+		AuxParam: b.AuxParam.Clone(),
+		AdvanceSetting: b.AdvanceSetting.Clone(),
+		StateProp: b.StateProp.Clone(),
+		StateGroup:b.StateGroup.Clone() ,
+		RTPC: b.RTPC.Clone(),
+	}
+	if withParent {
+		cb.DirectParentId = b.DirectParentId
+	}
+	return cb
 }
 
 func (b *BaseParameter) Encode() []byte {
@@ -125,6 +151,10 @@ type StateProp struct {
 	StatePropItems []StatePropItem
 }
 
+func (s *StateProp) Clone() StateProp {
+	return StateProp{slices.Clone(s.StatePropItems)}
+}
+
 func (s *StateProp) Encode() []byte {
 	size := s.Size()
 	w := wio.NewWriter(uint64(size))
@@ -149,6 +179,16 @@ type StatePropItem struct {
 type StateGroup struct {
 	// NumStateGroups uint8
 	StateGroupItems []StateGroupItem
+}
+
+func (s *StateGroup) Clone() StateGroup {
+	cs := StateGroup{make([]StateGroupItem, len(s.StateGroupItems))}
+	for i := range s.StateGroupItems {
+		cs.StateGroupItems[i].StateGroupID = s.StateGroupItems[i].StateGroupID
+		cs.StateGroupItems[i].StateSyncType = s.StateGroupItems[i].StateSyncType
+		cs.StateGroupItems[i].States = slices.Clone(s.StateGroupItems[i].States)
+	}
+	return cs
 }
 
 func NewStateGroup() *StateGroup {
