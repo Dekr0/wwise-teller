@@ -5,6 +5,15 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
+const (
+	PCM    = 0x00010001
+	VORBIS = 0x00040001
+)
+
+const (
+	STREAM_TYPE_BNK = 0x00
+)
+
 type SourceType uint8
 
 const (
