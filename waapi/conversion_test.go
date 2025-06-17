@@ -13,11 +13,15 @@ func TestWaveToWem(t *testing.T) {
 		"../tests/wavs/ak74/core_04.wav",
 	}
 	out := make([]string, len(in))
-	if _, err := WavToWem(
-		context.Background(),
-		in, out,
+	ctx := context.Background()
+	wsource, err := CreateConversionList( ctx, in, out, "Vorbis Quality High"); 
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := WwiseConversion(
+		ctx,
+		wsource,
 		"../AudioConversionProject/AudioConversionProject.wproj",
-		"Vorbis Quality High",
 	); err != nil {
 		t.Fatal(err)
 	}
