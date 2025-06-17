@@ -10,3 +10,5 @@ tests
 **/*.xml
 **/config.json
 **/wwiser.ini
+**/.cache
+**/AudioConversionProject
