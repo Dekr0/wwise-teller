@@ -330,7 +330,30 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		return nil, NoHIRC
 	}
 
-	return bnk, nil
+	/*
+	didx := bnk.DIDX()
+	data := bnk.DATA()
+	if didx != nil && data != nil {
+		bnk.Sources = make([]wwise.Source, len(didx.MediaIndexs))
+		validOffset := false
+		inBound := false
+		for i, m := range didx.MediaIndexs {
+			bnk.Sources[i].Sid = m.Sid
+			bnk.Sources[i].Data = []byte{}
+			validOffset = m.Offset >= 0 && m.Offset < uint32(len(data.B))
+			inBound = m.Offset + m.Size <= uint32(len(data.B))
+			if validOffset && inBound {
+				bnk.Sources[i].Data = bytes.Clone(data.B[m.Offset:m.Offset + m.Size])
+			} else if !validOffset {
+				slog.Error("Invalid offset", "Offset", m.Offset, "Sid", m.Sid)
+			} else if !inBound {
+				slog.Error("Invalid data region", "From", m.Offset, "To", m.Offset + m.Size, "Sid", m.Sid)
+			}
+		}
+	}
+	*/
+
+	return &bnk, nil
 }
 
 func BKHDRoutine(
