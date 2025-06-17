@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/google/uuid"
@@ -31,18 +33,16 @@ type ExternalSource struct {
 	AnalysisType *uint8    `xml:"AnalysisTypes,attr,omitempty"`
 }
 
-func WavToWem(
+func CreateConversionList(
 	ctx context.Context,
 	in []string,
 	out []string,
-	project string,
 	conversion string,
 ) (string, error) {
-	_, err := os.Lstat(project)
-	if err != nil {
-		return "", err
+	if runtime.GOOS != "windows" {
+		return "", fmt.Errorf("Wwise External Sources Conversion is only available on Windows")
 	}
-
+	var err error
 	duplicate := make(map[string]struct{}, len(in))
 	safeIn := make([]string, 0, len(in))
 	for _, i := range in {
@@ -137,4 +137,28 @@ func WavToWem(
 	}
 
 	return wsource, nil
+}
+
+func WwiseConversion(ctx context.Context, wsource string, project string) error {
+	if runtime.GOOS != "windows" {
+		return fmt.Errorf("Wwise External Sources Conversion is only available on Windows")
+	}
+	_, err := os.Lstat(wsource)
+	if err != nil {
+		return err
+	}
+	_, err = os.Lstat(project)
+	if err != nil {
+		return err
+	}
+	output := filepath.Dir(wsource)
+	cmd := exec.CommandContext(
+		ctx,
+		"WwiseConsole.exe",
+		"convert-external-source", project,
+		"--platform", "Windows",
+		"--source-file", wsource,
+		"--output", output,
+	)
+	return cmd.Run()
 }
