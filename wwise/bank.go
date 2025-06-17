@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sync"
 )
 
 var BankVersion = -1
@@ -25,11 +26,21 @@ type Chunk interface {
 }
 
 type Bank struct {
-	Chunks []Chunk
+	Chunks  []Chunk
+
+	// Experiment
+	Sources        []Source
+	SourcesMutex     sync.Mutex
+	SourcesMap   map[uint32]uint32
 }
 
-func NewBank() *Bank {
-	return &Bank{make([]Chunk, 0)}
+func NewBank() Bank {
+	return Bank{
+		make([]Chunk, 0, 4),
+		[]Source{},
+		sync.Mutex{},
+		make(map[uint32]uint32),
+	}
 }
 
 func (b *Bank) AddChunk(c Chunk) error {
