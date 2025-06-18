@@ -9,10 +9,10 @@ import (
 
 func TestCreateConversionList(t *testing.T) {
 	in := []string{
-		"../tests/wavs/ak74/core_01.wav",
-		"../tests/wavs/ak74/core_02.wav",
-		"../tests/wavs/ak74/core_03.wav",
-		"../tests/wavs/ak74/core_04.wav",
+		"tests/wavs/ak74/core_01.wav",
+		"tests/wavs/ak74/core_02.wav",
+		"tests/wavs/ak74/core_03.wav",
+		"tests/wavs/ak74/core_04.wav",
 	}
 	var err error
 	for i := range in {
@@ -41,10 +41,10 @@ func TestCreateConversionList(t *testing.T) {
 
 func TestWwiseConversion(t *testing.T) {
 	in := []string{
-		"../tests/wavs/ak74/core_01.wav",
-		"../tests/wavs/ak74/core_02.wav",
-		"../tests/wavs/ak74/core_03.wav",
-		"../tests/wavs/ak74/core_04.wav",
+		"tests/wavs/ak74/core_01.wav",
+		"tests/wavs/ak74/core_02.wav",
+		"tests/wavs/ak74/core_03.wav",
+		"tests/wavs/ak74/core_04.wav",
 	}
 	var err error
 	for i := range in {
@@ -63,7 +63,7 @@ func TestWwiseConversion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	proj, err := filepath.Abs("WwiseTeller") 
+	proj, err := filepath.Abs("WwiseTeller/WwiseTeller.proj") 
 	if err != nil {
 		t.Fatal(err)
 	}
