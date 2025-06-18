@@ -28,7 +28,7 @@ func (f *BusFilter) Filter(objs []wwise.HircObj) {
 		if err != nil {
 			continue
 		}
-		if !fuzzy.Match(
+		if f.Id > 0 && !fuzzy.Match(
 			strconv.FormatUint(uint64(f.Id), 10),
 			strconv.FormatUint(uint64(id), 10),
 		) {
@@ -44,7 +44,6 @@ func (f *BusFilter) Filter(objs []wwise.HircObj) {
 	if curr < prev {
 		f.Buses = slices.Delete(f.Buses, curr, prev)
 	}
-
 }
 
 type BusViewer struct {

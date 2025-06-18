@@ -40,7 +40,7 @@ func (f *ActorMixerHircFilter) Filter(objs []wwise.HircObj) {
 		bySid := f.Type == 0 || f.Type == wwise.HircTypeSound
 		if sound && bySid {
 			sound := obj.(*wwise.Sound)
-			if !fuzzy.Match(
+			if f.Sid > 0 && !fuzzy.Match(
 				strconv.FormatUint(uint64(f.Sid), 10),
 				strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10),
 			) {
@@ -51,7 +51,7 @@ func (f *ActorMixerHircFilter) Filter(objs []wwise.HircObj) {
 		if err != nil {
 			continue
 		}
-		if !fuzzy.Match(
+		if f.Id > 0 && !fuzzy.Match(
 			strconv.FormatUint(uint64(f.Id), 10),
 			strconv.FormatUint(uint64(id), 10),
 		) {
@@ -89,7 +89,7 @@ func (f *ActorMixerRootFilter) Filter(objs []wwise.HircObj) {
 		if err != nil {
 			continue
 		}
-		if !fuzzy.Match(
+		if f.Id > 0 && !fuzzy.Match(
 			strconv.FormatUint(uint64(f.Id), 10),
 			strconv.FormatUint(uint64(id), 10),
 		) {

@@ -29,7 +29,7 @@ func (f *EventFilter) Filter(objs []wwise.HircObj) {
 			)
 			panic("Panic Trap")
 		}
-		if !fuzzy.Match(
+		if f.Id > 0 && !fuzzy.Match(
 			strconv.FormatUint(uint64(f.Id), 10),
 			strconv.FormatUint(uint64(id), 10),
 		) {

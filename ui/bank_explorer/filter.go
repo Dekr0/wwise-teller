@@ -16,7 +16,7 @@ func (f *MediaIndexFilter) Filter(indices []wwise.MediaIndex) {
 	curr := 0
 	prev := len(f.MediaIndices)
 	for _, index := range indices {
-		if !fuzzy.Match(
+		if f.Sid > 0 && !fuzzy.Match(
 			strconv.FormatUint(uint64(f.Sid), 10),
 			strconv.FormatUint(uint64(index.Sid), 10),
 		) {
