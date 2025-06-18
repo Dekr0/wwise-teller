@@ -44,6 +44,10 @@ func InitTmp() error {
 	return nil
 }
 
+func CleanTmp() error {
+	return os.RemoveAll(Tmp)
+}
+
 func CreateConversionList(
 	ctx context.Context,
 	in []string,
@@ -131,7 +135,6 @@ func CreateConversionList(
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(string(x))
 
 	wsource := filepath.Join(staging, "external_sources.wsources")
 	if err := os.WriteFile(wsource, []byte(xml.Header + string(x)), 0777); err != nil {
