@@ -1,6 +1,7 @@
 package waapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/xml"
 	"errors"
@@ -17,7 +18,7 @@ import (
 
 var StagingCollision = errors.New("Staging folder's name collision. Please remove all content in the .cache folder and try again.")
 
-const CACHE = ".cache"
+var Tmp string = ""
 
 type ExternalSourcesList struct {
 	XMLName       xml.Name       `xml:"ExternalSourcesList"`
@@ -25,6 +26,7 @@ type ExternalSourcesList struct {
 	Root          string         `xml:"Root,attr"`
 	Sources     []ExternalSource 
 }
+
 type ExternalSource struct {
 	XMLName       xml.Name `xml:"Source"`
 	Path          string   `xml:"Path,attr"`
@@ -33,13 +35,23 @@ type ExternalSource struct {
 	AnalysisType *uint8    `xml:"AnalysisTypes,attr,omitempty"`
 }
 
+func InitTmp() error {
+	var err error
+	Tmp, err = os.MkdirTemp("", "wwise-teller-")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func CreateConversionList(
 	ctx context.Context,
 	in []string,
 	out []string,
 	conversion string,
+	dry bool,
 ) (string, error) {
-	if runtime.GOOS != "windows" {
+	if !dry && runtime.GOOS != "windows" {
 		return "", fmt.Errorf("Wwise External Sources Conversion is only available on Windows")
 	}
 	var err error
@@ -54,6 +66,10 @@ func CreateConversionList(
 				slog.Error(fmt.Sprintf("Failed to obtain information about wave file %s", i), "error", err)
 			}
 		} else {
+			if !filepath.IsAbs(i) {
+				slog.Error(fmt.Sprintf("%s is not absolute path", i))
+				continue
+			}
 			if _, in := duplicate[i]; in {
 				return "", fmt.Errorf("The provided wave files contain duplicates! %s is duplicated", i)
 			} else {
@@ -63,22 +79,7 @@ func CreateConversionList(
 		}
 	}
 
-	namespace := uuid.New()
-	info, err := os.Lstat(CACHE)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return "", err
-		}
-		err := os.Mkdir(CACHE, 0777)
-		if err != nil {
-			return "", err
-		}
-	}
-	if !info.IsDir() {
-		return "", fmt.Errorf(".cache exists but it's a file")
-	}
-
-	staging := filepath.Join(CACHE, namespace.String())
+	staging := filepath.Join(Tmp, uuid.New().String())
 	_, err = os.Lstat(staging)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -95,7 +96,7 @@ func CreateConversionList(
 
 	list := ExternalSourcesList{
 		SchemaVersion: 1,
-		Root: CACHE,
+		Root: staging,
 		Sources: make([]ExternalSource, len(safeIn)),
 	}
 
@@ -130,6 +131,7 @@ func CreateConversionList(
 	if err != nil {
 		return "", err
 	}
+	fmt.Println(string(x))
 
 	wsource := filepath.Join(staging, "external_sources.wsources")
 	if err := os.WriteFile(wsource, []byte(xml.Header + string(x)), 0777); err != nil {
@@ -143,6 +145,13 @@ func WwiseConversion(ctx context.Context, wsource string, project string) error 
 	if runtime.GOOS != "windows" {
 		return fmt.Errorf("Wwise External Sources Conversion is only available on Windows")
 	}
+	if !filepath.IsAbs(wsource) {
+		return fmt.Errorf("%s is not in the form of absolute path.", wsource)
+	}
+	if !filepath.IsAbs(project) {
+		return fmt.Errorf("%s is not in the form of absolute path.", project)
+	}
+
 	_, err := os.Lstat(wsource)
 	if err != nil {
 		return err
@@ -160,5 +169,9 @@ func WwiseConversion(ctx context.Context, wsource string, project string) error 
 		"--source-file", wsource,
 		"--output", output,
 	)
-	return cmd.Run()
+	res, err := cmd.CombinedOutput()
+	for line := range bytes.SplitSeq(res, []byte{'\n'}) {
+		slog.Info(string(line))
+	}
+	return err
 }
