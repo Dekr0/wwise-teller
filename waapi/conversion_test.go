@@ -63,7 +63,7 @@ func TestWwiseConversion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	proj, err := filepath.Abs("WwiseTeller/WwiseTeller.proj") 
+	proj, err := filepath.Abs("WwiseTeller/WwiseTeller.wproj") 
 	if err != nil {
 		t.Fatal(err)
 	}
