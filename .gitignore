@@ -1,7 +1,7 @@
 wwiser.pyz
 wwise-teller
 imgui.ini
-tests
+**/tests
 **/*.bnk
 **/*.exe
 **/*.log
