@@ -428,7 +428,7 @@ func bindChangeBaseRangeProp(r *wwise.RangePropBundle, idx int, nextPid wwise.Pr
 }
 
 func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
-	if imgui.TreeNodeExStr("All Property (Read-Only)") {
+	if p != nil && imgui.TreeNodeExStr("All Property (Read-Only)") {
 		DefaultSize.Y = 24
 		if len(p.PropValues) == 0 {
 			DefaultSize.Y += 10
@@ -459,7 +459,7 @@ func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
 		}
 		imgui.TreePop()
 	}
-	if imgui.TreeNodeExStr("All Range Property (Read-Only)") {
+	if r != nil && imgui.TreeNodeExStr("All Range Property (Read-Only)") {
 		DefaultSize.Y = 24
 		if len(r.RangeValues) == 0 {
 			DefaultSize.Y += 10
