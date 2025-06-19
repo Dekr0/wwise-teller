@@ -81,7 +81,7 @@ func (b *BaseParameter) PriorityOverrideParent() bool {
 
 func (b *BaseParameter) SetPriorityOverrideParent(set bool) {
 	b.ByBitVectorA = wio.SetBit(b.ByBitVectorA, 0, set) 
-	b.PropBundle.AddPriority()
+	b.PropBundle.Add(PropTypePriority)
 }
 
 func (b *BaseParameter) PriorityApplyDistFactor() bool {
@@ -90,7 +90,7 @@ func (b *BaseParameter) PriorityApplyDistFactor() bool {
 
 func (b *BaseParameter) SetPriorityApplyDistFactor(set bool) {
 	b.ByBitVectorA = wio.SetBit(b.ByBitVectorA, 1, set) 
-	b.PropBundle.AddPriorityApplyDistFactor()
+	b.PropBundle.Add(PropTypePriorityDistanceOffset)
 }
 
 func (b *BaseParameter) OverrideMidiEventsBehavior() bool {

@@ -66,6 +66,20 @@ func (p *PropBundle) HasPid(pId PropType) (int, bool) {
 	})
 }
 
+func (p *PropBundle) Prop(pId PropType) (int, *PropValue) {
+	if idx, in := p.HasPid(pId); !in {
+		return -1, nil
+	} else {
+		return idx, &p.PropValues[idx]
+	}
+}
+
+func (p *PropBundle) Add(pId PropType) {
+	if idx, in := p.HasPid(pId); !in {
+		p.PropValues = slices.Insert(p.PropValues, idx, PropValue{pId, []byte{0, 0, 0, 0}})
+	}
+}
+
 func (p *PropBundle) SetPropByIdxF32(idx int, v float32) {
 	if len(p.PropValues) <= 0 || idx >= len(p.PropValues) {
 		return
@@ -96,37 +110,6 @@ func (p *PropBundle) AddBaseProp() {
 	}
 }
 
-func (p *PropBundle) AddPriority() {
-	if i, in := p.HasPid(PropTypePriority); !in {
-		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypePriority, []byte{0, 0, 0, 0}})
-	}
-}
-
-func (p *PropBundle) Priority() (int, *PropValue) {
-	if i, in := p.HasPid(PropTypePriority); in {
-		return i, &p.PropValues[i]
-	} else {
-		return -1, nil
-	}
-}
-
-func (p *PropBundle) AddPriorityApplyDistFactor() {
-	if i, in := p.HasPid(PropTypePriorityDistanceOffset); in {
-		return
-	} else {
-		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypePriorityDistanceOffset, []byte{0, 0, 0, 0}})
-	}
-}
-
-func (p *PropBundle) PriorityApplyDistFactor() (int, *PropValue) {
-	if i, in := p.HasPid(PropTypePriorityDistanceOffset); in  {
-		return i, &p.PropValues[i]
-	} else {
-		return -1, nil
-	}
-}
-
-// TODO: Find a better way to do this
 func (p *PropBundle) ChangeBaseProp(idx int, nextPid PropType) {
 	if !slices.Contains(BasePropType, nextPid) {
 		return
@@ -138,32 +121,6 @@ func (p *PropBundle) ChangeBaseProp(idx int, nextPid PropType) {
 	}
 	p.PropValues[idx].P = nextPid
 	for i := range 4 {
-		p.PropValues[idx].V[i] = 0
-	}
-	p.Sort()
-}
-
-func (p *PropBundle) AddUserAuxSendVolume() {
-	for _, t := range UserAuxSendVolumePropType {
-		if i, in := p.HasPid(t); !in {
-			p.PropValues = slices.Insert(p.PropValues, i, PropValue{t, []byte{0, 0, 0, 0}})
-			return
-		}
-	}
-}
-
-// TODO: better way to do this
-func (p *PropBundle) ChangeUserAuxSendVolumeProp(idx int, nextPid PropType) {
-	if !slices.Contains(UserAuxSendVolumePropType, nextPid) {
-		return
-	}
-	if slices.ContainsFunc(p.PropValues, func(p PropValue) bool {
-		return p.P == nextPid
-	}) {
-		return
-	}
-	p.PropValues[idx].P = nextPid
-	for i := range p.PropValues[idx].V {
 		p.PropValues[idx].V[i] = 0
 	}
 	p.Sort()
