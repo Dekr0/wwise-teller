@@ -144,7 +144,7 @@ func renderMusicTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h wwise.
 
 func renderActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.ActorMixer) {
 	renderBaseParam(m, t, init, o)
-	renderContainer(t, o.Id, o.Container, wwise.ActorMixerHircType(o))
+	renderContainer(t, o.Id, &o.Container, wwise.ActorMixerHircType(o))
 }
 
 func renderLayerCntr(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.LayerCntr) {
@@ -153,7 +153,7 @@ func renderLayerCntr(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwis
 
 func renderRanSeqCntr(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.RanSeqCntr) {
 	renderBaseParam(m, t, init, o)
-	renderContainer(t, o.Id, o.Container, wwise.ActorMixerHircType(o))
+	renderContainer(t, o.Id, &o.Container, wwise.ActorMixerHircType(o))
 	renderRanSeqPlayList(t, o)
 }
 
