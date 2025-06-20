@@ -121,20 +121,26 @@ func ContainerMusicHircType(o HircObj) bool {
 
 var FxHircTypes []HircType = []HircType{
 	HircTypeAll,
-	HircTypeAttenuation,
 	HircTypeFxShareSet,
 	HircTypeFxCustom,
+}
+
+func FxHircType(o HircObj) bool {
+	t := o.HircType()
+	return t == HircTypeFxShareSet ||
+		   t == HircTypeFxCustom
+}
+
+var ModulatorTypes []HircType = []HircType{
+	HircTypeAll,
 	HircTypeLFOModulator,
 	HircTypeEnvelopeModulator,
 	HircTypeTimeModulator,
 }
 
-func FxHircType(o HircObj) bool {
+func ModulatorType(o HircObj) bool {
 	t := o.HircType()
-	return t == HircTypeAttenuation       ||
-	       t == HircTypeFxShareSet        ||
-		   t == HircTypeFxCustom          ||
-		   t == HircTypeLFOModulator      ||
+	return t == HircTypeLFOModulator      ||
 	       t == HircTypeEnvelopeModulator ||
 	       t == HircTypeTimeModulator
 }
