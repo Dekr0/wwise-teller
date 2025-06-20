@@ -23,8 +23,13 @@ func renderBankExplorer(bnkMngr *be.BankManager, conf *config.Config, modalQ *Mo
 			path := key.(string)
 			tab := value.(*be.BankTab)
 
-			imgui.PushIDStr(path)
-			if imgui.BeginTabItemV(filepath.Base(path), &open, 0) {
+			imgui.PushIDStr(filepath.Base(path))
+			selected := imgui.TabItemFlagsNone
+			if bnkMngr.SetNextBank != nil && bnkMngr.SetNextBank == tab {
+				selected = imgui.TabItemFlagsSetSelected
+				bnkMngr.SetNextBank = nil
+			}
+			if imgui.BeginTabItemV(filepath.Base(path), &open, selected) {
 				renderBankExplorerTab(path, value.(*be.BankTab))
 				bnkMngr.ActiveBank = tab
 				bnkMngr.ActivePath = path
@@ -40,6 +45,9 @@ func renderBankExplorer(bnkMngr *be.BankManager, conf *config.Config, modalQ *Mo
 				if bnkMngr.InitBank == tab {
 					bnkMngr.InitBank = nil
 				}
+				if bnkMngr.SetNextBank == tab {
+					bnkMngr.SetNextBank = nil
+				}
 				paths = append(paths, path)
 			}
 
@@ -54,30 +62,87 @@ func renderBankExplorer(bnkMngr *be.BankManager, conf *config.Config, modalQ *Mo
 }
 
 func renderBankExplorerTab(path string, t *be.BankTab) {
+	imgui.PushTextWrapPos()
 	imgui.Text("Sound bank: " + path)
+	imgui.PopTextWrapPos()
 	if imgui.BeginTabBar("SubBankExplorerTabBar") {
-		if imgui.BeginTabItem("Actor Mixer") {
+		selected := imgui.TabItemFlagsNone
+
+		if t.Focus == be.BankTabActorMixer {
+			selected = imgui.TabItemFlagsSetSelected
+			t.Focus = be.BankTabNone
+		}
+		if imgui.BeginTabItemV("Actor Mixer", nil, selected) {
+			selected = imgui.TabItemFlagsNone
 			renderActorMixerHircTable(t)
 			imgui.EndTabItem()
 		}
-		if imgui.BeginTabItem("Music") {
+
+		if t.Focus == be.BankTabMusic {
+			selected = imgui.TabItemFlagsSetSelected
+			t.Focus = -1
+		}
+		if imgui.BeginTabItemV("Music", nil, selected) {
+			selected = imgui.TabItemFlagsNone
 			imgui.EndTabItem()
 		}
-		if imgui.BeginTabItem("Attenuation") {
+
+		if t.Focus == be.BankTabAttenuation {
+			selected = imgui.TabItemFlagsSetSelected
+			t.Focus = be.BankTabNone
+		}
+		if imgui.BeginTabItemV("Attenuation", nil, selected) {
+			selected = imgui.TabItemFlagsNone
+			renderAttenuationTable(t)
 			imgui.EndTabItem()
 		}
-		if imgui.BeginTabItem("Buses") {
+
+		if t.Focus == be.BankTabBuses {
+			selected = imgui.TabItemFlagsSetSelected
+			t.Focus = be.BankTabNone
+		}
+		if imgui.BeginTabItemV("Buses", nil, selected) {
+			selected = imgui.TabItemFlagsNone
+			renderBusTable(t)
 			imgui.EndTabItem()
 		}
-		if imgui.BeginTabItem("Fx") {
+
+		if t.Focus == be.BankTabFX {
+			selected = imgui.TabItemFlagsSetSelected
+			t.Focus = be.BankTabNone
+		}
+		if imgui.BeginTabItemV("Fx", nil, selected) {
+			selected = imgui.TabItemFlagsNone
 			renderFxTable(t)
 			imgui.EndTabItem()
 		}
-		if imgui.BeginTabItem("Events") {
+
+		if t.Focus == be.BankTabModulator {
+			selected = imgui.TabItemFlagsSetSelected
+			t.Focus = be.BankTabNone
+		}
+		if imgui.BeginTabItemV("Modulators", nil, selected) {
+			selected = imgui.TabItemFlagsNone
+			renderModulatorTable(t)
+			imgui.EndTabItem()
+		}
+
+		if t.Focus == be.BankTabEvents {
+			selected = imgui.TabItemFlagsSetSelected
+			t.Focus = be.BankTabNone
+		}
+		if imgui.BeginTabItemV("Events", nil, selected) {
+			selected = imgui.TabItemFlagsNone
 			renderEventsTable(t)
 			imgui.EndTabItem()
 		}
-		if imgui.BeginTabItem("Game Sync") {
+
+		if t.Focus == be.BankTabGameSync {
+			selected = imgui.TabItemFlagsSetSelected
+			t.Focus = be.BankTabNone
+		}
+		if imgui.BeginTabItemV("Game Sync", nil, selected) {
+			selected = imgui.TabItemFlagsNone
 			imgui.EndTabItem()
 		}
 		imgui.EndTabBar()
