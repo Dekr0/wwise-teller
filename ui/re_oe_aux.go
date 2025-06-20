@@ -3,193 +3,339 @@ package ui
 import (
 	"encoding/binary"
 	"fmt"
-	"slices"
 	"strconv"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/AllenDang/cimgui-go/utils"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderAuxParam(t *be.BankTab, init *be.BankTab, o wwise.HircObj) {
+func renderAuxParam(m *be.BankManager, init *be.BankTab, o wwise.HircObj) {
 	if imgui.TreeNodeExStr("User-Defined Auxiliary Send") {
 		b := o.BaseParameter()
 		a := &o.BaseParameter().AuxParam
 		p := &o.BaseParameter().PropBundle
 
 		parentID := o.ParentID()
+		root := parentID == 0
 
-		// Hierarchy object without parent bypass the requirement of enabling override 
-		// user-defined auxiliary send.
-		imgui.BeginDisabledV(parentID == 0)
+		// Hierarchy object without parent bypass the requirement of enabling 
+		// override user-defined auxiliary send.
+		imgui.BeginDisabledV(root)
 		overrideAuxSend := a.OverrideAuxSends()
 		if imgui.Checkbox("Override User-Defined Auxiliary Send", &overrideAuxSend) {
 			b.SetOverrideAuxSends(overrideAuxSend)
 		}
 		imgui.EndDisabled()
-
-		if parentID != 0 && a.OverrideAuxSends() {
-			renderUserAuxSendVolumeTable(p)
-		} else if parentID == 0 {
-			// Hierarchy object without parent can change auxiliary bus setting freely.
-			renderUserAuxSendVolumeTable(p)
-		}
-
-		renderAuxBusIDTable(t, init, parentID, a)
-
-		overrideReflectionAuxBus := a.OverrideReflectionAuxBus()
-		// Hierarchy object without parent bypass the requirement of enabling
-		// override early reflection bus
-		imgui.BeginDisabledV(parentID == 0)
-		if imgui.Checkbox("Override early reflection bus", &overrideReflectionAuxBus) {
-			b.SetOverrideReflectionAuxBus(overrideReflectionAuxBus)
-		}
-		imgui.EndDisabled()
-
-		imgui.BeginDisabledV(parentID != 0 && !a.OverrideReflectionAuxBus())
-		if imgui.Button("Add reflection auxiliary bus volume") {
-			p.AddReflectionBusVolume()
-		}
-		imgui.EndDisabled()
-
-		i, prop := p.ReflectionBusVolume()
-		if i != -1 {
-			var val float32
-			binary.Decode(prop.V, wio.ByteOrder, &val)
-			if imgui.SliderFloat("##ReflectionBusVolumeSlider", &val, -96.0, 12.0) {
-				p.SetPropByIdxF32(i, val)
-			}
-			imgui.SameLine()
-			if imgui.InputFloat("##ReflectionBusVolumeInputV", &val) {
-				if val >= -96.0 && val <= 12.0 {
-					p.SetPropByIdxF32(i, val)
-				}
-			}
-		}
+		renderUserAuxSendTable(m, init, root, p, a)
 
 		imgui.TreePop()
 	}
 }
 
-func renderUserAuxSendVolumeTable(p *wwise.PropBundle) {
-	if imgui.Button("Add User-Defined Auxiliary Volume") {
-		p.AddUserAuxSendVolume()
-	}
-	const flags = DefaultTableFlags
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("UserAuxSendVolumeTable", 4, flags, outerSize, 0) {
-		var removeUserAuxSendVolumeProp func() = nil
-		var changeUserAuxSendVolumeProp func() = nil
-
-		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
-		imgui.TableSetupColumn("Property")
-		imgui.TableSetupColumn("Value (Slider)")
-		imgui.TableSetupColumn("Value (InputV)")
+func renderUserAuxSendTable(
+	m *be.BankManager,
+	init *be.BankTab,
+	root bool,
+	p *wwise.PropBundle,
+	a *wwise.AuxParam,
+) {
+	DefaultSize.X = 420
+	if imgui.BeginTableV("UserAuxSendTable", 7, DefaultTableFlags, DefaultSize, 0) {
+		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 8, 0)
+		imgui.TableSetupColumnV("Aux Bus", imgui.TableColumnFlagsWidthFixed, 100, 0)
+		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 20, 0)
+		imgui.TableSetupColumnV("Fader", imgui.TableColumnFlagsWidthFixed, 96, 0)
+		imgui.TableSetupColumnV("Input", imgui.TableColumnFlagsWidthFixed, 96, 0)
+		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 16, 0)
+		imgui.TableSetupColumn("")
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
-		j := -1
-		for i := range p.PropValues {
-			pid := p.PropValues[i].P
-			if !slices.Contains(wwise.UserAuxSendVolumePropType, pid) {
-				continue
-			}
+		i := wwise.PropTypeUserAuxSendVolume0
+		for j, aid := range a.AuxIds {
 			imgui.TableNextRow()
 
-			j += 1
 			imgui.TableSetColumnIndex(0)
-			imgui.PushIDStr(fmt.Sprintf("RmUserAuxSendVolume%d", i))
-			if imgui.Button("X") {
-				removeUserAuxSendVolumeProp = bindRemoveProp(p, pid)
-			}
-			imgui.PopID()
+			imgui.SetNextItemWidth(-1)
+			imgui.Text(fmt.Sprintf("%d", j))
 
 			imgui.TableSetColumnIndex(1)
-			imgui.SetNextItemWidth(-1)
-			preview := wwise.PropLabel_140[pid]
-			if imgui.BeginCombo(fmt.Sprintf("##ChangeUserAuxSendVolume%d", i), preview) {
-				for _, t := range wwise.UserAuxSendVolumePropType {
-					selected := pid == t
+			{
+				imgui.BeginDisabledV(init == nil || (!root && !a.OverrideAuxSends()))
 
-					label := wwise.PropLabel_140[t]
-					if imgui.SelectableBoolPtr(label, &selected) {
-						changeUserAuxSendVolumeProp = bindChangeUserAuxSendVolumeProp(p, i, t)
-					}
-					if selected {
-						imgui.SetItemDefaultFocus()
-					}
+				imgui.SetNextItemWidth(96)
+				preview := strconv.FormatUint(uint64(aid), 10)
+				imgui.Text(preview)
+
+				imgui.SameLine()
+				popup := fmt.Sprintf("SetUserAuxSendBus%d", j)
+				if imgui.ArrowButton(fmt.Sprintf("SetUserAuxSendBusBtn%d", j), imgui.DirDown) {
+					imgui.OpenPopupStr(popup)
 				}
-				imgui.EndCombo()
+
+				if imgui.BeginPopup(popup) {
+					filterState := &init.BusViewer.Filter
+					imgui.Text("Aux Bus")
+					imgui.SameLine()
+					imgui.SetNextItemWidth(96)
+					if imgui.BeginCombo(fmt.Sprintf("##UserAuxSendBus%dCombo", j), preview) {
+						for _, b := range filterState.Buses {
+							if b.HircType() != wwise.HircTypeAuxBus {
+								continue
+							}
+							selected := false
+
+							optionID, err := b.HircID()
+							if err != nil { panic(err) }
+
+							if init.BusViewer.ActiveBus != nil {
+								activeId, err := init.BusViewer.ActiveBus.HircID()
+								if err != nil { panic(err) }
+								selected = optionID == activeId
+							}
+
+							if imgui.SelectableBoolPtr(strconv.FormatUint(uint64(optionID), 10), &selected) {
+								a.AuxIds[j] = optionID
+							}
+							if selected {
+								imgui.SetItemDefaultFocus()
+							}
+						}
+						imgui.EndCombo()
+					}
+
+					imgui.Text("Search ")
+					imgui.SameLine()
+					imgui.SetNextItemWidth(96)
+					if imgui.InputScalar(
+						"##ID",
+						imgui.DataTypeU32,
+						uintptr(utils.Ptr(&filterState.Id)),
+						) {
+						init.FilterBuses()
+					}
+					imgui.EndPopup()
+				}
+				imgui.EndDisabled()
 			}
 
 			imgui.TableSetColumnIndex(2)
 			imgui.SetNextItemWidth(-1)
-			var val float32
-			binary.Decode(p.PropValues[i].V, wio.ByteOrder, &val)
-			switch pid {
-			case wwise.PropTypeUserAuxSendVolume0:
-				fallthrough
-			case wwise.PropTypeUserAuxSendVolume1:
-				fallthrough
-			case wwise.PropTypeUserAuxSendVolume2:
-				fallthrough
-			case wwise.PropTypeUserAuxSendVolume3:
-				imgui.TableSetColumnIndex(2)
-				imgui.SetNextItemWidth(-1)
-				if imgui.SliderFloat(fmt.Sprintf("##UserAuxSendVolume%dSlider", j), &val, -96.0, 12.0) {
-					p.SetPropByIdxF32(i, val)
+			{
+				imgui.BeginDisabledV(init == nil || aid == 0)
+				if imgui.ArrowButton(fmt.Sprintf("##GoToUserAuxSend%d", i), imgui.DirRight) {
+					init.SetActiveBus(aid)
+					init.Focus = be.BankTabBuses
+					m.SetNextBank = init
+					imgui.SetWindowFocusStr("Buses")
 				}
-				imgui.TableSetColumnIndex(3)
-				imgui.SetNextItemWidth(-1)
-				if imgui.InputFloat(fmt.Sprintf("##UserAuxSendVolume%dInputV", j), &val) {
-					if val >= -96.0 && val <= 12.0 {
-						p.SetPropByIdxF32(i, val)
-					}
-				}
-			default:
-				panic("Panic trap")
+				imgui.EndDisabled()
 			}
+
+			val := float32(0.0)
+			idx, pv := p.Prop(i)
+			in := idx != -1
+			if in {
+				binary.Decode(pv.V, wio.ByteOrder, &val)
+			}
+
+			{
+				imgui.BeginDisabledV(!root && !a.OverrideAuxSends())
+
+				{
+					imgui.BeginDisabledV(!in)
+					imgui.TableSetColumnIndex(3)
+					imgui.SetNextItemWidth(-1)
+					if imgui.SliderFloat(fmt.Sprintf("###UserAuxSendFader%d", j), &val, -96.0, 12.0) {
+						p.SetPropByIdxF32(idx, val)
+					}
+					imgui.TableSetColumnIndex(4)
+					imgui.SetNextItemWidth(-1)
+					if imgui.InputFloat(fmt.Sprintf("###UserAuxSendInput%d", j), &val) {
+						if val >= -96.0 && val <= 12.0 {
+							p.SetPropByIdxF32(idx, val)
+						}
+					}
+					imgui.EndDisabled()
+				}
+
+				{
+					imgui.BeginDisabledV(in)
+					imgui.TableSetColumnIndex(5)
+					imgui.SetNextItemWidth(16)
+					imgui.PushIDStr(fmt.Sprintf("AddUserAuxSend%d", j))
+					if imgui.Button("+") {
+						p.Add(i)
+					}
+					imgui.PopID()
+					imgui.EndDisabled()
+				}
+
+				{
+					imgui.BeginDisabledV(!in)
+					imgui.TableSetColumnIndex(6)
+					imgui.SetNextItemWidth(16)
+					imgui.PushIDStr(fmt.Sprintf("RmUserAuxSend%d", j))
+					if imgui.Button("X") {
+						p.Remove(i)
+					}
+					imgui.PopID()
+					imgui.EndDisabled()
+				}
+
+				imgui.EndDisabled()
+			}
+			i += 1
 		}
 		imgui.EndTable()
-		if removeUserAuxSendVolumeProp != nil {
-			removeUserAuxSendVolumeProp()
-		}
-		if changeUserAuxSendVolumeProp != nil {
-			changeUserAuxSendVolumeProp()
-		}
 	}
+	DefaultSize.X = 0
 }
 
-func bindChangeUserAuxSendVolumeProp(p *wwise.PropBundle, idx int, nextPid wwise.PropType) func() {
-	return func() { p.ChangeUserAuxSendVolumeProp(idx, nextPid) }
-}
+func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj) {
+	if imgui.TreeNodeExStr("Early Reflections") {
+		b := o.BaseParameter()
+		a := &o.BaseParameter().AuxParam
+		p := &o.BaseParameter().PropBundle
 
-func renderAuxBusIDTable(t *be.BankTab, init *be.BankTab, parentID uint32, a *wwise.AuxParam) {
-	const flags = DefaultTableFlags
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("AuxiliaryBusIDTable", 2, flags, outerSize, 0) {
-		imgui.TableSetupColumn("ID")
-		imgui.TableSetupColumn("Auxiliary Bus")
-		imgui.TableSetupScrollFreeze(0, 1)
-		imgui.TableHeadersRow()
+		parentID := o.ParentID()
+		root := parentID == 0
 
-		for i, aid := range a.AuxIds {
-			imgui.TableNextRow()
+		overrideReflectionAuxBus := a.OverrideReflectionAuxBus()
+		// Hierarchy object without parent bypass the requirement of enabling
+		// override early reflection bus
+		imgui.BeginDisabledV(root)
+		if imgui.Checkbox("Override early reflection bus", &overrideReflectionAuxBus) {
+			b.SetOverrideReflectionAuxBus(overrideReflectionAuxBus)
+		}
+		imgui.EndDisabled()
 
-			imgui.TableSetColumnIndex(0)
-			imgui.Text(fmt.Sprintf("%d", i))
+		imgui.Text("Auxiliary Bus")
+		{
+			imgui.BeginDisabledV(!root && !a.OverrideReflectionAuxBus() && init != nil)
 
-			imgui.TableSetColumnIndex(1)
-			imgui.SetNextItemWidth(-1)
-			imgui.BeginDisabledV(init == nil || (parentID != 0 && !a.OverrideAuxSends()))
-			label := fmt.Sprintf("##AuxiliaryBus%d", i)
-			preview := strconv.FormatUint(uint64(aid), 10) 
-			if imgui.BeginCombo(label, preview) {
-				imgui.EndCombo()
+			imgui.SetNextItemWidth(96)
+			preview := strconv.FormatUint(uint64(a.ReflectionAuxBus), 10) 
+			imgui.Text(preview)
+
+			imgui.SameLine()
+			const popup = "SetReflectionAuxSend"
+			if imgui.ArrowButton("SetReflectionAuxSendBtn", imgui.DirDown) {
+				imgui.OpenPopupStr(popup)
+			}
+
+			if imgui.BeginPopup(popup) {
+				filterState := &init.BusViewer.Filter
+				imgui.Text("Aux Bus")
+				imgui.SameLine()
+				imgui.SetNextItemWidth(96)
+				if imgui.BeginCombo("##ReflectionAuxSendBusCombo", preview) {
+					for _, b := range filterState.Buses {
+						if b.HircType() != wwise.HircTypeAuxBus {
+							continue
+						}
+						selected := false
+
+						optionID, err := b.HircID()
+						if err != nil { panic(err) }
+
+						if init.BusViewer.ActiveBus != nil {
+							activeId, err := init.BusViewer.ActiveBus.HircID()
+							if err != nil { panic(err) }
+							selected = optionID == activeId
+						}
+						if imgui.SelectableBoolPtr(strconv.FormatUint(uint64(optionID), 10), &selected) {
+							a.ReflectionAuxBus = optionID
+						}
+						if selected {
+							imgui.SetItemDefaultFocus()
+						}
+					}
+					imgui.EndCombo()
+				}
+
+				imgui.Text("Search ")
+				imgui.SameLine()
+				imgui.SetNextItemWidth(96)
+				if imgui.InputScalar(
+					"##ID",
+					imgui.DataTypeU32,
+					uintptr(utils.Ptr(&filterState.Id)),
+				) {
+					init.FilterBuses()
+				}
+				imgui.EndPopup()
 			}
 			imgui.EndDisabled()
 		}
-		imgui.EndTable()
+
+		{
+			imgui.SameLine()
+			imgui.BeginDisabledV(init == nil || a.ReflectionAuxBus == 0)
+			if imgui.ArrowButton("##GoToReflectionAuxBus", imgui.DirRight) {
+				init.SetActiveBus(a.ReflectionAuxBus)
+				init.Focus = be.BankTabBuses
+				m.SetNextBank = init
+				imgui.SetWindowFocusStr("Buses")
+			}
+			imgui.EndDisabled()
+		}
+
+		val := float32(0)
+		idx, pv := p.Prop(wwise.PropTypeReflectionBusVolume)
+		in := idx != -1
+		if in {
+			binary.Decode(pv.V, wio.ByteOrder, &val)
+		}
+
+		{
+			imgui.BeginDisabledV(!root && !a.OverrideReflectionAuxBus()) 
+			{
+				imgui.BeginDisabledV(!in)
+				imgui.SetNextItemWidth(96)
+				imgui.SameLine()
+				if imgui.SliderFloat("##ReflectionAuxBusFader", &val, -96.0, 12.0) {
+					p.SetPropByIdxF32(idx, val)
+				}
+				imgui.SameLine()
+				imgui.SetNextItemWidth(96)
+				if imgui.InputFloat("##ReflectionAuxBusInput", &val, ) {
+					if val >= -96.0 && val <= 12.0 {
+						p.SetPropByIdxF32(idx, val)
+					}
+				}
+				imgui.EndDisabled()
+			}
+			{
+				imgui.BeginDisabledV(in)
+				imgui.TableSetColumnIndex(5)
+				imgui.SetNextItemWidth(16)
+				imgui.PushIDStr("AddReflectionAuxBusSend")
+				imgui.SameLine()
+				if imgui.Button("+") {
+					p.Add(wwise.PropTypeReflectionBusVolume)
+				}
+				imgui.PopID()
+				imgui.EndDisabled()
+			}
+			{
+				imgui.BeginDisabledV(!in)
+				imgui.TableSetColumnIndex(6)
+				imgui.SetNextItemWidth(16)
+				imgui.PushIDStr("RmReflectionAuxBusSend")
+				imgui.SameLine()
+				if imgui.Button("X") {
+					p.Remove(wwise.PropTypeReflectionBusVolume)
+				}
+				imgui.PopID()
+				imgui.EndDisabled()
+			}
+			imgui.EndDisabled()
+		}
+
+		imgui.TreePop()
 	}
 }
