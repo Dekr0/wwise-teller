@@ -11,7 +11,7 @@ type ActorMixer struct {
 	HircObj
 	Id uint32
 	BaseParam *BaseParameter
-	Container *Container
+	Container  Container
 }
 
 func (a *ActorMixer) Encode() []byte {

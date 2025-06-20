@@ -10,7 +10,7 @@ type LayerCntr struct {
 	HircObj
 	Id uint32
 	BaseParam *BaseParameter
-	Container *Container
+	Container  Container
 
 	// NumLayers uint32 // u32
 	
