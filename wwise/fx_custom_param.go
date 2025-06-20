@@ -254,7 +254,7 @@ func (f *PeakLimiter) Size() uint32 {
 }
 
 type GainFX struct {
-	FullbainGain float32
+	FullbandGain float32
 	LFEGain      float32
 	Data         []byte
 }
@@ -262,7 +262,7 @@ type GainFX struct {
 func (f *GainFX) Encode() []byte {
 	size := f.Size()
 	w := wio.NewWriter(uint64(size))
-	w.Append(f.FullbainGain)
+	w.Append(f.FullbandGain)
 	w.Append(f.LFEGain)
 	w.AppendBytes(f.Data)
 	return w.BytesAssert(int(size))
