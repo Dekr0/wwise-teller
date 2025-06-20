@@ -55,6 +55,22 @@ type PlayListSetting struct {
 	PlayListBitVector uint8 // U8x
 }
 
+func (p *PlayListSetting) Clone() PlayListSetting {
+	return PlayListSetting{
+		p.LoopCount,
+		p.LoopModMin,
+		p.LoopModMax,
+		p.TransitionTime,
+		p.TransitionTimeModMin,
+		p.TransitionTimeModMax,
+		p.AvoidRepeatCount,
+		p.TransitionMode,
+		p.RandomMode,
+		p.Mode,
+		p.PlayListBitVector,
+	}
+}
+
 func (p *PlayListSetting) Random() bool {
 	return p.Mode == ModeRandom
 }
