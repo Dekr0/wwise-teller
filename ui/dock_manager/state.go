@@ -34,6 +34,7 @@ func NewDockManager() *DockManager {
 			"Debug",
 			"Events",
 			"File Explorer",
+			"FX",
 			"Game Sync",
 			"Log",
 			"Music Hierarchy",
@@ -93,6 +94,7 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("Debug", dock3)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
+		imgui.InternalDockBuilderDockWindow("FX", dock3)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
 		imgui.InternalDockBuilderDockWindow("Music Hierarchy", dock2)
@@ -121,6 +123,7 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("Buses", dock3)
 		imgui.InternalDockBuilderDockWindow("Debug", dock3)
 		imgui.InternalDockBuilderDockWindow("Events", dock3)
+		imgui.InternalDockBuilderDockWindow("FX", dock3)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
