@@ -97,14 +97,12 @@ func renderEventsViewer(t *be.BankTab) {
 				// t.LinearStorage.Clear()
 				// t.LinearStorage.SetItemSelected(imgui.ID(t.EventViewer.ActiveAction.IdExt), true)
 			}
-			imgui.End()
+			imgui.EndDisabled()
 
 			// renderActionProp(t.ActiveAction)
 			// renderActionRangeProp(t.ActiveAction)
 			// renderActionParam(t.ActiveAction)
-
 			imgui.SameLine()
-
 			imgui.EndChild()
 		}
 	}
