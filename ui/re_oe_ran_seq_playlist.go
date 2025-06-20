@@ -16,7 +16,7 @@ func renderRanSeqPlayList(t *be.BankTab, r *wwise.RanSeqCntr) {
 	if imgui.TreeNodeExStr("Random / Sequence Container Playlist Setting") {
 		imgui.PushItemWidth(160)
 
-		renderRanSeqPlayListSetting(r.PlayListSetting)
+		renderRanSeqPlayListSetting(&r.PlayListSetting)
 
 		imgui.PopItemWidth()
 
@@ -72,7 +72,7 @@ func renderRanSeqPlayListPendingTable(t *be.BankTab, r *wwise.RanSeqCntr) {
 
 		for i, child := range r.Container.Children {
 			if slices.ContainsFunc(
-				r.PlayListItems, func(p *wwise.PlayListItem) bool {
+				r.PlayListItems, func(p wwise.PlayListItem) bool {
 					return p.UniquePlayID == child
 				},
 			) {
