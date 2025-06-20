@@ -118,7 +118,7 @@ func ParsePeakLimiter(r *wio.Reader, size uint32, p *wwise.PeakLimiter) {
 func ParseGainFX(r *wio.Reader, size uint32, p *wwise.GainFX) {
 	begin := r.Pos()
 	expectedEnd := begin + uint64(size)
-	p.FullbainGain = r.F32Unsafe()
+	p.FullbandGain = r.F32Unsafe()
 	p.LFEGain = r.F32Unsafe()
 	p.Data = r.ReadNUnsafe(expectedEnd - r.Pos(), 0)
 	end := r.Pos()
