@@ -222,7 +222,7 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj)
 
 		imgui.Text("Auxiliary Bus")
 		{
-			imgui.BeginDisabledV(!root && !a.OverrideReflectionAuxBus() && init != nil)
+			imgui.BeginDisabledV(!root && !a.OverrideReflectionAuxBus())
 
 			imgui.PushIDStr("ZeroBusReflectionAuxSend")
 			if imgui.Button("x") {
@@ -237,9 +237,11 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj)
 
 			imgui.SameLine()
 			const popup = "SetReflectionAuxSend"
+			imgui.BeginDisabledV(init == nil)
 			if imgui.ArrowButton("SetReflectionAuxSendBtn", imgui.DirDown) {
 				imgui.OpenPopupStr(popup)
 			}
+			imgui.EndDisabled()
 
 			if imgui.BeginPopup(popup) {
 				filterState := &init.BusViewer.Filter
