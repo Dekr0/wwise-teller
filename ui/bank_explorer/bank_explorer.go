@@ -159,6 +159,24 @@ func (b *BankTab) SetActiveBus(id uint32) bool {
 	}
 }
 
+func (b *BankTab) SetActiveFX(id uint32) {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	hirc := b.Bank.HIRC()
+	if v, ok := hirc.FxCustoms.Load(id); !ok {
+		if v, ok := hirc.FxShareSets.Load(id); !ok {
+			return
+		} else {
+			b.FxViewer.ActiveFx = v.(wwise.HircObj)
+			b.Focus = BankTabFX
+		}
+	} else {
+		b.FxViewer.ActiveFx = v.(wwise.HircObj)
+		b.Focus = BankTabFX
+	}
+}
+
 func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
 	b.WriteLock.Store(true)
 	defer b.WriteLock.Store(false)
