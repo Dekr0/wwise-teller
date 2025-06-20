@@ -10,13 +10,21 @@ import (
 type RanSeqCntr struct {
 	HircObj
 	Id uint32
-	BaseParam *BaseParameter
-	Container *Container
-	PlayListSetting *PlayListSetting
+	BaseParam BaseParameter
+	Container Container
+	PlayListSetting PlayListSetting
 
 	// NumPlayListItem u16
 
-	PlayListItems []*PlayListItem 
+	PlayListItems []PlayListItem 
+}
+
+func (r *RanSeqCntr) Clone(id uint32, withParent bool) RanSeqCntr {
+	return RanSeqCntr{
+		Id: id,
+		Container: Container{make([]uint32, 0, 16)},
+		PlayListSetting: r.PlayListSetting.Clone(),
+	}
 }
 
 func (r *RanSeqCntr) Encode() []byte {
@@ -40,7 +48,7 @@ func (r *RanSeqCntr) DataSize() uint32 {
 	return uint32(4 + r.BaseParam.Size() + r.Container.Size() + SizeOfPlayListSetting + 2 + uint32(len(r.PlayListItems)) * SizeOfPlayListItem)
 }
 
-func (r *RanSeqCntr) BaseParameter() *BaseParameter { return r.BaseParam }
+func (r *RanSeqCntr) BaseParameter() *BaseParameter { return &r.BaseParam }
 
 func (r *RanSeqCntr) HircID() (uint32, error) { return r.Id, nil }
 
@@ -70,7 +78,7 @@ func (r *RanSeqCntr) AddLeaf(o HircObj) {
 	r.Container.Children = append(r.Container.Children, id)
 	if slices.ContainsFunc(
 		r.PlayListItems,
-		func(p *PlayListItem) bool {
+		func(p PlayListItem) bool {
 			return p.UniquePlayID == id
 		},
 	) {
@@ -100,7 +108,7 @@ func (r *RanSeqCntr) RemoveLeaf(o HircObj) {
 	}
 	r.PlayListItems = slices.DeleteFunc(
 		r.PlayListItems,
-		func(p *PlayListItem) bool {
+		func(p PlayListItem) bool {
 			return p.UniquePlayID == id
 		},
 	)
@@ -110,12 +118,12 @@ func (r *RanSeqCntr) RemoveLeaf(o HircObj) {
 func (r *RanSeqCntr) Leafs() []uint32 { return r.Container.Children }
 
 func (r *RanSeqCntr) AddLeafToPlayList(i int) {
-	if slices.ContainsFunc(r.PlayListItems, func(p *PlayListItem) bool {
+	if slices.ContainsFunc(r.PlayListItems, func(p PlayListItem) bool {
 		return p.UniquePlayID == r.Container.Children[i]
 	}) {
 		return
 	}
-	r.PlayListItems = append(r.PlayListItems, &PlayListItem{
+	r.PlayListItems = append(r.PlayListItems, PlayListItem{
 		r.Container.Children[i], 50000,
 	})
 }
@@ -132,7 +140,7 @@ func (r *RanSeqCntr) RemoveLeafsFromPlayList(ids []uint32) {
 	for _, id := range ids {
 		r.PlayListItems = slices.DeleteFunc(
 			r.PlayListItems,
-			func(p *PlayListItem) bool { return id == p.UniquePlayID },
+			func(p PlayListItem) bool { return id == p.UniquePlayID },
 		)
 	}
 }
