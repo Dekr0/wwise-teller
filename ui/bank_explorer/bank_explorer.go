@@ -18,26 +18,43 @@ type BankManager struct {
 	Banks        sync.Map
 	ActiveBank  *BankTab
 	InitBank    *BankTab
+	SetNextBank *BankTab
 	ActivePath   string
 	WriteLock    atomic.Bool
 }
 
+type BankTabEnum int8
+
+const (
+	BankTabNone        BankTabEnum = -1
+	BankTabActorMixer  BankTabEnum = 0
+	BankTabMusic       BankTabEnum = 1
+	BankTabAttenuation BankTabEnum = 2
+	BankTabBuses       BankTabEnum = 3
+	BankTabFX          BankTabEnum = 4
+	BankTabModulator   BankTabEnum = 5
+	BankTabEvents      BankTabEnum = 6
+	BankTabGameSync    BankTabEnum = 7
+)
+
 type BankTab struct {
-	Bank                  *wwise.Bank
+	Bank              *wwise.Bank
 
 	// Filter
-	MediaIndexFilter       MediaIndexFilter
+	MediaIndexFilter   MediaIndexFilter
 
-	ActorMixerViewer       ActorMixerViewer
-	AttenuationViewer      AttenuationViewer
-	BusViewer              BusViewer
-	EventViewer            EventViewer
-	FxViewer               FxViewer
-	GameSyncViewer         GameSyncViewer
-	MusicHircViewer        MusicHircViewer
+	ActorMixerViewer   ActorMixerViewer
+	AttenuationViewer  AttenuationViewer
+	BusViewer          BusViewer
+	EventViewer        EventViewer
+	FxViewer           FxViewer
+	GameSyncViewer     GameSyncViewer
+	ModulatorViewer    ModulatorViewer
+	MusicHircViewer    MusicHircViewer
 
 	// Sync
-	WriteLock              atomic.Bool
+	Focus              BankTabEnum 
+	WriteLock          atomic.Bool
 }
 
 func (b *BankTab) ChangeRoot(hid, np, op uint32) {
@@ -66,6 +83,20 @@ func (b *BankTab) FilterActorMixerRoots() {
 		return
 	}
 	b.ActorMixerViewer.RootFilter.Filter(b.Bank.HIRC().HircObjs)
+}
+
+func (b *BankTab) FilterAttenuations() {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	b.AttenuationViewer.Filter.Filter(b.Bank.HIRC().HircObjs)
+}
+
+func (b *BankTab) FilterModulator() {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	b.ModulatorViewer.Filter.Filter(b.Bank.HIRC().HircObjs)
 }
 
 func (b *BankTab) FilterBuses() {
@@ -108,6 +139,24 @@ func (b *BankTab) FilterMediaIndices() {
 		return
 	}
 	b.MediaIndexFilter.Filter(b.Bank.DIDX().MediaIndexs)
+}
+
+func (b *BankTab) SetActiveBus(id uint32) bool {
+	if b.Bank.HIRC() == nil {
+		return false
+	}
+	hirc := b.Bank.HIRC()
+	if v, ok := hirc.Buses.Load(id); !ok {
+		if v, ok := hirc.AuxBuses.Load(id); !ok {
+			return false
+		} else {
+			b.BusViewer.ActiveBus = v.(wwise.HircObj)
+			return true
+		}
+	} else {
+		b.BusViewer.ActiveBus = v.(wwise.HircObj)
+		return true
+	}
 }
 
 func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
@@ -170,6 +219,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	buses := []wwise.HircObj{}
 	events := []*wwise.Event{}
 	fxS := []wwise.HircObj{}
+	modulator := []wwise.HircObj{}
 	musicHircs := []wwise.HircObj{}
 	musicHircRoots := []wwise.HircObj{}
 	states := []*wwise.State{}
@@ -185,6 +235,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 		buses = make([]wwise.HircObj, 0, c.Buses)
 		events = make([]*wwise.Event, 0, c.Events)
 		fxS = make([]wwise.HircObj, 0, c.FxS)
+		modulator = make([]wwise.HircObj, 0, c.Modulators)
 		musicHircs = make([]wwise.HircObj, 0, c.MusicHircs)
 		musicHircRoots = make([]wwise.HircObj, 0, c.MusicHircRoots)
 		states = make([]*wwise.State, 0, c.States)
@@ -203,6 +254,8 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 				buses = append(buses, o)
 			} else if wwise.FxHircType(o) {
 				fxS = append(fxS, o)
+			} else if wwise.ModulatorType(o) {
+				modulator = append(modulator, o)
 			} else {
 				switch t := o.(type) {
 				case *wwise.Attenuation:
@@ -288,6 +341,13 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 			},
 			ActiveState: nil,
 		},
+		ModulatorViewer: ModulatorViewer{
+			Filter: ModulatorFilter{
+				Id: 0,
+				Modulators: modulator,
+			},
+			ActiveModulator: nil,
+		},
 		MusicHircViewer: MusicHircViewer{
 			HircFilter: MusicHircFilter{
 				Id: 0,
@@ -302,6 +362,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 			LinearStorage: imgui.NewSelectionBasicStorage(),
 			CntrStorage: imgui.NewSelectionBasicStorage(),
 		},
+		Focus: BankTabNone,
 	}
 
 	t.WriteLock.Store(false)
