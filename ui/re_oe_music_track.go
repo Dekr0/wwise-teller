@@ -11,7 +11,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderMusicTrack(t *be.BankTab, init *be.BankTab, o *wwise.MusicTrack) {
+func renderMusicTrack(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.MusicTrack) {
 	if imgui.TreeNodeExStr("Music Override Flags") {
 		imgui.BeginDisabledV(o.BaseParam.DirectParentId == 0)
 		overrideParentMIDITempo := o.OverrideParentMIDITempo()
@@ -34,7 +34,7 @@ func renderMusicTrack(t *be.BankTab, init *be.BankTab, o *wwise.MusicTrack) {
 	// renderBankSourceData ???
 	renderMusicTrackPlayList(t, o)
 	// renderClipAutomation(t, o)
-	renderBaseParam(t, init, o)
+	renderBaseParam(m, t, init, o)
 	renderSwitchParam(t, o)
 	renderTransitionParam(&o.TransitionParam)
 }
