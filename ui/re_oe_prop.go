@@ -429,13 +429,7 @@ func bindChangeBaseRangeProp(r *wwise.RangePropBundle, idx int, nextPid wwise.Pr
 
 func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
 	if p != nil && imgui.TreeNodeExStr("All Property (Read-Only)") {
-		DefaultSize.Y = 24
-		if len(p.PropValues) == 0 {
-			DefaultSize.Y += 10
-		} else {
-			DefaultSize.Y += 22 * float32(len(p.PropValues))
-		}
-		if imgui.BeginTableV("AllPropReadOnly", 2, DefaultTableFlagsY, DefaultSize, 0) {
+		if imgui.BeginTableV("AllPropReadOnly", 2, DefaultTableFlags, DefaultSize, 0) {
 			imgui.TableSetupColumn("Property")
 			imgui.TableSetupColumn("Value")
 			imgui.TableSetupScrollFreeze(0, 1)
@@ -460,13 +454,7 @@ func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
 		imgui.TreePop()
 	}
 	if r != nil && imgui.TreeNodeExStr("All Range Property (Read-Only)") {
-		DefaultSize.Y = 24
-		if len(r.RangeValues) == 0 {
-			DefaultSize.Y += 10
-		} else {
-			DefaultSize.Y += 22 * float32(len(r.RangeValues))
-		}
-		if imgui.BeginTableV("AllRangePropReadOnly", 3, DefaultTableFlagsY, DefaultSize, 0) {
+		if imgui.BeginTableV("AllRangePropReadOnly", 3, DefaultTableFlags, DefaultSize, 0) {
 			imgui.TableSetupColumn("Property")
 			imgui.TableSetupColumn("Min")
 			imgui.TableSetupColumn("Max")
@@ -489,5 +477,4 @@ func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
 		}
 		imgui.TreePop()
 	}
-	DefaultSize.Y = 0
 }
