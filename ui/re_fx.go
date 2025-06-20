@@ -32,7 +32,8 @@ func renderFxTable(t *be.BankTab) {
 		t.FilterFxS()
 	}
 
-	imgui.SetNextItemWidth(256)
+	imgui.SameLine()
+	imgui.SetNextItemWidth(128)
 	preview := wwise.HircTypeName[filterState.Type]
 	if imgui.BeginCombo("By Type", preview) {
 		var filter func() = nil
@@ -56,7 +57,7 @@ func renderFxTable(t *be.BankTab) {
 		imgui.SetKeyboardFocusHere()
 	}
 
-	if imgui.BeginTableV("LinearTable", 3, DefaultTableFlagsY, DefaultSize, 0) {
+	if imgui.BeginTableV("FxSTable", 3, DefaultTableFlagsY, DefaultSize, 0) {
 		imgui.TableSetupColumn("ID")
 		imgui.TableSetupColumn("Type")
 		imgui.TableSetupColumn("FX Type")
