@@ -65,78 +65,77 @@ func renderBankExplorerTab(path string, t *be.BankTab) {
 	imgui.PushTextWrapPos()
 	imgui.Text("Sound bank: " + path)
 	imgui.PopTextWrapPos()
-	if imgui.BeginTabBar("SubBankExplorerTabBar") {
+	if imgui.BeginTabBarV("SubBankExplorerTabBar", DefaultTabFlags) {
 		selected := imgui.TabItemFlagsNone
-
 		if t.Focus == be.BankTabActorMixer {
 			selected = imgui.TabItemFlagsSetSelected
 			t.Focus = be.BankTabNone
 		}
 		if imgui.BeginTabItemV("Actor Mixer", nil, selected) {
-			selected = imgui.TabItemFlagsNone
 			renderActorMixerHircTable(t)
 			imgui.EndTabItem()
 		}
 
+		selected = imgui.TabItemFlagsNone
 		if t.Focus == be.BankTabMusic {
 			selected = imgui.TabItemFlagsSetSelected
-			t.Focus = -1
+			t.Focus = be.BankTabNone
 		}
 		if imgui.BeginTabItemV("Music", nil, selected) {
-			selected = imgui.TabItemFlagsNone
 			imgui.EndTabItem()
 		}
 
+		selected = imgui.TabItemFlagsNone
 		if t.Focus == be.BankTabAttenuation {
 			selected = imgui.TabItemFlagsSetSelected
 			t.Focus = be.BankTabNone
 		}
 		if imgui.BeginTabItemV("Attenuation", nil, selected) {
-			selected = imgui.TabItemFlagsNone
 			renderAttenuationTable(t)
 			imgui.EndTabItem()
 		}
 
+		selected = imgui.TabItemFlagsNone
 		if t.Focus == be.BankTabBuses {
 			selected = imgui.TabItemFlagsSetSelected
 			t.Focus = be.BankTabNone
 		}
 		if imgui.BeginTabItemV("Buses", nil, selected) {
-			selected = imgui.TabItemFlagsNone
 			renderBusTable(t)
 			imgui.EndTabItem()
 		}
 
+		selected = imgui.TabItemFlagsNone
 		if t.Focus == be.BankTabFX {
 			selected = imgui.TabItemFlagsSetSelected
 			t.Focus = be.BankTabNone
 		}
 		if imgui.BeginTabItemV("Fx", nil, selected) {
-			selected = imgui.TabItemFlagsNone
 			renderFxTable(t)
 			imgui.EndTabItem()
 		}
 
+		selected = imgui.TabItemFlagsNone
 		if t.Focus == be.BankTabModulator {
 			selected = imgui.TabItemFlagsSetSelected
 			t.Focus = be.BankTabNone
 		}
 		if imgui.BeginTabItemV("Modulators", nil, selected) {
-			selected = imgui.TabItemFlagsNone
 			renderModulatorTable(t)
 			imgui.EndTabItem()
 		}
 
+		selected = imgui.TabItemFlagsNone
 		if t.Focus == be.BankTabEvents {
 			selected = imgui.TabItemFlagsSetSelected
 			t.Focus = be.BankTabNone
 		}
 		if imgui.BeginTabItemV("Events", nil, selected) {
-			selected = imgui.TabItemFlagsNone
 			renderEventsTable(t)
 			imgui.EndTabItem()
 		}
 
+		selected = imgui.TabItemFlagsNone
 		if t.Focus == be.BankTabGameSync {
 			selected = imgui.TabItemFlagsSetSelected
 			t.Focus = be.BankTabNone
