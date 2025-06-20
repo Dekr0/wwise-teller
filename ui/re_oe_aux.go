@@ -42,10 +42,10 @@ func renderUserAuxSendTable(
 	p *wwise.PropBundle,
 	a *wwise.AuxParam,
 ) {
-	DefaultSize.X = 420
+	DefaultSize.X = 440
 	if imgui.BeginTableV("UserAuxSendTable", 7, DefaultTableFlags, DefaultSize, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 8, 0)
-		imgui.TableSetupColumnV("Aux Bus", imgui.TableColumnFlagsWidthFixed, 100, 0)
+		imgui.TableSetupColumnV("Aux Bus", imgui.TableColumnFlagsWidthFixed, 128, 0)
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 20, 0)
 		imgui.TableSetupColumnV("Fader", imgui.TableColumnFlagsWidthFixed, 96, 0)
 		imgui.TableSetupColumnV("Input", imgui.TableColumnFlagsWidthFixed, 96, 0)
@@ -65,6 +65,13 @@ func renderUserAuxSendTable(
 			imgui.TableSetColumnIndex(1)
 			{
 				imgui.BeginDisabledV(init == nil || (!root && !a.OverrideAuxSends()))
+
+				imgui.PushIDStr(fmt.Sprintf("BusUserAuxSend%d", j))
+				if imgui.Button("x") {
+					a.AuxIds[j] = 0
+				}
+				imgui.PopID()
+				imgui.SameLine()
 
 				imgui.SetNextItemWidth(96)
 				preview := strconv.FormatUint(uint64(aid), 10)
@@ -216,6 +223,13 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj)
 		imgui.Text("Auxiliary Bus")
 		{
 			imgui.BeginDisabledV(!root && !a.OverrideReflectionAuxBus() && init != nil)
+
+			imgui.PushIDStr("ZeroBusReflectionAuxSend")
+			if imgui.Button("x") {
+				a.ReflectionAuxBus = 0
+			}
+			imgui.PopID()
+			imgui.SameLine()
 
 			imgui.SetNextItemWidth(96)
 			preview := strconv.FormatUint(uint64(a.ReflectionAuxBus), 10) 

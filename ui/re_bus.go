@@ -147,10 +147,10 @@ func renderBusAuxParam(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBundle) {
 }
 
 func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxParam) {
-	DefaultSize.X = 420
+	DefaultSize.X = 440
 	if imgui.BeginTableV("UserAuxSendTable", 7, DefaultTableFlags, DefaultSize, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 8, 0)
-		imgui.TableSetupColumnV("Aux Bus", imgui.TableColumnFlagsWidthFixed, 100, 0)
+		imgui.TableSetupColumnV("Aux Bus", imgui.TableColumnFlagsWidthFixed, 128, 0)
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 20, 0)
 		imgui.TableSetupColumnV("Fader", imgui.TableColumnFlagsWidthFixed, 96, 0)
 		imgui.TableSetupColumnV("Input", imgui.TableColumnFlagsWidthFixed, 96, 0)
@@ -169,10 +169,16 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 
 			imgui.TableSetColumnIndex(1)
 
+			imgui.PushIDStr(fmt.Sprintf("ZeroBusUserAuxSend%d", j))
+			if imgui.Button("x") {
+				a.AuxIds[j] = 0
+			}
+			imgui.PopID()
+			imgui.SameLine()
+
 			imgui.SetNextItemWidth(96)
 			preview := strconv.FormatUint(uint64(aid), 10) 
 			imgui.Text(preview)
-
 			imgui.SameLine()
 
 			popup := fmt.Sprintf("SetBusUserAuxSendBus%d", j)
@@ -184,6 +190,7 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 				filterState := &t.BusViewer.Filter
 				imgui.Text("Aux Bus")
 				imgui.SameLine()
+
 				imgui.SetNextItemWidth(96)
 				if imgui.BeginCombo(fmt.Sprintf("##BusUserAuxSendBus%dCombo", j), preview) {
 					for _, b := range filterState.Buses {
@@ -197,7 +204,7 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 						if t.BusViewer.ActiveBus != nil {
 							activeId, err := t.BusViewer.ActiveBus.HircID()
 							if err != nil { panic(err) }
- 							selected = optionID == activeId
+							selected = optionID == activeId
 						}
 
 						if imgui.SelectableBoolPtr(strconv.FormatUint(uint64(optionID), 10), &selected) {
@@ -216,7 +223,7 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 					"##ID",
 					imgui.DataTypeU32,
 					uintptr(utils.Ptr(&filterState.Id)),
-				) {
+					) {
 					t.FilterBuses()
 				}
 				imgui.EndPopup()
@@ -287,19 +294,76 @@ func renderBusEarlyReflection(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBun
 		imgui.EndDisabled()
 
 		imgui.Text("Auxiliary Bus")
-		label := fmt.Sprintf("##ReflectionAuxBus")
-		imgui.SetNextItemWidth(100)
-		preview := strconv.FormatUint(uint64(a.ReflectionAuxBus), 10) 
-		if imgui.BeginCombo(label, preview) {
-			imgui.EndCombo()
+		{
+			imgui.PushIDStr("ZeroBusReflectionAuxSend")
+			if imgui.Button("x") {
+				a.ReflectionAuxBus = 0
+			}
+			imgui.PopID()
+			imgui.SameLine()
+
+			imgui.SetNextItemWidth(96)
+			preview := strconv.FormatUint(uint64(a.ReflectionAuxBus), 10) 
+			imgui.Text(preview)
+
+			imgui.SameLine()
+			const popup = "SetReflectionAuxSend"
+			if imgui.ArrowButton("SetReflectionAuxSendBtn", imgui.DirDown) {
+				imgui.OpenPopupStr(popup)
+			}
+
+			if imgui.BeginPopup(popup) {
+				filterState := &t.BusViewer.Filter
+				imgui.Text("Aux Bus")
+				imgui.SameLine()
+				imgui.SetNextItemWidth(96)
+				if imgui.BeginCombo("##ReflectionAuxSendBusCombo", preview) {
+					for _, b := range filterState.Buses {
+						if b.HircType() != wwise.HircTypeAuxBus {
+							continue
+						}
+						selected := false
+
+						optionID, err := b.HircID()
+						if err != nil { panic(err) }
+
+						if t.BusViewer.ActiveBus != nil {
+							activeId, err := t.BusViewer.ActiveBus.HircID()
+							if err != nil { panic(err) }
+							selected = optionID == activeId
+						}
+						if imgui.SelectableBoolPtr(strconv.FormatUint(uint64(optionID), 10), &selected) {
+							a.ReflectionAuxBus = optionID
+						}
+						if selected {
+							imgui.SetItemDefaultFocus()
+						}
+					}
+					imgui.EndCombo()
+				}
+
+				imgui.Text("Search ")
+				imgui.SameLine()
+				imgui.SetNextItemWidth(96)
+				if imgui.InputScalar(
+					"##ID",
+					imgui.DataTypeU32,
+					uintptr(utils.Ptr(&filterState.Id)),
+				) {
+					t.FilterBuses()
+				}
+				imgui.EndPopup()
+			}
 		}
 
 		imgui.SameLine()
+		imgui.BeginDisabledV(a.ReflectionAuxBus == 0)
 		if imgui.ArrowButton("##GoToReflectionAuxBus", imgui.DirRight) {
 			t.SetActiveBus(a.ReflectionAuxBus)
 			t.Focus = be.BankTabBuses
 			imgui.SetWindowFocusStr("Buses")
 		}
+		imgui.EndDisabled()
 
 		val := float32(0)
 		idx, pv := p.Prop(wwise.PropTypeReflectionBusVolume)
