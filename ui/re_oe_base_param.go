@@ -15,7 +15,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBaseParam(t *be.BankTab, init *be.BankTab, o wwise.HircObj) {
+func renderBaseParam(m *be.BankManager, t *be.BankTab, init *be.BankTab, o wwise.HircObj) {
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyB))
 	if imgui.TreeNodeExStr("Base Parameter") {
 		hid, err := o.HircID()
@@ -27,7 +27,8 @@ func renderBaseParam(t *be.BankTab, init *be.BankTab, o wwise.HircObj) {
 		imgui.SameLine()
 		renderChangeParentListing(t, wwise.ActorMixerHircType(o))
 		renderByBitVec(b)
-		renderAuxParam(t, init, o)
+		renderAuxParam(m, init, o)
+		renderEarlyReflection(m, init, o)
 		renderBaseProp(&b.PropBundle)
 		renderBaseRangeProp(&b.RangePropBundle)
 		renderAllProp(&b.PropBundle, &b.RangePropBundle)
@@ -238,12 +239,12 @@ func renderByBitVec(o *wwise.BaseParameter) {
 
 		if o.DirectParentId == 0 {
 			if imgui.Button("Add Playback Priorty Property") {
-				o.PropBundle.AddPriority()
+				o.PropBundle.Add(wwise.PropTypePriority)
 			}
 		}
 
 		if o.PriorityOverrideParent() || o.DirectParentId == 0 {
-			i, p := o.PropBundle.Priority()
+			i, p := o.PropBundle.Prop(wwise.PropTypePriority)
 			if i != -1 {
 				var val float32
 				binary.Decode(p.V, wio.ByteOrder, &val)
@@ -264,7 +265,7 @@ func renderByBitVec(o *wwise.BaseParameter) {
 		imgui.EndDisabled()
 
 		if o.PriorityApplyDistFactor() {
-			i, p := o.PropBundle.PriorityApplyDistFactor()
+			i, p := o.PropBundle.Prop(wwise.PropTypePriorityDistanceOffset)
 			if i != -1 {
 				var val float32
 				binary.Decode(p.V, wio.ByteOrder, &val)
