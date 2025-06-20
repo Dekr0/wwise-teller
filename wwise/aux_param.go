@@ -65,7 +65,7 @@ func (a *AuxParam) OverrideReflectionAuxBus() bool {
 
 func (a *AuxParam) SetOverrideReflectionAuxBus(set bool) {
 	a.AuxBitVector = wio.SetBit(a.AuxBitVector, 4, set)
-	if a.OverrideReflectionAuxBus() {
+	if !a.OverrideReflectionAuxBus() {
 		a.ReflectionAuxBus = a.RestoreReflectionAuxBus
 	}
 }
