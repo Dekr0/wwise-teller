@@ -98,3 +98,50 @@ type FxViewer struct {
 	Filter   FxFilter
 	ActiveFx wwise.HircObj
 }
+
+type ModulatorFilter struct {
+	Id            uint32
+	Type          wwise.HircType
+	Modulators  []wwise.HircObj
+}
+
+func (f *ModulatorFilter) Filter(objs []wwise.HircObj) {
+	curr := 0
+	prev := len(f.Modulators)
+	for _, obj := range objs {
+		if !wwise.ModulatorType(obj) {
+			continue
+		}
+		if f.Type > wwise.HircTypeAll && f.Type != obj.HircType() {
+			continue
+		}
+		id, err := obj.HircID()
+		if err != nil {
+			slog.Error(
+				"Error message before panic",
+				"error", "Attenuation struct does not implement HircObj.HircID?",
+			)
+			panic("Panic Trap")
+		}
+		if f.Id > 0 && !fuzzy.Match(
+			strconv.FormatUint(uint64(f.Id), 10),
+			strconv.FormatUint(uint64(id), 10),
+		) {
+			continue
+		}
+		if curr < len(f.Modulators) {
+			f.Modulators[curr] = obj
+		} else {
+			f.Modulators = append(f.Modulators, obj)
+		}
+		curr += 1
+	}
+	if curr < prev {
+		f.Modulators = slices.Delete(f.Modulators, curr, prev)
+	}
+}
+
+type ModulatorViewer struct {
+	Filter          ModulatorFilter
+	ActiveModulator wwise.HircObj
+}
