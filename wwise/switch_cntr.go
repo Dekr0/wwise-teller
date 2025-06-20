@@ -14,11 +14,11 @@ type SwitchCntr struct {
 	GroupID uint32 // tid
 	DefaultSwitch uint32 // tid
 	IsContinuousValidation uint8 // U8x
-	Container *Container
+	Container Container
 
 	// NumSwitchGroups uint32 // u32
 
-	SwitchGroups []*SwitchGroupItem
+	SwitchGroups []SwitchGroupItem
 
 	// NumSwitchParams uint32 // u32
 
