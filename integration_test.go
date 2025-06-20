@@ -43,7 +43,6 @@ func TestAppendAudio(t *testing.T) {
 			}
 		case *wwise.RanSeqCntr:
 			if s.Id == 274049716 {
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, 12.8)
 			}
 		}
 	}
@@ -83,17 +82,14 @@ func TestAppendAudioAndSound(t *testing.T) {
 		case *wwise.RanSeqCntr:
 			if s.Id == 274049716 {
 				fmt.Println("274049716")
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, 18.0)
 			}
 			if s.Id == 435636362 {
 				fmt.Println("435636362")
 				s.BaseParam.PropBundle.AddBaseProp()	
 				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.PropTypeMakeUpGain)
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, -96.0)
 			}
 			if s.Id == 98920475 {
 				fmt.Println("98920475")
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, -96.0)
 			}
 		}
 	}
@@ -177,17 +173,14 @@ func TestAppendAudioUsingFNV(t *testing.T) {
 		case *wwise.RanSeqCntr:
 			if s.Id == 274049716 {
 				fmt.Println("274049716")
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, 18.0)
 			}
 			if s.Id == 435636362 {
 				fmt.Println("435636362")
 				s.BaseParam.PropBundle.AddBaseProp()	
 				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.PropTypeMakeUpGain)
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, -96.0)
 			}
 			if s.Id == 98920475 {
 				fmt.Println("98920475")
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, -96.0)
 			}
 		}
 	}
@@ -230,15 +223,12 @@ func TestAppendAudioAndSoundUsingFNV(t *testing.T) {
 			}
 		case *wwise.RanSeqCntr:
 			if s.Id == 274049716 {
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, 18.0)
 			}
 			if s.Id == 435636362 {
 				s.BaseParam.PropBundle.AddBaseProp()	
 				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.PropTypeMakeUpGain)
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, -96.0)
 			}
 			if s.Id == 98920475 {
-				s.BaseParam.PropBundle.SetPropByIdxF32(wwise.PropTypeMakeUpGain, -96.0)
 			}
 		}
 	}
