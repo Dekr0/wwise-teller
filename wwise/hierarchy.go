@@ -383,9 +383,8 @@ func (h *HIRC) AppendNewSoundToRanSeqContainer(s *Sound, rsId uint32) error {
 		return fmt.Errorf("No random / sequence container has ID of %d", rsId)
 	}
 	r := h.HircObjs[idx].(*RanSeqCntr)
-	r.Container.Children = append(r.Container.Children, s.Id)
+	r.AddLeaf(s)
 	r.AddLeafToPlayList(len(r.Container.Children) - 1)
-	s.BaseParam.DirectParentId = rsId
 	h.HircObjs = slices.Insert(h.HircObjs, idx, HircObj(s))
 	return nil
 }
@@ -398,4 +397,43 @@ func (h *HIRC) TreeArrIdx(tid uint32) int {
 			return id == tid
 		}
 	})
+}
+
+// Prototyping
+func (h *HIRC) AppendNewRanSeqCntrToActorMixer(r *RanSeqCntr, actorId uint32) error {
+	if r.BaseParam.DirectParentId != 0 {
+		return fmt.Errorf("Random / Sequence Container %d already has a parent", r.Id)
+	}
+	idx := slices.IndexFunc(h.HircObjs, func(o HircObj) bool {
+		id, err := o.HircID()
+		if err != nil {
+			return false
+		}
+		return actorId == id
+	})
+	if idx == -1 {
+		return fmt.Errorf("No Actor Mixer has ID of %d", actorId)
+	}
+	mixer := h.HircObjs[idx].(*ActorMixer)
+	mixer.AddLeaf(r)
+	h.HircObjs = slices.Insert(h.HircObjs, idx, HircObj(r))
+	return nil
+}
+
+// Prototyping
+func (h *HIRC) AppendNewActionToEvent(a *Action, eventID uint32) error {
+	idx := slices.IndexFunc(h.HircObjs, func(o HircObj) bool {
+		id, err := o.HircID()
+		if err != nil {
+			return false
+		}
+		return eventID == id
+	})
+	if idx == -1 {
+		return fmt.Errorf("No Event has ID of %d", eventID)
+	}
+	event := h.HircObjs[idx].(*Event)
+	event.NewAction(a.Id)
+	h.HircObjs = slices.Insert(h.HircObjs, idx, HircObj(a))
+	return nil
 }
