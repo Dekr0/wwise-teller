@@ -2,6 +2,7 @@ package wwise
 
 import (
 	"encoding/binary"
+	"slices"
 
 	"github.com/Dekr0/wwise-teller/wio"
 )
@@ -87,12 +88,14 @@ type ActionParam interface {
 	SpecificParam()    ActionSpecificParam
 	Size()             uint32
 	Encode()         []byte
+	Clone()            ActionParam
 }
 
 type ActionSpecificParam interface {
 	Type()     ActionSpecificParamType
 	Size()     uint32
 	Encode() []byte
+	Clone()    ActionSpecificParam
 }
 
 type Action struct {
@@ -105,6 +108,18 @@ type Action struct {
 	PropBundle      PropBundle
 	RangePropBundle RangePropBundle
 	ActionParam     ActionParam
+}
+
+func (a *Action) Clone(id uint32, target uint32) Action {
+	return Action{
+		Id: id,
+		ActionType: a.ActionType,
+		IdExt: target,
+		IdExt4: a.IdExt4,
+		PropBundle: a.PropBundle.Clone(),
+		RangePropBundle: a.RangePropBundle.Clone(),
+		ActionParam: a.ActionParam.Clone(),
+	}
 }
 
 func (a *Action) Type() uint16 {
@@ -169,6 +184,8 @@ func (p *ActionNoSpecificParam) Encode() []byte { return []byte{} }
 
 func (p *ActionNoSpecificParam) Size() uint32 { return 0 }
 
+func (p *ActionNoSpecificParam) Clone() ActionSpecificParam { return &ActionNoSpecificParam{} }
+
 type ActionStopSpecificParam struct {
 	BitVector uint8
 }
@@ -181,6 +198,9 @@ func (p *ActionStopSpecificParam) Type() ActionSpecificParamType {
 
 func (p *ActionStopSpecificParam) Encode() []byte { return []byte{p.BitVector} }
 
+func (p *ActionStopSpecificParam) Clone() ActionSpecificParam {
+	return &ActionStopSpecificParam{p.BitVector}
+}
 
 func (p *ActionStopSpecificParam) ApplyToStateTransition() bool {
 	return wio.GetBit(p.BitVector, 1)
@@ -201,6 +221,10 @@ func (p *ActionPauseSpecificParam) Type() ActionSpecificParamType {
 func (p *ActionPauseSpecificParam) Size() uint32 { return 1 }
 
 func (p *ActionPauseSpecificParam) Encode() []byte { return []byte{p.BitVector} }
+
+func (p *ActionPauseSpecificParam) Clone() ActionSpecificParam {
+	return &ActionPauseSpecificParam{p.BitVector}
+}
 
 func (p *ActionPauseSpecificParam) IncludePendingResume() bool {
 	return wio.GetBit(p.BitVector, 0)
@@ -225,6 +249,10 @@ func (p *ActionResumeSpecificParam) Type() ActionSpecificParamType {
 func (p *ActionResumeSpecificParam) Size() uint32 { return 1 }
 
 func (p *ActionResumeSpecificParam) Encode() []byte { return []byte{p.BitVector} }
+
+func (p *ActionResumeSpecificParam) Clone() ActionSpecificParam {
+	return &ActionResumeSpecificParam{p.BitVector}
+}
 
 func (p *ActionResumeSpecificParam) MasterResume() bool {
 	return wio.GetBit(p.BitVector, 0)
@@ -254,6 +282,12 @@ func (p *ActionSetPropSpecificParam) Encode() []byte {
 	return b
 }
 
+func (p *ActionSetPropSpecificParam) Clone() ActionSpecificParam {
+	return &ActionSetPropSpecificParam{
+		p.Prop, p.Base, p.Min, p.Max,
+	}
+}
+
 func (p *ActionSetPropSpecificParam) Size() uint32 { return 13 }
 
 type ActionSetGameParameterSpecificParam struct {
@@ -275,6 +309,12 @@ func (p *ActionSetGameParameterSpecificParam) Encode() []byte {
 
 func (p *ActionSetGameParameterSpecificParam) Size() uint32 { return 14 }
 
+func (p *ActionSetGameParameterSpecificParam) Clone() ActionSpecificParam {
+	return &ActionSetGameParameterSpecificParam{
+		p.ByPassTransition, p.EnumValueMeaning, p.Base, p.Min, p.Max,
+	}
+}
+
 type ActionResetPlayListSpecificParam struct {}
 
 func (p *ActionResetPlayListSpecificParam) Type() ActionSpecificParamType { 
@@ -284,6 +324,10 @@ func (p *ActionResetPlayListSpecificParam) Type() ActionSpecificParamType {
 func (p *ActionResetPlayListSpecificParam) Encode() []byte { return []byte{} }
 
 func (p *ActionResetPlayListSpecificParam) Size() uint32 { return 0 }
+
+func (p *ActionResetPlayListSpecificParam) Clone() ActionSpecificParam {
+	return &ActionResetPlayListSpecificParam{}
+}
 
 // End of Action Specific Param
 
@@ -298,6 +342,10 @@ func (p *ActionNoParam) SpecificParam() ActionSpecificParam { return &ActionNoSp
 func (p *ActionNoParam) Type() ActionParamType { return TypeActionNoParam }
 
 func (p *ActionNoParam) Encode() []byte { return  []byte{} }
+
+func (p *ActionNoParam) Clone() ActionParam {
+	return &ActionNoParam{}
+}
 
 type ActionActiveParam struct {
 	EnumFadeCurve    uint8
@@ -319,6 +367,14 @@ func (p *ActionActiveParam) Size() uint32 {
 
 func (p *ActionActiveParam) SpecificParam() ActionSpecificParam { 
 	return p.AkSpecificParam
+}
+
+func (p *ActionActiveParam) Clone() ActionParam {
+	return &ActionActiveParam{
+		p.EnumFadeCurve,
+		p.AkSpecificParam.Clone(),
+		slices.Clone(p.ExceptParams),
+	}
 }
 
 func (p *ActionActiveParam) Encode() []byte {
@@ -350,6 +406,10 @@ func (p *ActionPlayParam) Type() ActionParamType {
 	return TypeActionPlayParam
 }
 
+func (p *ActionPlayParam) Clone() ActionParam {
+	return &ActionPlayParam{p.EnumFadeCurve, p.BankID}
+}
+
 func (p *ActionPlayParam) Encode() []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
 	return b
@@ -368,6 +428,14 @@ func (p *ActionSetValueParam) Size() uint32 {
 func (p *ActionSetValueParam) SpecificParam() ActionSpecificParam { return p.AkSpecificParam }
 
 func (p *ActionSetValueParam) Type() ActionParamType { return TypeActionSetValueParam }
+
+func (p *ActionSetValueParam) Clone() ActionParam {
+	return &ActionSetValueParam{
+		p.EnumFadeCurve,
+		p.AkSpecificParam.Clone(),
+		slices.Clone(p.ExceptParams),
+	}
+}
 
 func (p *ActionSetValueParam) Encode() []byte {
 	size := p.Size()
@@ -390,6 +458,10 @@ func (p *ActionSetStateParam) Type() ActionParamType { return TypeActionSetState
 
 func (p *ActionSetStateParam) Size() uint32 { return 8 }
 
+func (p *ActionSetStateParam) Clone() ActionParam {
+	return &ActionSetStateParam{p.StateGroupID, p.TargetStateID}
+}
+
 func (p *ActionSetStateParam) Encode() []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
 	return b
@@ -408,6 +480,10 @@ func (p *ActionSetSwitchParam) Size() uint32 { return 8 }
 
 func (p *ActionSetSwitchParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
+func (p *ActionSetSwitchParam) Clone() ActionParam {
+	return &ActionSetSwitchParam{p.SwitchGroupID, p.SwitchStateID}
+}
+
 func (p *ActionSetSwitchParam) Encode() []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
 	return b
@@ -421,6 +497,10 @@ type ActionSetRTPCParam struct {
 func (p *ActionSetRTPCParam) Type() ActionParamType { return TypeActionSetRTPCParam }
 
 func (p *ActionSetRTPCParam) Size() uint32 { return 8 }
+
+func (p *ActionSetRTPCParam) Clone() ActionParam {
+	return &ActionSetRTPCParam{p.RTPCID, p.RTPCValue}
+}
 
 func (p *ActionSetRTPCParam) Encode() []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
@@ -441,6 +521,16 @@ func (p *ActionSetFXParam) Type() ActionParamType { return TypeActionSetFXParam 
 
 func (p *ActionSetFXParam) Size() uint32 {
 	return 1 + 1 + 4 + 1 + 1 + uint32(len(p.ExceptParams)) * SizeOfExceptParam
+}
+
+func (p *ActionSetFXParam) Clone() ActionParam {
+	return &ActionSetFXParam{
+		p.IsAudioDeviceElement,
+		p.SlotIndex,
+		p.FXID,
+		p.IsShared,
+		slices.Clone(p.ExceptParams),
+	}
 }
 
 func (p *ActionSetFXParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
@@ -473,6 +563,10 @@ func (p *ActionByPassFXParam) SpecificParam() ActionSpecificParam { return &Acti
 
 func (p *ActionByPassFXParam) Type() ActionParamType { return TypeActionBypassFXParam }
 
+func (p *ActionByPassFXParam) Clone() ActionParam {
+	return &ActionByPassFXParam{p.IsByPass, p.ByFxSolt, slices.Clone(p.ExceptParams)}
+}
+
 func (p *ActionByPassFXParam) Encode() []byte {
 	size := p.Size()
 	w := wio.NewWriter(uint64(size))
@@ -502,6 +596,17 @@ func (p *ActionSeekParam) SpecificParam() ActionSpecificParam { return &ActionNo
 
 func (p *ActionSeekParam) Type() ActionParamType { return TypeActionSeekParam }
 
+func (p *ActionSeekParam) Clone() ActionParam {
+	return &ActionSeekParam{
+		p.IsSeekRelativeDuration,
+		p.SeekValue,
+		p.SeekValueMin,
+		p.SeekValueMax,
+		p.SnapToNearestMark,
+		slices.Clone(p.ExceptParams),
+	}
+}
+
 func (p *ActionSeekParam) Encode() []byte {
 	size := p.Size()
 	w := wio.NewWriter(uint64(size))
@@ -525,6 +630,10 @@ func (p *ActionReleaseParam) SpecificParam() ActionSpecificParam { return &Actio
 
 func (p *ActionReleaseParam) Type() ActionParamType { return TypeActionReleaseParam }
 
+func (p *ActionReleaseParam) Clone() ActionParam {
+	return &ActionReleaseParam{}
+}
+
 func (p *ActionReleaseParam) Encode() []byte { return  []byte{} }
 
 type ActionPlayEventParam struct {}
@@ -534,5 +643,9 @@ func (p *ActionPlayEventParam) Size() uint32 { return 0 }
 func (p *ActionPlayEventParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
 func (p *ActionPlayEventParam) Type() ActionParamType { return TypeActionPlayEventParam }
+
+func (p *ActionPlayEventParam) Clone() ActionParam {
+	return &ActionPlayEventParam{}
+}
 
 func (p *ActionPlayEventParam) Encode() []byte { return  []byte{} }
