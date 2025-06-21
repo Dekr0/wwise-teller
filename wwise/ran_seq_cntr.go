@@ -22,8 +22,10 @@ type RanSeqCntr struct {
 func (r *RanSeqCntr) Clone(id uint32, withParent bool) RanSeqCntr {
 	return RanSeqCntr{
 		Id: id,
+		BaseParam: *r.BaseParam.Clone(withParent),
 		Container: Container{make([]uint32, 0, 16)},
 		PlayListSetting: r.PlayListSetting.Clone(),
+		PlayListItems: make([]PlayListItem, 0, 16),
 	}
 }
 
