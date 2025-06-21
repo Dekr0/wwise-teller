@@ -27,7 +27,7 @@ type BaseParameter struct {
 }
 
 func (b *BaseParameter) Clone(withParent bool) *BaseParameter {
-	cb := &BaseParameter{
+	cb := BaseParameter{
 		BitIsOverrideParentFx: b.BitIsOverrideParentFx,
 		FxChunk: b.FxChunk.Clone(),
 		FxChunkMetadata: b.FxChunkMetadata.Clone(),
@@ -47,7 +47,7 @@ func (b *BaseParameter) Clone(withParent bool) *BaseParameter {
 	if withParent {
 		cb.DirectParentId = b.DirectParentId
 	}
-	return cb
+	return &cb
 }
 
 func (b *BaseParameter) Encode() []byte {
