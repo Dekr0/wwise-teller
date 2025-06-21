@@ -1,12 +1,23 @@
 package wwise
 
-import "github.com/Dekr0/wwise-teller/wio"
+import (
+	"slices"
+
+	"github.com/Dekr0/wwise-teller/wio"
+)
 
 type Event struct {
 	HircObj
 
 	Id        uint32
 	ActionIDs []uint32
+}
+
+func (h *Event) NewAction(actionID uint32) {
+	if slices.Contains(h.ActionIDs, actionID) {
+		return
+	}
+	h.ActionIDs = append(h.ActionIDs, actionID)
 }
 
 func (h *Event) Encode() []byte {
