@@ -1,5 +1,9 @@
 # Wwise Teller
 
+## Credit
+
+- Wwise Teller cannot be made without the helps of `wwiser`.
+
 ## Summary
 
 - Wwise teller is a (modding) SDK for editing encoded sound bank file generated 
