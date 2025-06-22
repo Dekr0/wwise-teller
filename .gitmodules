@@ -1,0 +1,3 @@
+[submodule "sql"]
+	path = hd2_audio_db
+	url = git@github.com:Dekr0/hd2_audio_db.git
