@@ -210,6 +210,7 @@ func createLoop(
 		renderObjEditorActorMixer(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank)
 		renderObjEditorMusic(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank)
 		renderBusViewer(bnkMngr.ActiveBank)
+		renderFXViewer(bnkMngr.ActiveBank)
 		renderEventsViewer(bnkMngr.ActiveBank)
 		notify.RenderNotify(nQ)
 		imgui.End()
