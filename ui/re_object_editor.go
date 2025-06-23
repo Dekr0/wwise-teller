@@ -4,7 +4,9 @@ package ui
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
+	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
@@ -182,6 +184,30 @@ func renderContainer(t *be.BankTab, id uint32, cntr *wwise.Container, actorMixer
 	if imgui.TreeNodeExStr("Container") {
 		imgui.BeginDisabled()
 		imgui.Button("Add New Children")
+		imgui.EndDisabled()
+
+		if imgui.Button("Copy") {
+			var builder strings.Builder
+			var err error
+			for _, child := range cntr.Children {
+				if _, err = builder.WriteString(strconv.FormatUint(uint64(child), 10)); err != nil {
+					slog.Error("Failed to copy children IDs", "error", err)
+					break
+				}
+			}
+			if err == nil {
+				if _, err := fmt.Println(builder.String()); err != nil {
+					slog.Error("Failed to copy children IDs", "error", err)
+				}
+			}
+			builder.Reset()
+		}
+
+		imgui.SameLine()
+		imgui.BeginDisabled()
+		if imgui.Button("Copy (Recursive)") {
+
+		}
 		imgui.EndDisabled()
 
 		const flags = DefaultTableFlags

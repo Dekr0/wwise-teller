@@ -3,13 +3,15 @@ package ui
 
 import (
 	"fmt"
+	"log/slog"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
-	"github.com/Dekr0/wwise-teller/wwise"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	"github.com/Dekr0/wwise-teller/wwise"
 )
 
 func renderRanSeqPlayList(t *be.BankTab, r *wwise.RanSeqCntr) {
@@ -120,6 +122,24 @@ func renderRanSeqPlayListTable(t *be.BankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLCell")
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	size := imgui.NewVec2(0, 180)
+
+	if imgui.Button("Copy Items' ID") {
+		var builder strings.Builder
+		var err error
+		for _, p := range r.PlayListItems {
+			if _, err = builder.WriteString(strconv.FormatUint(uint64(p.UniquePlayID), 10)); err != nil {
+				slog.Error("Failed to copy items' ID", "error", err)
+				break
+			}
+		}
+		if err == nil {
+			if _, err = fmt.Println(builder.String()); err != nil {
+				slog.Error("Failed to copy items' ID", "error", err)
+			}
+		}
+		builder.Reset()
+	}
+
 	if imgui.BeginTableV("PLTable", 5, flags, size, 0) {
 		v := t.ActorMixerViewer
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
