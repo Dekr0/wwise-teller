@@ -18,10 +18,18 @@ type DIDX struct {
 	Alignment            uint8 // guess
 	AvailableAlignment []uint8
 	MediaIndexs        []MediaIndex
+	MediaIndexsMap     map[uint32]*MediaIndex
 }
 
 func NewDIDX(I uint8, T []byte, num uint32) *DIDX {
-	return &DIDX{I, T, 1, []uint8{}, make([]MediaIndex, 0, num)}
+	return &DIDX{
+		I,
+		T,
+		1,
+		[]uint8{},
+		make([]MediaIndex, 0, num),
+		make(map[uint32]*MediaIndex, num),
+	}
 }
 
 func (d *DIDX) Encode(ctx context.Context) ([]byte, error) {
@@ -68,12 +76,8 @@ func (d *DIDX) Append(sid uint32, size uint32) error {
 		d.MediaIndexs = append(d.MediaIndexs, MediaIndex{sid, 0, size})
 		return nil
 	}
-	// Use Map!
 	last := d.MediaIndexs[len(d.MediaIndexs) - 1]
-	in := slices.ContainsFunc(d.MediaIndexs, func (m MediaIndex) bool {
-		return m.Sid == sid
-	})
-	if in {
+	if _, in := d.MediaIndexsMap[sid]; in {
 		return fmt.Errorf("Source ID %d alreay exists.", sid)
 	}
 	d.MediaIndexs = append(d.MediaIndexs, MediaIndex{
@@ -81,12 +85,16 @@ func (d *DIDX) Append(sid uint32, size uint32) error {
 		last.Offset + last.Size,
 		size,
 	})
+	d.MediaIndexsMap[sid] = &d.MediaIndexs[len(d.MediaIndexs) - 1]
 	return nil
 }
 
 func (d *DIDX) Remove(sid uint32) {
 	if len(d.MediaIndexs) == 0 {
 		return
+	}
+	if _, in := d.MediaIndexsMap[sid]; in {
+		delete(d.MediaIndexsMap, sid)
 	}
 	d.MediaIndexs = slices.DeleteFunc(d.MediaIndexs, func(m MediaIndex) bool {
 		return m.Sid == sid

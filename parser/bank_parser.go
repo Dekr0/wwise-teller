@@ -467,8 +467,12 @@ func ParseDIDX(r *wio.Reader, I uint8, T []byte, size uint32) (
 			Offset: offset,
 			Size:   size,
 		})
+		if _, in := didx.MediaIndexsMap[sid]; !in {
+			didx.MediaIndexsMap[sid] = &didx.MediaIndexs[len(didx.MediaIndexs) - 1]
+		} else {
+			panic("Panic Trap")
+		}
 	}
-
 	assert.Equal(
 		size,
 		uint32(r.Pos()),
