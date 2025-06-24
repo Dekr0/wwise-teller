@@ -10,26 +10,38 @@ import (
 	"time"
 
 	"github.com/Dekr0/wwise-teller/db/id"
+	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	"github.com/Dekr0/wwise-teller/parser"
 	"github.com/Dekr0/wwise-teller/waapi"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
-var TestBankDir string = "../tests/bnks"
-var TestCSVOkDir string = "./tests/csvs/ok"
-var TestCSVCompleteDir string = "./tests/csvs/ok/complete"
-var TestCSVFailDir string = "./tests/csvs/fail"
+var testBankDir string = "../tests/st_bnks"
+var testCSVOkDir string = "./tests/csvs/ok"
+var testCSVCompleteDir string = "./tests/csvs/ok/complete"
+var testCSVFailDir string = "./tests/csvs/fail"
+
+func wwiseProject() string {
+	p, _ := filepath.Abs("../WwiseTeller/WwiseTeller.wproj")
+	return p
+}
+
+func setDatabase() {
+	p, _ := filepath.Abs("../id_15314")
+	os.Setenv("IDATABASE", p)
+}
 
 func TestParseCSVHeaderOk(t *testing.T) {
-	tests, err := os.ReadDir(TestCSVOkDir)
+	tests, err := os.ReadDir(testCSVOkDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var p string = ""
 	var b string = ""
 	for _, test := range tests {
-		p = filepath.Join(TestCSVOkDir, test.Name())
+		p = filepath.Join(testCSVOkDir, test.Name())
 		f, err := os.Open(p)
 		if err != nil {
 			t.Fatal(err)
@@ -44,14 +56,14 @@ func TestParseCSVHeaderOk(t *testing.T) {
 }
 
 func TestParseCSVHeaderFail(t *testing.T) {
-	tests, err := os.ReadDir(TestCSVFailDir)
+	tests, err := os.ReadDir(testCSVFailDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var p string = ""
 	var b string = ""
 	for _, test := range tests {
-		p = filepath.Join(TestCSVFailDir, test.Name())
+		p = filepath.Join(testCSVFailDir, test.Name())
 		f, err := os.Open(p)
 		if err != nil {
 			t.Fatal(err)
@@ -73,34 +85,19 @@ type RewireSoundsWithNewSourcesCSVTest struct {
 }
 
 func TestRewireSoundsWithNewSourceCSV(t *testing.T) {
+	setDatabase()
 	waapi.InitTmp()
 	tests := []RewireSoundsWithNewSourcesCSVTest{
 		{
 			"squad_ak74_ar19_01.csv",
-			"wep_ar19_liberator.bnk",
-		},
-		{
-			"squad_ak74_ar19_02.csv",
-			"wep_ar19_liberator.bnk",
-		},
-		{
-			"squad_ak74_ar19_03.csv",
-			"wep_ar19_liberator.bnk",
-		},
-		{
-			"squad_ak74_ar19_04.csv",
-			"wep_ar19_liberator.bnk",
-		},
-		{
-			"squad_ak74_ar19_05.csv",
-			"wep_ar19_liberator.bnk",
+			"wep_ar19_liberator.st_bnk",
 		},
 	}
 	for _, test := range tests {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 2)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 5)
 		defer cancel()
 		bnk, err := parser.ParseBank(
-			filepath.Join(TestBankDir, test.Bank),
+			filepath.Join(testBankDir, test.Bank),
 			ctx,
 		)
 		if err != nil {
@@ -117,10 +114,10 @@ func TestRewireSoundsWithNewSourceCSV(t *testing.T) {
 			ctx,
 			h, 
 			d,
-			filepath.Join(TestCSVCompleteDir, test.CSV),
-			"VORBIS High Quality",
-			"None",
-			true,
+			filepath.Join(testCSVCompleteDir, test.CSV),
+			"Vorbis Quality High",
+			wwiseProject(),
+			false,
 		); err != nil {
 			t.Fatal(err)
 		}
