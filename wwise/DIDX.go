@@ -84,6 +84,15 @@ func (d *DIDX) Append(sid uint32, size uint32) error {
 	return nil
 }
 
+func (d *DIDX) Remove(sid uint32) {
+	if len(d.MediaIndexs) == 0 {
+		return
+	}
+	d.MediaIndexs = slices.DeleteFunc(d.MediaIndexs, func(m MediaIndex) bool {
+		return m.Sid == sid
+	})
+}
+
 const SizeOfMediaIndex = 12
 
 type MediaIndex struct {
