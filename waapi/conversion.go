@@ -48,10 +48,13 @@ func CleanTmp() error {
 	return os.RemoveAll(Tmp)
 }
 
-func CreateConversionList(
+// Assume there's no duplicate wave files. 
+// Assume all wave files exist.
+// Assume all wave files are in full path.
+func CreateConversionList[T any](
 	ctx context.Context,
-	in []string,
-	out []string,
+	wavsMap map[string]T,
+	wemsMap map[string]T,
 	conversion string,
 	dry bool,
 ) (string, error) {
@@ -59,29 +62,6 @@ func CreateConversionList(
 		return "", fmt.Errorf("Wwise External Sources Conversion is only available on Windows")
 	}
 	var err error
-	duplicate := make(map[string]struct{}, len(in))
-	safeIn := make([]string, 0, len(in))
-	for _, i := range in {
-		_, err = os.Lstat(i)
-		if err != nil {
-			if os.IsNotExist(err) {
-				slog.Error(fmt.Sprintf("Wave file %s does not exist.", i))
-			} else {
-				slog.Error(fmt.Sprintf("Failed to obtain information about wave file %s", i), "error", err)
-			}
-		} else {
-			if !filepath.IsAbs(i) {
-				slog.Error(fmt.Sprintf("%s is not absolute path", i))
-				continue
-			}
-			if _, in := duplicate[i]; in {
-				return "", fmt.Errorf("The provided wave files contain duplicates! %s is duplicated", i)
-			} else {
-				duplicate[i] = struct{}{}
-			}
-			safeIn = append(safeIn, i)
-		}
-	}
 
 	staging := filepath.Join(Tmp, uuid.New().String())
 	_, err = os.Lstat(staging)
@@ -101,34 +81,42 @@ func CreateConversionList(
 	list := ExternalSourcesList{
 		SchemaVersion: 1,
 		Root: staging,
-		Sources: make([]ExternalSource, len(safeIn)),
+		Sources: make([]ExternalSource, len(wavsMap)),
 	}
 
 	suffixing := make(map[string]uint8)
 	basename := ""
-	for i := range list.Sources {
-		basename = strings.Split(filepath.Base(safeIn[i]), ".")[0]
+	i := 0
+	for wav, v := range wavsMap {
+		basename = strings.Split(filepath.Base(wav), ".")[0]
 		if suffix, in := suffixing[basename]; !in {
 			suffixing[basename] = 0
 			basename = fmt.Sprintf("%s.wem", basename)
 			dest := filepath.Join(destF, basename)
 			list.Sources[i] = ExternalSource{
-				Path: safeIn[i],
+				Path: wav,
 				Conversion: &conversion,
 				Destination: basename,
 			}
-			out[i] = dest
+			if _, in := wemsMap[dest]; in {
+				panic("Panic Trap")
+			}
+			wemsMap[dest] = v
 		} else {
 			basename = fmt.Sprintf("%s_%d.wem", basename, suffix)
 			dest := filepath.Join(destF, basename)
 			list.Sources[i] = ExternalSource{
-				Path: safeIn[i],
+				Path: wav,
 				Conversion: &conversion,
 				Destination: basename,
 			}
-			out[i] = dest
+			if _, in := wemsMap[dest]; in {
+				panic("Panic Trap")
+			}
+			wemsMap[dest] = v
 			suffixing[basename] += 1
 		}
+		i += 1
 	}
 
 	x, err := xml.MarshalIndent(&list, "", "    ")
@@ -137,8 +125,12 @@ func CreateConversionList(
 	}
 
 	wsource := filepath.Join(staging, "external_sources.wsources")
-	if err := os.WriteFile(wsource, []byte(xml.Header + string(x)), 0777); err != nil {
-		return "", err
+	if !dry {
+		if err := os.WriteFile(wsource, []byte(xml.Header + string(x)), 0777); err != nil {
+			return "", err
+		}
+	} else {
+		fmt.Println(xml.Header + string(x))
 	}
 
 	return wsource, nil
