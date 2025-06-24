@@ -10,7 +10,8 @@ import (
 
 	"github.com/Dekr0/wwise-teller/db/id"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
 var DatabaseEnvNotSet error = errors.New("Enviroment variable IDATABASE is not set.")
@@ -43,7 +44,10 @@ func CreateDefaultConnWithQuery() (*id.Queries, func(), error) {
 
 func CreateDefaultConnWithTxQuery(ctx context.Context) (*id.Queries, func(), func() error, func(), error) {
 	db, err := CreateDefaultConn()
-	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
