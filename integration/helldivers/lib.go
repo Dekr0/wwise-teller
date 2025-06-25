@@ -33,7 +33,7 @@ const MagicValue uint32 = 0xF0000011
 type IntegrationType uint8
 
 const (
-	IntegrationTypeHelldivers2 IntegrationType = 0
+	IntegrationTypeHelldivers2 IntegrationType = 2
 )
 
 type Asset struct {
