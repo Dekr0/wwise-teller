@@ -16,6 +16,15 @@ import (
 	"github.com/google/uuid"
 )
 
+type ConversionFormatType uint8
+
+const (
+	ConversionFormatTypePCM      ConversionFormatType = 0
+	ConversionFormatTypeADPCM    ConversionFormatType = 1
+	ConversionFormatTypeVORBIS   ConversionFormatType = 2
+	ConversionFormatTypeWEMOpus  ConversionFormatType = 3
+)
+
 var StagingCollision = errors.New("Staging folder's name collision. Please remove all content in the .cache folder and try again.")
 
 var Tmp string = ""
