@@ -14,6 +14,7 @@ import (
 
 var BankVersion = -1
 
+var NoHIRC = errors.New("This sound bank does not have HIRC chunk.")
 var NoDIDX = errors.New("This sound bank does not have DIDX chunk.")
 var NoDATA = errors.New("This sound bank does not have DATA chunk.")
 
