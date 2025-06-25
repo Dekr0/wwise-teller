@@ -137,3 +137,29 @@ func ScanMountPoint() error {
 	}
 	return nil
 }
+
+func FloatInBound(lower float32, upper float32, name string) func(v float32) error {
+	return func(v float32) error {
+		if v < lower || v > upper {
+			return fmt.Errorf("%s must be in between %f and %f", name, lower, upper)
+		}
+		return nil
+	}
+}
+
+func FloatRangeInBound(lower, mid, upper float32, name string) func(float32, bool) error {
+	return func(v float32, m bool) error {
+		if m {
+			if v < lower || v > mid {
+				return fmt.Errorf("Min of %s must be between %f and %f", name, lower, mid)
+			} else {
+				return nil
+			}
+		}
+		if v < mid || v > upper {
+			return fmt.Errorf("Max of %s must be between %f and %f", name, mid, upper)
+		}
+		return nil
+	}
+}
+
