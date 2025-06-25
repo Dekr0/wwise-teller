@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/Dekr0/wwise-teller/assert"
+	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
@@ -80,6 +81,12 @@ func (p *PropBundle) Add(pId PropType) {
 	}
 }
 
+func (p *PropBundle) AddWithVal(pId PropType, val [4]byte) {
+	if idx, in := p.HasPid(pId); !in {
+		p.PropValues = slices.Insert(p.PropValues, idx, PropValue{pId, bytes.Clone(val[:])})
+	}
+}
+
 func (p *PropBundle) SetPropByIdxF32(idx int, v float32) {
 	if len(p.PropValues) <= 0 || idx >= len(p.PropValues) {
 		return
@@ -124,6 +131,49 @@ func (p *PropBundle) ChangeBaseProp(idx int, nextPid PropType) {
 		p.PropValues[idx].V[i] = 0
 	}
 	p.Sort()
+}
+
+var BasePropChecker map[PropType]func(float32) error = map[PropType]func(float32) error {
+	PropTypeVolume: utils.FloatInBound(-96.0, 12.0, PropLabel_140[PropTypeVolume]),
+	PropTypePitch: utils.FloatInBound(-2400, 2400, PropLabel_140[PropTypePitch]),
+	PropTypeLPF: utils.FloatInBound(0, 100, PropLabel_140[PropTypeLPF]),
+	PropTypeHPF: utils.FloatInBound(0, 100, PropLabel_140[PropTypeHPF]),
+	PropTypeMakeUpGain: utils.FloatInBound(-96.0, 96.0, PropLabel_140[PropTypeMakeUpGain]),
+	PropTypeGameAuxSendVolume: utils.FloatInBound(-96.0, 12.0, PropLabel_140[PropTypeGameAuxSendVolume]),
+	PropTypeInitialDelay: utils.FloatInBound(0.0, 60.0, PropLabel_140[PropTypeInitialDelay]),
+}
+
+var BaseRangePropChecker map[PropType]func(float32, bool) error = map[PropType]func(float32, bool) error {
+	PropTypeVolume: utils.FloatRangeInBound(-108, 0, 108, PropLabel_140[PropTypeVolume]),
+	PropTypePitch: utils.FloatRangeInBound(-4800, 0, 4800, PropLabel_140[PropTypePitch]),
+	PropTypeLPF: utils.FloatRangeInBound(-100, 0, 100, PropLabel_140[PropTypeLPF]),
+	PropTypeHPF: utils.FloatRangeInBound(-100, 0, 100, PropLabel_140[PropTypeHPF]),
+	PropTypeMakeUpGain: utils.FloatRangeInBound(-192, 0, 192, PropLabel_140[PropTypeMakeUpGain]),
+	PropTypeInitialDelay: utils.FloatRangeInBound(-60, 0, 60, PropLabel_140[PropTypeInitialDelay]),
+}
+
+func CheckBasePropVal(p PropType, v float32) error {
+	if !slices.Contains(BasePropType, p) {
+		return fmt.Errorf("Invaild base property ID %d", p)
+	}
+	c, in := BasePropChecker[p]
+	if !in {
+		panic("Panic Trap")
+	}
+	return c(v)
+}
+
+func CheckBaseRangeProp(p PropType, minV float32, maxV float32) error {
+	if !slices.Contains(BasePropType, p) {
+		return fmt.Errorf("Invaild base property ID %d", p)
+	}
+	c, in := BaseRangePropChecker[p]
+	if !in {
+		panic("Panic Trap")
+	}
+	if err := c(minV, false); err != nil { return err }
+	if err := c(maxV, true); err != nil { return err }
+	return nil
 }
 
 func (p *PropBundle) RemoveAllUserAuxSendVolumeProp() {
@@ -222,11 +272,50 @@ func (r *RangePropBundle) HasPid(pID PropType) (int, bool) {
 	})
 }
 
+func (r *RangePropBundle) Add(pId PropType) {
+	if idx, in := r.HasPid(pId); !in {
+		r.RangeValues = slices.Insert(r.RangeValues, idx,
+			RangeValue{pId, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}},
+		)
+	}
+}
+
+func (r *RangePropBundle) AddWithVal(pId PropType, lower [4]byte, upper [4]byte) {
+	if idx, in := r.HasPid(pId); !in {
+		r.RangeValues = slices.Insert(r.RangeValues, idx,
+			RangeValue{pId, lower[:], upper[:]},
+		)
+	}
+}
+
+func (r *RangePropBundle) Remove(pId PropType) error {
+	i, found := r.HasPid(pId)
+	if !found {
+		return fmt.Errorf("Failed to find property ID %d", pId)
+	}
+	r.RangeValues = slices.Delete(r.RangeValues, i, i + 1)
+	return nil
+}
+
+func (r *RangePropBundle) Sort() {
+	slices.SortFunc(r.RangeValues, 
+		func(a RangeValue, b RangeValue) int {
+			if a.P < b.P {
+				return -1
+			}
+			if a.P > b.P {
+				return 1
+			}
+			return 0
+		},
+	)
+}
+
 func (r *RangePropBundle) AddBaseProp() {
 	for _, t := range BaseRangePropType {
 		if i, in := r.HasPid(t); !in {
-			r.RangeValues = slices.Insert(
-				r.RangeValues, i, RangeValue{t, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}},
+			r.RangeValues = slices.Insert(r.RangeValues, i, 
+				RangeValue{t, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}},
 			)
 			break
 		}
@@ -263,29 +352,6 @@ func (r *RangePropBundle) SetPropMaxByIdxF32(idx int, v float32) {
 		return
 	}
 	binary.Encode(r.RangeValues[idx].Max, wio.ByteOrder, v)
-}
-
-func (r *RangePropBundle) Remove(pId PropType) error {
-	i, found := r.HasPid(pId)
-	if !found {
-		return fmt.Errorf("Failed to find property ID %d", pId)
-	}
-	r.RangeValues = slices.Delete(r.RangeValues, i, i + 1)
-	return nil
-}
-
-func (r *RangePropBundle) Sort() {
-	slices.SortFunc(r.RangeValues, 
-		func(a RangeValue, b RangeValue) int {
-			if a.P < b.P {
-				return -1
-			}
-			if a.P > b.P {
-				return 1
-			}
-			return 0
-		},
-	)
 }
 
 const SizeOfRangeValue = 8
