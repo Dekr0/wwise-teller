@@ -190,7 +190,7 @@ func renderContainer(t *be.BankTab, id uint32, cntr *wwise.Container, actorMixer
 			var builder strings.Builder
 			var err error
 			for _, child := range cntr.Children {
-				if _, err = builder.WriteString(strconv.FormatUint(uint64(child), 10)); err != nil {
+				if _, err = builder.WriteString(strconv.FormatUint(uint64(child), 10)+"\n"); err != nil {
 					slog.Error("Failed to copy children IDs", "error", err)
 					break
 				}
