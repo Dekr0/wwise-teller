@@ -123,11 +123,11 @@ func renderRanSeqPlayListTable(t *be.BankTab, r *wwise.RanSeqCntr) {
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	size := imgui.NewVec2(0, 180)
 
-	if imgui.Button("Copy Items' ID") {
+	if imgui.Button("Copy") {
 		var builder strings.Builder
 		var err error
 		for _, p := range r.PlayListItems {
-			if _, err = builder.WriteString(strconv.FormatUint(uint64(p.UniquePlayID), 10)); err != nil {
+			if _, err = builder.WriteString(strconv.FormatUint(uint64(p.UniquePlayID), 10)+"\n"); err != nil {
 				slog.Error("Failed to copy items' ID", "error", err)
 				break
 			}
