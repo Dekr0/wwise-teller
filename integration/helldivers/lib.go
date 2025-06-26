@@ -60,7 +60,7 @@ type AssetHeader struct {
 	Idx           uint32 `json:"idx"`
 }
 
-type META struct {
+type METAUnstable struct {
 	T                     [4]byte
 	Size                  uint32
 	IntegrationType       uint8
@@ -267,7 +267,7 @@ func ExtractSoundBank(ctx context.Context, path string, dest string, dry bool) e
 	return nil
 }
 
-func ParseMETA(_ context.Context, r *wio.InPlaceReader) (*META, error) {
+func ParseMETA(_ context.Context, r *wio.InPlaceReader) (*METAUnstable, error) {
 	itype, err := r.U8()
 	if err != nil {
 		return nil, err
@@ -330,7 +330,7 @@ func ParseMETA(_ context.Context, r *wio.InPlaceReader) (*META, error) {
 		)
 	}
 
-	return &META{
+	return &METAUnstable{
 		IntegrationType:       itype,
 		Unknown:               [4]byte(unknown),
 		Unk4Data:              [56]byte(unk4Data),
@@ -391,7 +391,7 @@ func GenHelldiversPatch(
 func writeGameArchiveHeader(
 	_ context.Context,
 	w *wio.BinaryWriteHelper,
-	meta *META,
+	meta *METAUnstable,
 ) error {
 	if err := w.U32(MagicValue); err != nil {
 		return err
@@ -470,7 +470,7 @@ func writeAssetHeaders(
 	_ context.Context,
 	w *wio.BinaryWriteHelper,
 	bnkData []byte,
-	meta *META,
+	meta *METAUnstable,
 ) ([]byte, error) {
 	dataOffset := uint32(160 + w.Tell() + 8)
 
@@ -517,7 +517,7 @@ func writeSoundBank(
 	_ context.Context,
 	w *wio.BinaryWriteHelper,
 	bnkData []byte,
-	meta *META,
+	meta *METAUnstable,
 ) error {
 	// Require (Reverse engineering black magic)
 	if err := w.Bytes([]byte{216,47,118,120}); err != nil {
