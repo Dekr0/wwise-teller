@@ -14,20 +14,23 @@ func TestCreateConversionList(t *testing.T) {
 		"tests/wavs/ak74/core_03.wav",
 		"tests/wavs/ak74/core_04.wav",
 	}
+
+	wavsMapping := make(map[string]struct{}, len(in))
 	var err error
 	for i := range in {
 		in[i], err = filepath.Abs(in[i])
 		if err != nil {
 			t.Fatal(err)
 		}
+		wavsMapping[in[i]] = struct{}{}
 	}
 
-	out := make([]string, len(in))
+	wemsMapping := make(map[string]struct{}, len(wavsMapping))
 	ctx := context.Background()
 	if err := InitTmp(); err != nil {
 		t.Fatal(err)
 	}
-	wsource, err := CreateConversionList(ctx, in, out, "Vorbis Quality High", true); 
+	wsource, err := CreateConversionList(ctx, wavsMapping, wemsMapping, "Vorbis Quality High", true); 
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,20 +49,23 @@ func TestWwiseConversion(t *testing.T) {
 		"tests/wavs/ak74/core_03.wav",
 		"tests/wavs/ak74/core_04.wav",
 	}
+
+	wavsMapping := make(map[string]struct{}, len(in))
 	var err error
 	for i := range in {
 		in[i], err = filepath.Abs(in[i])
 		if err != nil {
 			t.Fatal(err)
 		}
+		wavsMapping[in[i]] = struct{}{}
 	}
 
-	out := make([]string, len(in))
+	wemsMapping := make(map[string]struct{}, len(wavsMapping))
 	ctx := context.Background()
 	if err := InitTmp(); err != nil {
 		t.Fatal(err)
 	}
-	wsource, err := CreateConversionList(ctx, in, out, "Vorbis Quality High", true); 
+	wsource, err := CreateConversionList(ctx, wavsMapping, wemsMapping, "Vorbis Quality High", true); 
 	if err != nil {
 		t.Fatal(err)
 	}
