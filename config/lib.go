@@ -8,16 +8,18 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/Dekr0/wwise-teller/db"
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
 const path = "config.json"
 
 type Config struct {
-	DefaultSave string `json:"defaultSave"`
+	DefaultSave    string `json:"defaultSave"`
 	HelldiversData string `json:"helldiversData"`
-	Home string `json:"home"`
-	Bookmark []string `json:"bookmark"`
+	IdDatabase     string `json:"idDatabase"`
+	Home           string `json:"home"`
+	Bookmark     []string `json:"bookmark"`
 }
 
 func initHome() (string, error) {
@@ -83,39 +85,73 @@ func (c *Config) Save() error {
 }
 
 func (c *Config) Check() error {
-	_, err := os.Lstat(c.Home)
+	stat, err := os.Lstat(c.Home)
 	if err != nil {
 		slog.Error(
-			fmt.Sprintf("Invalid home directory: %s", c.Home),
+			fmt.Sprintf("%s is not a valid directory path.", c.Home),
 			"error", err,
 		)
-		slog.Warn("Attempt to fix home directory in config.json")
+		slog.Warn("Attempting to fix home directory in config.json...")
 		c.Home, err = initHome()
 		if err != nil {
 			return err
 		}
 	}
-	_, err = os.Lstat(c.DefaultSave)
-	if err != nil {
-		c.DefaultSave = c.Home
-		slog.Error(fmt.Sprintf(
-			"Invalid default directory for save file dialog : %s", c.Home),
-			"error", err,
-		)
-		slog.Warn(fmt.Sprintf("Setting default directory for save file dialog to %s", c.Home))
-	}
-	_, err = os.Lstat(c.HelldiversData)
-	if err != nil {
-		slog.Error(fmt.Sprintf(
-				"Invalid Helldivers 2 data directory: %s", c.HelldiversData,
-			),
-			"error", err,
-		)
-		slog.Warn(fmt.Sprintf("Setting Helldivers 2 data directory to %s", c.Home))
-		c.HelldiversData = c.Home
+	if !stat.IsDir() {
+		slog.Error(fmt.Sprintf("%s is not a directory.", c.Home))
+		slog.Warn("Attempting to fix home directory in config.json...")
+		c.Home, err = initHome()
+		if err != nil {
+			return err
+		}
 	}
 
-	clean := []string{}
+	stat, err = os.Lstat(c.DefaultSave)
+	if err != nil {
+		slog.Error(fmt.Sprintf(
+			"%s is not a valid default directory path for save file dialog.", c.DefaultSave),
+			"error", err,
+		)
+		c.DefaultSave = c.Home
+		slog.Warn(fmt.Sprintf("Set default directory for save file dialog to %s", c.Home))
+	}
+	if !stat.IsDir() {
+		slog.Error(fmt.Sprintf("Default path for save file dialog %s is not a directory.", c.DefaultSave))
+		c.DefaultSave = c.Home
+		slog.Warn(fmt.Sprintf("Set default directory for save file dialog to %s", c.Home))
+	}
+
+	stat, err = os.Lstat(c.HelldiversData)
+	if err != nil {
+		slog.Error(fmt.Sprintf("%s is not a valid directory path for Helldivers 2 data directory.", c.HelldiversData), "error", err)
+		c.HelldiversData = c.Home
+		slog.Warn(fmt.Sprintf("Set Helldivers 2 data directory to %s", c.Home))
+	}
+	if !stat.IsDir() {
+		slog.Error(fmt.Sprintf("%s is not a directory.", c.HelldiversData))
+		c.DefaultSave = c.Home
+		slog.Warn(fmt.Sprintf("Set Helldivers 2 data directory to %s", c.Home))
+	}
+
+	stat, err = os.Lstat(c.IdDatabase)
+	if err != nil {
+		slog.Error(fmt.Sprintf("%s is not valid file path for ID database.", c.IdDatabase))
+		c.IdDatabase = ""
+		slog.Warn("Some specific operations will error since ID database is missing.")
+	}
+	if !stat.IsDir() {
+		slog.Error(fmt.Sprintf("%s is not a file.", c.IdDatabase))
+		c.IdDatabase = ""
+		slog.Warn("Some specific operations will error since ID database is missing.")
+	}
+
+	if err := os.Setenv(db.DatabaseEnv, c.IdDatabase); err != nil {
+		slog.Error(fmt.Sprintf("Failed to set %s enviromental variable using %s", db.DatabaseEnv, c.IdDatabase))
+		c.IdDatabase = ""
+		slog.Warn("Some specific operations will error since ID database is missing.")
+	}
+
+	clean := make([]string, 0, len(c.Bookmark))
 	for _, s := range c.Bookmark {
 		_, err = os.Lstat(s)
 		if err != nil {
