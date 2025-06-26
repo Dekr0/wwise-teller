@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/Dekr0/wwise-teller/db/id"
 	"github.com/Dekr0/wwise-teller/utils"
@@ -18,7 +19,24 @@ import (
 
 const DatabaseEnv = "IDATABASE"
 
-var DatabaseEnvNotSet error = fmt.Errorf("Enviroment variable %s is not set.", DatabaseEnv)
+var DatabaseEnvNotSet error = fmt.Errorf("Enviromental variable %s is not set.", DatabaseEnv)
+var DatabaseEnvNotAbs error = fmt.Errorf("Enviromental variable %s is not in absolute path.", DatabaseEnv)
+
+func CheckDatabaseEnv() error {
+	p := os.Getenv(DatabaseEnv)
+	if p == "" {
+		return DatabaseEnvNotSet
+	}
+	if !filepath.IsAbs(p) {
+		return DatabaseEnvNotAbs
+	}
+	db, err := CreateDefaultConn()
+	defer db.Close()
+	if err != nil {
+		return fmt.Errorf("%s is not a valid ID database because of database connection error (%w).", p, err)
+	}
+	return nil
+}
 
 // Create a database connection using the default environmental variable
 func CreateDefaultConn() (*sql.DB, error) {
