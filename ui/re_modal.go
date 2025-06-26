@@ -75,32 +75,6 @@ func pushSetHomeModal(modalQ *ModalQ, conf *config.Config) {
 	}
 }
 
-func pushSetHelldivers2DataModal(modalQ *ModalQ, conf *config.Config) {
-	onSave := func(path string) {
-		if err := conf.SetHelldiversData(path); err != nil {
-			slog.Error(
-				"Failed to set Helldivers 2 data directory",
-				"error", err,
-			)
-		}
-	}
-	renderF, done, err := saveFileDialogFunc(onSave, conf.HelldiversData)
-	if err != nil {
-		slog.Error(
-			"Failed to create save file dialog for setting Helldivers " +
-			"2 data directory",
-			"error", err,
-		)
-	} else {
-		modalQ.QModal(
-			done,
-			0,
-			"Set Helldivers 2 data directory",
-			renderF, nil,
-		)
-	}
-}
-
 func pushSaveSoundBankModal(
 	modalQ *ModalQ,
 	loop *async.EventLoop,
@@ -110,7 +84,7 @@ func pushSaveSoundBankModal(
 	saveName string,
 ) {
 	onSave := saveSoundBankFunc(loop, bnkMngr, saveTab, saveName)
-	renderF, done, err := saveFileDialogFunc(onSave, conf.DefaultSave)
+	renderF, done, err := saveFileDialogFunc(onSave, conf.Home)
 	if err != nil {
 		slog.Error(
 			fmt.Sprintf("Failed create save file dialog for saving sound bank %s",
@@ -137,7 +111,7 @@ func pushHD2PatchModal(
 	saveName string,
 ) {
 	onSave := HD2PatchFunc(loop, bnkMngr, saveTab, saveName)
-	if renderF, done, err := saveFileDialogFunc(onSave, conf.DefaultSave);
+	if renderF, done, err := saveFileDialogFunc(onSave, conf.Home);
 	   err != nil {
 		slog.Error(
 			fmt.Sprintf("Failed create save file dialog for saving sound " +
@@ -162,7 +136,7 @@ func pushSelectGameArchiveModal(
 ) {
 	onOpen := selectGameArchiveFunc(modalQ, loop, conf)
 	renderF, done, err := openFileDialogFunc(
-		onOpen, false, conf.HelldiversData, []string{},
+		onOpen, false, conf.Home, []string{},
 	)
 	if err != nil {
 		slog.Error(
@@ -187,7 +161,7 @@ func pushExtractSoundBanksModal(
 	paths []string,
 ) {
 	onSave := extractSoundBanksFunc(loop, paths)
-	renderF, done, err := saveFileDialogFunc(onSave, conf.DefaultSave)
+	renderF, done, err := saveFileDialogFunc(onSave, conf.Home)
 	if err != nil {
 		slog.Error(
 			"Failed create save file dialog for saving extracted sound banks",
