@@ -123,9 +123,11 @@ func renderBusViewer(t *be.BankTab) {
 
 func renderBus(t *be.BankTab, b *wwise.Bus) {
 	imgui.Text(fmt.Sprintf("Bus %d", b.Id))
+
 	renderBusAuxParam(t, &b.AuxParam, &b.PropBundle)
 	renderBusEarlyReflection(t, &b.AuxParam, &b.PropBundle)
 	renderAllProp(&b.PropBundle, nil)
+	renderBusFxParam(t, &b.BusFxParam)
 }
 
 func renderAuxBus(t *be.BankTab, b *wwise.AuxBus) {
@@ -133,6 +135,7 @@ func renderAuxBus(t *be.BankTab, b *wwise.AuxBus) {
 	renderBusAuxParam(t, &b.AuxParam, &b.PropBundle)
 	renderBusEarlyReflection(t, &b.AuxParam, &b.PropBundle)
 	renderAllProp(&b.PropBundle, nil)
+	renderBusFxParam(t, &b.BusFxParam)
 }
 
 func renderBusAuxParam(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBundle) {
@@ -407,6 +410,75 @@ func renderBusEarlyReflection(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBun
 			p.Remove(wwise.PropTypeReflectionBusVolume)
 		}
 		imgui.PopID()
+		imgui.EndDisabled()
+
+		imgui.TreePop()
+	}
+}
+
+func renderBusFxParam(t *be.BankTab, b *wwise.BusFxParam) {
+	if imgui.TreeNodeStr("FX") {
+		{
+			imgui.BeginDisabled()
+			byPassFx := b.FxChunk.BitsFxByPass != 0
+			imgui.Checkbox("By Passing FX", &byPassFx)
+			imgui.EndDisabled()
+		}
+
+		if imgui.BeginTableV("FXChunkTable", 3, DefaultTableFlags, DefaultSize, 0) {
+			imgui.TableSetupColumn("Unique FX Index")
+			imgui.TableSetupColumn("FX ID")
+			imgui.TableSetupColumn("Is Share Set")
+			imgui.TableSetupScrollFreeze(0, 1)
+			imgui.TableHeadersRow()
+			for i := range b.FxChunk.FxChunkItems {
+				fi := &b.FxChunk.FxChunkItems[i]
+
+				imgui.TableNextRow()
+
+				imgui.TableSetColumnIndex(0)
+				imgui.Text(strconv.FormatUint(uint64(fi.UniqueFxIndex), 10))
+
+				imgui.TableSetColumnIndex(1)
+				{
+					imgui.Text(strconv.FormatUint(uint64(fi.FxId), 10))
+					imgui.SameLine()
+
+					imgui.BeginDisabled()
+					imgui.ArrowButton(fmt.Sprintf("##SetFXID%d", i), imgui.DirDown)
+					imgui.EndDisabled()
+
+					imgui.SameLine()
+					if imgui.ArrowButton(fmt.Sprintf("##GoToFXID%d", i), imgui.DirRight) {
+						t.SetActiveFX(fi.FxId)
+					}
+				}
+
+				imgui.TableSetColumnIndex(2)
+				imgui.BeginDisabled()
+				isSharedSet := fi.BitIsShareSet != 0
+				imgui.Checkbox(fmt.Sprintf("##IsShareSet%d", i), &isSharedSet)
+				imgui.EndDisabled()
+			}
+
+			imgui.EndTable()
+		}
+
+		imgui.Text(fmt.Sprintf("FX ID: %d", b.FxID_0))
+		imgui.SameLine()
+
+		imgui.BeginDisabled()
+		imgui.ArrowButton("##SetFXID0%d", imgui.DirDown)
+		imgui.EndDisabled()
+
+		imgui.SameLine()
+		if imgui.ArrowButton("##GoToFXID0", imgui.DirRight) {
+			t.SetActiveFX(b.FxID_0)
+		}
+
+		imgui.BeginDisabled()
+		isSharedSet := b.IsShareSet_0 != 0
+		imgui.Checkbox("Is Share Set", &isSharedSet)
 		imgui.EndDisabled()
 
 		imgui.TreePop()
