@@ -54,7 +54,8 @@ func ParsePropModifierSpec(fspec string) (*BasePropModifierSpec, error) {
 	return &spec, nil
 }
 
-func AutomateBaseProp(bnk *wwise.Bank, fspec string) error {
+// TODO: All modifiers should be run in parallel.
+func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 	h := bnk.HIRC()
 	if h == nil {
 		return wwise.NoHIRC
