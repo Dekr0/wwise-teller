@@ -24,6 +24,7 @@ import (
 	glog "github.com/Dekr0/wwise-teller/ui/log"
 	"github.com/Dekr0/wwise-teller/ui/notify"
 	"github.com/Dekr0/wwise-teller/utils"
+	"golang.design/x/clipboard"
 )
 
 var ModifiyEverything = false
@@ -40,6 +41,12 @@ const MainDockFlags imgui.WindowFlags =
 
 func Run() error {
 	runtime.LockOSThread()
+
+	err := clipboard.Init()
+	if err != nil {
+		slog.Error("Failed to initialized clipboard. Copy content will only output to stdout.")
+	}
+
 	// Begin of app state
 	gLog := &glog.GuiLog{
 		Log: log.InMemoryLog{Logs: ring.New(log.DefaultSize)},
