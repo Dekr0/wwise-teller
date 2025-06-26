@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -14,11 +13,13 @@ import (
 	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
-var DatabaseEnvNotSet error = errors.New("Enviroment variable IDATABASE is not set.")
+const DatabaseEnv = "IDATABASE"
+
+var DatabaseEnvNotSet error = fmt.Errorf("Enviroment variable %s is not set.", DatabaseEnv)
 
 // Create a database connection using the default environmental variable
 func CreateDefaultConn() (*sql.DB, error) {
-	p := os.Getenv("IDATABASE")
+	p := os.Getenv(DatabaseEnv)
 	if p == "" {
 		return nil, DatabaseEnvNotSet
 	}
