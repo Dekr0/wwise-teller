@@ -81,7 +81,7 @@ type RewireWithNewSourcesTest struct {
 }
 
 func TestRewireWithNewSources(t *testing.T) {
-	setDatabase()
+	setDatabaseEnv()
 	waapi.InitTmp()
 	tests := []RewireWithNewSourcesTest{
 		{
@@ -130,7 +130,7 @@ func TestRewireWithNewSources(t *testing.T) {
 }
 
 func TestRewireWithNewSourcesPartial(t *testing.T) {
-	setDatabase()
+	setDatabaseEnv()
 	waapi.InitTmp()
 	tests := []RewireWithNewSourcesTest{
 		{

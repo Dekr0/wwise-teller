@@ -117,7 +117,7 @@ func RewireWithNewSources(
 
 	wemsMapMediaIndexs := make(map[string]wwise.MediaIndex, len(wemsMapSound))
 	for wem := range wemsMapSound {
-		sid, err := TrySid(ctx, q)
+		sid, err := db.TrySid(ctx, q)
 		if err != nil {
 			txRollback()
 			return fmt.Errorf("Failed to allocate a new source ID: %w", err)
