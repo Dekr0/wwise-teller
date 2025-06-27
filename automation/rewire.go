@@ -151,6 +151,18 @@ func RewireWithNewSources(
 		m, in := wemsMapMediaIndexs[wem]
 		if !in { panic("Panic Trap") }
 		for _, sound := range sounds {
+			switch header.Format {
+			case waapi.ConversionFormatTypePCM:
+				sound.BankSourceData.PluginID = wwise.PCM
+			case waapi.ConversionFormatTypeADPCM:
+				sound.BankSourceData.PluginID = wwise.ADPCM
+			case waapi.ConversionFormatTypeVORBIS:
+				sound.BankSourceData.PluginID = wwise.VORBIS
+			case waapi.ConversionFormatTypeWEMOpus:
+				sound.BankSourceData.PluginID = wwise.WEM_OPUS
+			default:
+				panic("Panic trap")
+			}
 			sound.BankSourceData.SourceID = m.Sid
 			sound.BankSourceData.InMemoryMediaSize = m.Size
 		}

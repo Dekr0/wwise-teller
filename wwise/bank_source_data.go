@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	PCM    = 0x00010001
-	VORBIS = 0x00040001
+	PCM      =  0x00010001
+	ADPCM    =  0x00020001
+	VORBIS   =  0x00040001
+	WEM_OPUS =  0x00140001
 )
 
 const (
