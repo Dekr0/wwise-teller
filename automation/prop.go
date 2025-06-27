@@ -63,7 +63,7 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 
 	spec, err := ParsePropModifierSpec(fspec)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	var v any
