@@ -43,7 +43,7 @@ type ProcessPipeline struct {
 
 type ProcessScript struct {
 	Type ProcessScriptType `json:"type"`
-	Script string          `json:"spec"`
+	Script string          `json:"script"`
 }
 
 // Perform validation and filtering as well
@@ -110,14 +110,19 @@ func ParseProcessor(fspec string) (*Processor, error) {
 		stat, err = os.Lstat(p.Output)
 		if err != nil {
 			if os.IsNotExist(err) {
-				slog.Error(fmt.Sprintf("Output %s does not exist.", p.Output))
+				err := os.MkdirAll(p.Output, 0777)
+				if err != nil {
+					slog.Error(fmt.Sprintf("Failed to create output directory %s", p.Output), "error", err)
+					return true
+				}
 			} else {
-				slog.Error(fmt.Sprintf("Fail to obtain information about output %s", p.Output))
+				slog.Error(fmt.Sprintf("Failed to obtain information about output %s", p.Output))
+				return true
 			}
-			return true
-		}
-		if !stat.IsDir() {
-			slog.Error(fmt.Sprintf("Output %s is not a directory.", p.Output))
+		} else {
+			if !stat.IsDir() {
+				slog.Error(fmt.Sprintf("Output %s is not a directory.", p.Output))
+			}
 		}
 
 		return false
@@ -198,6 +203,7 @@ func Process(ctx context.Context, fspec string) {
 			w.Wait()
 			return
 		case sems <- struct{}{}:
+			w.Add(1)
 			go RunProcessPipeline(ctx, &p, &w, sems)
 		default:
 			RunProcessPipeline(ctx, &p, nil, nil)
@@ -213,18 +219,22 @@ func RunProcessPipeline(
 	sems chan struct{},
 ) {
 	if w != nil { defer w.Done() }
+	var _w sync.WaitGroup
 	if sems != nil { defer func(){ <- sems }() }
 	for _, b := range p.Banks {
 		select {
 		case <- ctx.Done():
 			slog.Error(ctx.Err().Error())
+			_w.Wait()
 			return
 		case sems <- struct{}{}:
-			go RunProcessScripts(ctx, b, p, w, sems)
+			_w.Add(1)
+			go RunProcessScripts(ctx, b, p, &_w, sems)
 		default:
 			RunProcessScripts(ctx, b, p, nil, nil)
 		}
 	}
+	_w.Wait()
 }
 
 func RunProcessScripts(
