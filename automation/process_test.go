@@ -3,6 +3,7 @@ package automation
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,17 +15,22 @@ import (
 	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
-var testBankDir string = "../tests/st_bnks"
-var testProcessSpecDirOk string = "./tests/process/ok"
-var testProcessSpecDirFail string = "./tests/process/fail"
+var testStBankDir = filepath.Join(os.Getenv("TESTS"), "st_bnks")
+var testProcessDir = filepath.Join(os.Getenv("TESTS"), "process")
+var testProcessOkDir = filepath.Join(testProcessDir, "ok")
 
-func setDatabaseEnv() {
-	p, _ := filepath.Abs("../id_15314")
-	os.Setenv(db.DatabaseEnv, p)
-}
-
-func TestParseProcessSpec(t *testing.T) {
-
+func TestProcess(t *testing.T) {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true})))
+	entries, err := os.ReadDir(testProcessOkDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		Process(context.Background(), filepath.Join(testProcessOkDir, entry.Name()))
+	}
 }
 
 func BenchmarkIDCollisionCheck(b *testing.B) {
