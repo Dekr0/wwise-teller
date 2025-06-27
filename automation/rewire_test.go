@@ -16,13 +16,15 @@ import (
 	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
-var testRewireOkDir string = "./tests/csvs/ok"
-var testRewireCompleteDir string = "./tests/csvs/ok/complete"
-var testRewirePartialDir string = "./tests/csvs/ok/partial"
-var testRewireFailDir string = "./tests/csvs/fail"
+var testRewire string = filepath.Join(os.Getenv("TESTS"), "rewire")
+var testRewireNew string = filepath.Join(testRewire, "new")
+var testRewireNewOkDir string = filepath.Join(testRewire, "ok")
+var testRewireNewCompleteDir string = filepath.Join(testRewireNewOkDir, "complete")
+var testRewireNewPartialDir string = filepath.Join(testRewireNewOkDir, "partial")
+var testRewireNewFailDir string = filepath.Join(testRewire, "fail")
 
 func TestParseRewireHeaderOk(t *testing.T) {
-	tests, err := os.ReadDir(testRewireOkDir)
+	tests, err := os.ReadDir(testRewireNewOkDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +35,7 @@ func TestParseRewireHeaderOk(t *testing.T) {
 		if test.IsDir() {
 			continue
 		}
-		p = filepath.Join(testRewireOkDir, test.Name())
+		p = filepath.Join(testRewireNewOkDir, test.Name())
 		f, err := os.Open(p)
 		if err != nil {
 			t.Fatal(err)
@@ -48,7 +50,7 @@ func TestParseRewireHeaderOk(t *testing.T) {
 }
 
 func TestParseRewireHeaderFail(t *testing.T) {
-	tests, err := os.ReadDir(testRewireFailDir)
+	tests, err := os.ReadDir(testRewireNewFailDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +61,7 @@ func TestParseRewireHeaderFail(t *testing.T) {
 		if test.IsDir() {
 			continue
 		}
-		p = filepath.Join(testRewireFailDir, test.Name())
+		p = filepath.Join(testRewireNewFailDir, test.Name())
 		f, err := os.Open(p)
 		if err != nil {
 			t.Fatal(err)
@@ -81,7 +83,6 @@ type RewireWithNewSourcesTest struct {
 }
 
 func TestRewireWithNewSources(t *testing.T) {
-	setDatabaseEnv()
 	waapi.InitTmp()
 	tests := []RewireWithNewSourcesTest{
 		{
@@ -99,7 +100,7 @@ func TestRewireWithNewSources(t *testing.T) {
 		defer cancel()
 
 		bnk, err := parser.ParseBank(
-			filepath.Join(testBankDir, test.Bank),
+			filepath.Join(testStBankDir, test.Bank),
 			ctx,
 		)
 		if err != nil {
@@ -117,7 +118,7 @@ func TestRewireWithNewSources(t *testing.T) {
 		if err := RewireWithNewSources(
 			ctx,
 			bnk,
-			filepath.Join(testRewireCompleteDir, test.CSV),
+			filepath.Join(testRewireNewCompleteDir, test.CSV),
 			false,
 		); err != nil {
 			if err == wwise.NoHIRC {
@@ -130,7 +131,6 @@ func TestRewireWithNewSources(t *testing.T) {
 }
 
 func TestRewireWithNewSourcesPartial(t *testing.T) {
-	setDatabaseEnv()
 	waapi.InitTmp()
 	tests := []RewireWithNewSourcesTest{
 		{
@@ -148,7 +148,7 @@ func TestRewireWithNewSourcesPartial(t *testing.T) {
 		defer cancel()
 
 		bnk, err := parser.ParseBank(
-			filepath.Join(testBankDir, test.Bank),
+			filepath.Join(testStBankDir, test.Bank),
 			ctx,
 		)
 		if err != nil {
@@ -166,7 +166,7 @@ func TestRewireWithNewSourcesPartial(t *testing.T) {
 		if err := RewireWithNewSources(
 			ctx,
 			bnk,
-			filepath.Join(testRewirePartialDir, test.CSV),
+			filepath.Join(testRewireNewPartialDir, test.CSV),
 			false,
 		); err != nil {
 			if err == wwise.NoHIRC {
