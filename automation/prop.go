@@ -97,6 +97,11 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 		}
 		if m.HDRActiveRange >= 0.0 {
 			// Enable HDR Envelope and set HDR Active range
+			b.SetEnableEnvelope(true)
+			i, _ := b.PropBundle.HDRActiveRange()
+			if i != -1 {
+				b.PropBundle.SetPropByIdxF32(i, m.HDRActiveRange)
+			}
 		}
 		for _, p := range m.DeleteProps {
 			if !slices.Contains(wwise.BasePropType, p) {
