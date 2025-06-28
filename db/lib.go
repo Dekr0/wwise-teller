@@ -86,7 +86,7 @@ func CreateDefaultConnWithTxQuery(ctx context.Context) (*id.Queries, func(), fun
 	}
 	rollback := func() {
 		if err := tx.Rollback(); err != nil {
-			slog.Error("Failed to rollback database transaction", "error", err)
+			slog.Error("Failed to rollback database transaction. Please manually rollback database by using the backup database", "error", err)
 		}
 	}
 	return id.New(db).WithTx(tx), closeDb, commit, rollback, nil
