@@ -42,8 +42,8 @@ func TestParseRewireHeaderOk(t *testing.T) {
 		}
 		b = filepath.Base(p)
 		reader := csv.NewReader(f)
-		header := CSVHeader{Workspace: b, Type: 0}
-		if err = ParseRewireHeader(&header, reader); err != nil {
+		header := RewireWithNewSourcesHeader{Workspace: b, Type: 0}
+		if err = ParseRewireWithNewSourcesHeader(&header, reader); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -68,8 +68,8 @@ func TestParseRewireHeaderFail(t *testing.T) {
 		}
 		b = filepath.Base(p)
 		reader := csv.NewReader(f)
-		header := CSVHeader{Workspace: b, Type: 0}
-		if err = ParseRewireHeader(&header, reader); err == nil {
+		header := RewireWithNewSourcesHeader{Workspace: b, Type: 0}
+		if err = ParseRewireWithNewSourcesHeader(&header, reader); err == nil {
 			t.Fatalf("Expecting test case %s to fail", p)
 		} else {
 			t.Log(err)
