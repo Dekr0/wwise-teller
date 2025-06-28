@@ -29,9 +29,11 @@ type HIRC struct {
 
 	// Master Mixer Hierarchy 8
 	Buses             sync.Map
+	BusRoots        []BusHircNode
+
 	Attenuations      sync.Map
-	FxShareSets       sync.Map
-	FxCustoms         sync.Map
+	FxShareSets       sync.Map // Share the same ID with Aux Bus that use this FX
+	FxCustoms         sync.Map // Share the same ID with Aux Bus that use this FX
 	AuxBuses          sync.Map
 	LFOModulators     sync.Map
 	EnvelopeModulator sync.Map
