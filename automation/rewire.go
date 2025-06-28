@@ -426,7 +426,7 @@ func CheckWorkspaceRow(reader *csv.Reader, init string, row uint16) (string, err
 				slog.Error(fmt.Sprintf("Workspace %s does not exist.", overwrite))
 				return init, nil 
 			}
-			slog.Error(fmt.Sprintf("Failed to obtain information of workspace path %s: %w", overwrite, err))
+			slog.Error(fmt.Sprintf("Failed to obtain information of workspace path %s", overwrite), "error", err)
 			return init, nil
 		}
 		if !stat.IsDir() {
