@@ -88,7 +88,7 @@ func ParseImportAsRanSeqCntrScript(s *ImportAsRanSeqCntrScript, script string) (
 			return nil, err
 		}
 		if s.HDRActiveRange > 24.0 {
-			return nil, fmt.Errorf("HDR Active Range value %d is not in between 0.0 and 24.0")
+			return nil, fmt.Errorf("HDR Active Range value %f is not in between 0.0 and 24.0", s.HDRActiveRange)
 		}
 	}
 
@@ -184,7 +184,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	switch v.(wwise.HircObj).(type) {
 	case *wwise.RanSeqCntr:
 	default:
-		return fmt.Errorf("Actor mixer hierarchy object is not type of random / sequence container.", s.RefContainer)
+		return fmt.Errorf("Actor mixer hierarchy object %d is not type of random / sequence container.", s.RefContainer)
 	}
 	refCntr := v.(*wwise.RanSeqCntr)
 	if refCntr == nil {
@@ -275,7 +275,16 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 		}
 	}
 	newCntr := refCntr.Clone(newCntrId, false)
+	if s.Seq {
+		newCntr.PlayListSetting.Mode = wwise.ModeSequence
+		newCntr.PlayListSetting.SetResetPlayListAtEachPlay(false)
+	} else {
+		newCntr.PlayListSetting.Mode = wwise.ModeRandom
+		newCntr.PlayListSetting.SetResetPlayListAtEachPlay(true)
+	}
 	b := &newCntr.BaseParam
+	b.AdvanceSetting.SetIgnoreParentMaxNumInst(true)
+	b.AdvanceSetting.MaxNumInstance = s.PlaybackLimit
 	p := &b.PropBundle
 	buf := make([]byte, 4) 
 	if idx, in := p.HasPid(wwise.PropTypeMakeUpGain); !in {
