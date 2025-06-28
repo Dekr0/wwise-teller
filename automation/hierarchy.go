@@ -2,6 +2,7 @@ package automation
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/Dekr0/wwise-teller/db"
 	"github.com/Dekr0/wwise-teller/waapi"
+	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
@@ -273,10 +275,34 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 		}
 	}
 	newCntr := refCntr.Clone(newCntrId, false)
+	b := &newCntr.BaseParam
+	p := &b.PropBundle
+	buf := make([]byte, 4) 
+	if idx, in := p.HasPid(wwise.PropTypeMakeUpGain); !in {
+		binary.Encode(buf, wio.ByteOrder, s.MakeUpGain)
+		p.AddWithVal(wwise.PropTypeMakeUpGain, [4]byte(buf))
+	} else {
+		p.SetPropByIdxF32(idx, s.MakeUpGain)
+	}
+	if idx, in := p.HasPid(wwise.PropTypeInitialDelay); !in {
+		binary.Encode(buf, wio.ByteOrder, s.InitialDelay)
+		p.AddWithVal(wwise.PropTypeInitialDelay, [4]byte(buf))
+	} else {
+		p.SetPropByIdxF32(idx, s.InitialDelay)
+	}
+	if s.HDRActiveRange >= 0.0 {
+		// Enable HDR Envelope and set HDR Active range
+		b.SetEnableEnvelope(true)
+		i, _ := p.HDRActiveRange()
+		if i != -1 {
+			p.SetPropByIdxF32(i, s.HDRActiveRange)
+		}
+	}
 	if err := h.AppendNewRanSeqCntrToActorMixer(&newCntr, s.Parent); err != nil {
 		rollback()
 		return fmt.Errorf("Failed to add a new random / sequence container to actor mixer %d: %w", s.Parent, err)
 	}
+
 	var newSound *wwise.Sound
 	var pluginID uint32
 	for i := range newAudioDatas {
