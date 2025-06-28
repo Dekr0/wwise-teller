@@ -169,7 +169,7 @@ func ParseProcessor(fspec string) (*Processor, error) {
 				return true
 			}
 			switch n.Type {
-			case RewireWithNewSourcesType, RewireWithOldSourcesType, BasePropModifiersType:
+			case RewireWithNewSourcesType, RewireWithOldSourcesType, BasePropModifiersType, ImportAsRanSeqCntrType:
 			default:
 				slog.Error(fmt.Sprintf("Unsupported process script type %d", n.Type))
 				return true
