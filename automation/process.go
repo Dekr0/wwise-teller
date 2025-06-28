@@ -25,6 +25,7 @@ const (
 	RewireWithNewSourcesType ProcessScriptType = 0
 	RewireWithOldSourcesType ProcessScriptType = 1
 	BasePropModifiersType    ProcessScriptType = 2
+	ImportAsRanSeqCntrType   ProcessScriptType = 3
 )
 
 type Processor struct {
@@ -270,6 +271,8 @@ func RunProcessScripts(
 			err = RewireWithNewSources(ctx, bnk, script.Script, false)
 		case BasePropModifiersType:
 			err = ProcessBaseProps(bnk, script.Script)
+		case ImportAsRanSeqCntrType:
+			err = ImportAsRanSeqCntr(ctx, bnk, script.Script)
 		default:
 			panic("Panic Trap")
 		}
