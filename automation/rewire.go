@@ -23,12 +23,11 @@ const (
 
 type RewireType uint8;
 
-type CSVHeader struct {
+type RewireWithNewSourcesHeader struct {
 	Workspace  string
-	Type       RewireType
 	Conversion string
+	Type       RewireType
 	Format     waapi.ConversionFormatType
-	Project    string
 }
 
 func RewireWithNewSources(
@@ -37,9 +36,24 @@ func RewireWithNewSources(
 	mappingFile string,
 	dry         bool,
 ) error {
+	if bnk.DIDX() == nil {
+		return wwise.NoDIDX
+	}
+	if bnk.DATA() == nil {
+		return wwise.NoDATA
+	}
 	h := bnk.HIRC()
 	if h == nil {
 		return wwise.NoHIRC
+	}
+
+	proj, err := waapi.GetProject()
+	if err != nil {
+		return err
+	}
+	err = db.CheckDatabaseEnv()
+	if err != nil {
+		return err
 	}
 
 	f, err := os.Open(mappingFile)
@@ -49,17 +63,18 @@ func RewireWithNewSources(
 
 	reader := csv.NewReader(f)
 	iniDir := filepath.Base(mappingFile)
-	header := CSVHeader{
+	header := RewireWithNewSourcesHeader{
 		Workspace: iniDir,
 		Type: 0,
 	}
-	if err = ParseRewireHeader(&header, reader); err != nil {
+	row := uint16(0)
+	if err = ParseRewireWithNewSourcesHeader(&header, reader, &row); err != nil {
 		return err
 	}
 
 	wavsMapSound := make(map[string][]*wwise.Sound, 32)
 	if header.Type == RewireTypeSound {
-		err = ParseSoundMapping(reader, &header, h, wavsMapSound)
+		err = ParseSoundMapping(reader, &header, h, wavsMapSound, &row)
 		if err != nil {
 			return err
 		}
@@ -88,7 +103,7 @@ func RewireWithNewSources(
 		return nil
 	}
 
-	if err := waapi.WwiseConversion(ctx, wsource, header.Project); err != nil {
+	if err := waapi.WwiseConversion(ctx, wsource, proj); err != nil {
 		return err
 	}
 
@@ -177,98 +192,36 @@ func RewireWithNewSources(
 // project,absolute_path
 // type,0
 // workspace,workspace_relative_path_or_absolute_path
-func ParseRewireHeader(header *CSVHeader, reader *csv.Reader) error {
-	conversionRow, err := reader.Read()
+func ParseRewireWithNewSourcesHeader(
+	header *RewireWithNewSourcesHeader,
+	reader *csv.Reader,
+	row *uint16,
+) error {
+	var err error
+	header.Conversion, err = CheckConversionRow(reader, *row)
 	if err != nil {
-		return fmt.Errorf("Failed to obtain conversion setting: %w", err)
-	}
-	if !strings.EqualFold(conversionRow[0], "conversion") {
-		return fmt.Errorf("Expecting Row 1, Column 1 to be `conversion`")
-	}
-	if len(conversionRow) < 2 {
-		return fmt.Errorf("Missing conversion setting value")
-	}
-	header.Conversion = conversionRow[1]
-
-	formatRow, err := reader.Read()
-	if err != nil {
-		return fmt.Errorf("Failed to obtain format setting: %w", err)
-	}
-	if !strings.EqualFold(formatRow[0], "format") {
-		return fmt.Errorf("Expecting Row 2, Column 1 to be `format`")
-	}
-	if len(formatRow) < 2 {
-		return fmt.Errorf("Missing format setting value")
-	}
-	format, err := strconv.Atoi(formatRow[1])
-	if err != nil {
-		return fmt.Errorf("Failed to parse format setting value: %w", err)
-	}
-	if format < int(waapi.ConversionFormatTypePCM) || 
-	   format > int(waapi.ConversionFormatTypeWEMOpus) {
-		return fmt.Errorf("Invalid format setting value %d", format)
-	}
-	header.Format = waapi.ConversionFormatType(format)
-
-	projRow, err := reader.Read()
-	if err != nil {
-		return fmt.Errorf("Failed to obtain project path: %w", err)
-	}
-	if !strings.EqualFold(projRow[0], "project") {
-		return fmt.Errorf("Expecting Row 3, Column 1 to be `project`")
-	}
-	if len(projRow) < 2 {
-		return fmt.Errorf("Missing project path")
-	}
-	if !filepath.IsAbs(projRow[1]) {
-		return fmt.Errorf("Project path %s is not in absolute path", projRow[1])
-	}
-	if _, err := os.Lstat(projRow[1]); err != nil {
 		return err
 	}
-	header.Project = projRow[1]
+	*row += 1
 
-	rewireTypeRow, err := reader.Read()
+	header.Format, err = CheckFormatRow(reader, *row)
 	if err != nil {
-		return fmt.Errorf("Failed to obtain rewire type value: %w", err)
+		return err
 	}
-	if !strings.EqualFold(rewireTypeRow[0], "type") {
-		return fmt.Errorf("Expecting Row, 4, Column 1 to be `type`")
-	}
-	if len(rewireTypeRow) < 2 {
-		return fmt.Errorf("Missing rewire type")
-	}
-	rewireType, err := strconv.Atoi(rewireTypeRow[1])
-	if err != nil {
-		return fmt.Errorf("Failed to parse rewire type: %w", err)
-	}
-	if rewireType < int(RewireTypeSound) || rewireType > int(RewireTypeCntr) {
-		return fmt.Errorf("Invalid rewire type %d", rewireType)
-	}
-	header.Type = RewireType(rewireType)
+	*row += 1
 
-	workspace_line, err := reader.Read()
+	header.Type, err = CheckRewireTypeRow(reader, *row)
 	if err != nil {
-		return fmt.Errorf("Failed to obtain workspace directory: %w", err)
+		return err
 	}
-	if !strings.EqualFold(workspace_line[0], "workspace") {
-		return fmt.Errorf("Expecting Row 5, Column 1 to be `workspace`")
+	*row += 1
+
+	header.Workspace, err = CheckWorkspaceRow(reader, header.Workspace, *row)
+	if err != nil {
+		return err
 	}
-	// If workspace value is provided, overwrite default
-	if len(workspace_line) >= 2 && len(workspace_line[1]) > 0 {
-		overwrite := workspace_line[1]
-		if !filepath.IsAbs(overwrite) {
-			return fmt.Errorf("Workspace path %s is not in full path format", overwrite)
-		}
-		_, err := os.Lstat(overwrite)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return fmt.Errorf("Workspace %s does not exist", overwrite)
-			}
-			return fmt.Errorf("Failed to obtain information of workspace path %s: %w", overwrite, err)
-		}
-		header.Workspace = overwrite
-	}
+	*row += 1
+
 	return nil
 }
 
@@ -286,11 +239,11 @@ func ParseRewireHeader(header *CSVHeader, reader *csv.Reader) error {
 // Merge duplicate input
 func ParseSoundMapping(
 	reader *csv.Reader,
-	header *CSVHeader,
+	header *RewireWithNewSourcesHeader,
 	h *wwise.HIRC,
 	wavsMapping map[string][]*wwise.Sound,
+	rowNum *uint16,
 ) error {
-	rowNum := 2
 	var err   error
 	var row []string
 	var input, ext string
@@ -305,7 +258,7 @@ func ParseSoundMapping(
 		// Syntax
 		if len(row) < 2 {
 			slog.Error(fmt.Sprintf("Expecting two columns, filename and # of targeting sound IDs, at row %d", rowNum))
-			rowNum += 1
+			*rowNum += 1
 			continue
 		}
 
@@ -318,7 +271,7 @@ func ParseSoundMapping(
 		}
 		if ext != ".wav" {
 			slog.Error("Wave file is the only supported file format.")
-			rowNum += 1
+			*rowNum += 1
 			continue
 		}
 
@@ -331,7 +284,7 @@ func ParseSoundMapping(
 		_, err = os.Lstat(input)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Failed to obtain info of wave file %s", input), "error", err)
-			rowNum += 1
+			*rowNum += 1
 			continue
 		}
 
@@ -389,8 +342,98 @@ func ParseSoundMapping(
 			}
 			wavsMapping[input] = sounds
 		}
-		rowNum += 1
+		*rowNum += 1
 	}
 
 	return nil
+}
+
+func CheckConversionRow(reader *csv.Reader, row uint16) (string, error) {
+	conversionRow, err := reader.Read()
+	if err != nil {
+		return "", fmt.Errorf("Failed to obtain conversion setting: %w", err)
+	}
+	if !strings.EqualFold(conversionRow[0], "conversion") {
+		return "", fmt.Errorf("Expecting Row %d, Column 1 to be `conversion`", row)
+	}
+	if len(conversionRow) < 2 {
+		return "", fmt.Errorf("Missing conversion setting value")
+	}
+	return conversionRow[1], nil
+}
+
+func CheckFormatRow(reader *csv.Reader, row uint16) (waapi.ConversionFormatType, error) {
+	formatRow, err := reader.Read()
+	if err != nil {
+		return 0, fmt.Errorf("Failed to obtain format setting: %w", err)
+	}
+	if !strings.EqualFold(formatRow[0], "format") {
+		return 0, fmt.Errorf("Expecting Row %d, Column 1 to be `format`", row)
+	}
+	if len(formatRow) < 2 {
+		return 0, fmt.Errorf("Missing format setting value")
+	}
+	format, err := strconv.Atoi(formatRow[1])
+	if err != nil {
+		return 0, fmt.Errorf("Failed to parse format setting value: %w", err)
+	}
+	if format < int(waapi.ConversionFormatTypePCM) || 
+	   format > int(waapi.ConversionFormatTypeWEMOpus) {
+		return 0, fmt.Errorf("Invalid format setting value %d", format)
+	}
+	return waapi.ConversionFormatType(format), nil
+}
+
+func CheckRewireTypeRow(reader *csv.Reader, row uint16) (RewireType, error) {
+	rewireTypeRow, err := reader.Read()
+	if err != nil {
+		return 0, fmt.Errorf("Failed to obtain rewire type value: %w", err)
+	}
+	if !strings.EqualFold(rewireTypeRow[0], "type") {
+		return 0, fmt.Errorf("Expecting Row %d, Column 1 to be `type`", row)
+	}
+	if len(rewireTypeRow) < 2 {
+		return 0, fmt.Errorf("Missing rewire type")
+	}
+	rewireType, err := strconv.Atoi(rewireTypeRow[1])
+	if err != nil {
+		return 0, fmt.Errorf("Failed to parse rewire type: %w", err)
+	}
+	if rewireType < int(RewireTypeSound) || rewireType > int(RewireTypeCntr) {
+		return 0, fmt.Errorf("Invalid rewire type %d", rewireType)
+	}
+	return RewireType(rewireType), nil
+}
+
+func CheckWorkspaceRow(reader *csv.Reader, init string, row uint16) (string, error) {
+	workspaceRow, err := reader.Read()
+	if err != nil {
+		return "", fmt.Errorf("Failed to obtain workspace directory: %w", err)
+	}
+	if !strings.EqualFold(workspaceRow[0], "workspace") {
+		return "", fmt.Errorf("Expecting Row %d, Column 1 to be `workspace`", row)
+	}
+	// If workspace value is provided, overwrite default
+	if len(workspaceRow) >= 2 && len(workspaceRow[1]) > 0 {
+		overwrite := workspaceRow[1]
+		if !filepath.IsAbs(overwrite) {
+			slog.Error(fmt.Sprintf("Workspace path %s is not an absolute path.", overwrite))
+			return init, nil
+		}
+		stat, err := os.Lstat(overwrite)
+		if err != nil {
+			if os.IsNotExist(err) {
+				slog.Error(fmt.Sprintf("Workspace %s does not exist.", overwrite))
+				return init, nil 
+			}
+			slog.Error(fmt.Sprintf("Failed to obtain information of workspace path %s: %w", overwrite, err))
+			return init, nil
+		}
+		if !stat.IsDir() {
+			slog.Error(fmt.Sprintf("Workspace %s is not a directory", overwrite))
+			return init, nil
+		}
+		return overwrite, nil
+	}
+	return init, nil
 }
