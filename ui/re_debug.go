@@ -53,7 +53,7 @@ func renderDebug(bnkMngr *be.BankManager) {
 	}
 	imgui.Text(fmt.Sprintf("Mounted Init.bnk: %s", mountedBnk))
 	imgui.SeparatorText("Modal")
-	imgui.Text(fmt.Sprintf("# of modals: %d", len(GlobalCtx.ModalQ.modals)))
+	imgui.Text(fmt.Sprintf("# of modals: %d", len(GlobalCtx.ModalQ.Modals)))
 	imgui.SeparatorText("Event Loop")
 	stat := GlobalCtx.Loop.TaskStatus()
 	imgui.Text(fmt.Sprintf("Sync task counter: %d", GlobalCtx.Loop.SyncTaskCounter))
