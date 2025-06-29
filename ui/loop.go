@@ -69,15 +69,11 @@ func Run() error {
 		return err
 	}
 
-	conf, err := config.Load()
+	err = config.Load(&GlobalCtx.Config)
 	if err != nil {
 		return err
 	}
 	slog.Info("Loaded configuration file")
-
-	loop := async.NewEventLoop()
-	slog.Info("Created event loop")
-	modalQ := NewModalQ()
 
 	bnkMngr := &be.BankManager{WriteLock: atomic.Bool{}}
 	bnkMngr.WriteLock.Store(false)
@@ -86,7 +82,7 @@ func Run() error {
 	dockMngr := dockmanager.NewDockManager()
 
 	fileExplorer, err := fs.NewFileExplorer(
-		openSoundBankFunc(loop, bnkMngr), conf.Home,
+		openSoundBankFunc(bnkMngr), GlobalCtx.Config.Home,
 	)
 	if err != nil {
 		return err
@@ -100,9 +96,9 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-	backend.SetAfterRenderHook(createAfterRenderHook(loop, nQ))
+	backend.SetAfterRenderHook(createAfterRenderHook(nQ))
 	backend.SetBeforeDestroyContextHook(func() {
-		if err := conf.Save(); err != nil {
+		if err := GlobalCtx.Config.Save(); err != nil {
 			slog.Error("Failed to save configuration file", "error", err)
 		}
 		logF.Close()
@@ -115,12 +111,9 @@ func Run() error {
 	slog.Info("Setup ImGUI context and configuration")
 
 	backend.Run(createLoop(
-		conf,
-		loop,
-		modalQ,
 		dockMngr,
 		fileExplorer,
-		NewCmdPaletteMngr(dockMngr, conf, loop, modalQ),
+		NewCmdPaletteMngr(dockMngr),
 		bnkMngr, 
 		nQ,
 		gLog,
@@ -152,9 +145,9 @@ func setupImGUI() error {
 	return nil
 }
 
-func createAfterRenderHook(loop *async.EventLoop, nQ *notify.NotifyQ) func() {
+func createAfterRenderHook(nQ *notify.NotifyQ) func() {
 	return func() {
-		for _, onDone := range loop.Update() {
+		for _, onDone := range GlobalCtx.Loop.Update() {
 			nQ.Q(onDone, time.Second * 8)
 		}
 	}
@@ -165,9 +158,6 @@ func createAfterRenderHook(loop *async.EventLoop, nQ *notify.NotifyQ) func() {
 // 2. If point 1 cannot be done, a render function only accept the state it needs 
 // to use
 func createLoop(
-	conf *config.Config,
-	loop *async.EventLoop,
-	modalQ *ModalQ,
 	dockMngr *dockmanager.DockManager,
 	fileExplorer *fs.FileExplorer,
 	cmdPaletteMngr *CmdPaletteMngr,
@@ -190,7 +180,7 @@ func createLoop(
 			imgui.SetWindowFocusStr(dockMngr.Focus())
 		}
 
-		renderStatusBar(loop.AsyncTasks)
+		renderStatusBar(GlobalCtx.Loop.AsyncTasks)
 
 		imgui.SetNextWindowPos(viewport.WorkPos())
 		imgui.SetNextWindowSize(viewport.WorkSize())
@@ -206,14 +196,15 @@ func createLoop(
 			imgui.NewEmptyWindowClass(),
 		)
 
-		renderMainMenuBar(dockMngr, conf, cmdPaletteMngr, modalQ, loop)
-		modalQ.renderModal()
+		renderMainMenuBar(dockMngr, cmdPaletteMngr)
+		GlobalCtx.ModalQ.renderModal()
 		glog.RenderLog(gLog)
-		renderDebug(bnkMngr, loop, modalQ)
-		renderFileExplorer(fileExplorer, modalQ)
-		renderBankExplorer(bnkMngr, conf, modalQ, loop)
+		renderDebug(bnkMngr)
+		renderFileExplorer(fileExplorer)
+		renderBankExplorer(bnkMngr)
 		renderActorMixerHircTree(bnkMngr.ActiveBank)
 		renderMusicHircTree(bnkMngr.ActiveBank)
+		renderMasterMixerHierarchy(bnkMngr.ActiveBank)
 		renderObjEditorActorMixer(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank)
 		renderObjEditorMusic(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank)
 		renderBusViewer(bnkMngr.ActiveBank)
