@@ -32,43 +32,42 @@ func initHome() (string, error) {
 	return home, nil
 }
 
-func New() (*Config, error) {
+func New(c *Config) error {
 	home, err := initHome()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &Config{
-		Home: home, Bookmark: []string{},
-	}, nil
+	c.Home = home
+	c.Bookmark = []string{}
+	return nil
 }
 
-func Scratch() (*Config, error) {
-	c, err := New()
+func Scratch(c *Config) error {
+	err := New(c)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return c, c.Save()
+	return c.Save()
 }
 
-func Load() (*Config, error) {
+func Load(c *Config) error {
 	_, err := os.Lstat(DefaultConfigPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return Scratch()
+			return Scratch(c)
 		}
-		return nil, err
+		return err
 	}
 	
 	reader, err := os.Open(DefaultConfigPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var c Config
-	if err = json.NewDecoder(reader).Decode(&c); err != nil {
-		return nil, err
+	if err = json.NewDecoder(reader).Decode(c); err != nil {
+		return err
 	}
-	return &c, c.Check()
+	return c.Check()
 }
 
 func (c *Config) Save() error {
