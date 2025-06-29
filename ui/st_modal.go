@@ -16,11 +16,11 @@ type Modal struct {
 }
 
 type ModalQ struct {
-	modals []*Modal
+	Modals []*Modal
 }
 
-func NewModalQ() *ModalQ {
-	return &ModalQ{make([]*Modal, 0, 4)}
+func NewModalQ() ModalQ {
+	return ModalQ{make([]*Modal, 0, 4)}
 }
 
 func (m *ModalQ) QModal(
@@ -30,10 +30,10 @@ func (m *ModalQ) QModal(
 	loop func(),
 	onClose func(),
 ) {
-	if slices.ContainsFunc(m.modals, func(modal *Modal) bool {
+	if slices.ContainsFunc(m.Modals, func(modal *Modal) bool {
 		return strings.Compare(modal.name, name) == 0
 	}) {
 		return
 	}
-	m.modals = append(m.modals, &Modal{done, flag, name, loop, onClose})
+	m.Modals = append(m.Modals, &Modal{done, flag, name, loop, onClose})
 }
