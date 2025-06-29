@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/Dekr0/wwise-teller/config"
-	"github.com/Dekr0/wwise-teller/ui/async"
 	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
@@ -31,12 +29,7 @@ type CmdPaletteMngr struct {
 	selected   int
 }
 
-func NewCmdPaletteMngr(
-	dockMngr *dockmanager.DockManager,
-	conf *config.Config,
-	loop *async.EventLoop,
-	modalQ *ModalQ,
-) *CmdPaletteMngr {
+func NewCmdPaletteMngr(dockMngr *dockmanager.DockManager) *CmdPaletteMngr {
 	mngr := &CmdPaletteMngr{
 		"",
 		make([]*CmdPalette, 0, 16),
@@ -45,7 +38,7 @@ func NewCmdPaletteMngr(
 	}
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
 		"config",
-		func() { pushConfigModalFunc(modalQ, conf) },
+		func() { pushConfigModalFunc() },
 	})
 	for _, dw := range dockMngr.DockWindows {
 		c := dw
@@ -63,7 +56,7 @@ func NewCmdPaletteMngr(
 	}
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
 		"integration: extract sound banks from Helldivers 2 game archives",
-		func() { pushSelectGameArchiveModal(modalQ, loop, conf) },
+		func() { pushSelectGameArchiveModal() },
 	})
 
 	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{

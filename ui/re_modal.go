@@ -5,19 +5,17 @@ import (
 	"log/slog"
 
 	"github.com/AllenDang/cimgui-go/imgui"
-	"github.com/Dekr0/wwise-teller/config"
-	"github.com/Dekr0/wwise-teller/ui/async"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 )
 
 func (m *ModalQ) renderModal() {
-	if len(m.modals) <= 0 {
+	if len(m.Modals) <= 0 {
 		return
 	}
-	top := m.modals[len(m.modals)-1]
+	top := m.Modals[len(m.Modals)-1]
 	if *top.done {
 		imgui.CloseCurrentPopup()
-		m.modals = m.modals[:len(m.modals)-1]
+		m.Modals = m.Modals[:len(m.Modals)-1]
 		if top.onClose != nil {
 			top.onClose()
 		}
@@ -38,9 +36,9 @@ func (m *ModalQ) renderModal() {
 	}
 }
 
-func pushConfigModalFunc(modalQ *ModalQ, conf *config.Config) {
-	renderF, done := configModalFunc(modalQ, conf)
-	modalQ.QModal(
+func pushConfigModalFunc() {
+	renderF, done := configModalFunc()
+	GlobalCtx.ModalQ.QModal(
 		done,
 		imgui.WindowFlagsAlwaysAutoResize,
 		"Config",
@@ -48,9 +46,9 @@ func pushConfigModalFunc(modalQ *ModalQ, conf *config.Config) {
 	)
 }
 
-func pushSetHomeModal(modalQ *ModalQ, conf *config.Config) {
+func pushSetHomeModal() {
 	onSave := func(path string) {
-		if err := conf.SetHome(path); err != nil {
+		if err := GlobalCtx.Config.SetHome(path); err != nil {
 			slog.Error(
 				"Failed to set initial directory for file " +
 				"explorer",
@@ -58,7 +56,7 @@ func pushSetHomeModal(modalQ *ModalQ, conf *config.Config) {
 			)
 		}
 	}
-	renderF, done, err := saveFileDialogFunc(onSave, conf.Home)
+	renderF, done, err := saveFileDialogFunc(onSave, GlobalCtx.Config.Home)
 	if err != nil {
 		slog.Error(
 			"Failed to create save file dialog for setting initial" + 
@@ -66,7 +64,7 @@ func pushSetHomeModal(modalQ *ModalQ, conf *config.Config) {
 			"error", err,
 		)
 	} else {
-		modalQ.QModal(
+		GlobalCtx.ModalQ.QModal(
 			done,
 			0,
 			"Set starting directory for file explorer",
@@ -76,15 +74,12 @@ func pushSetHomeModal(modalQ *ModalQ, conf *config.Config) {
 }
 
 func pushSaveSoundBankModal(
-	modalQ *ModalQ,
-	loop *async.EventLoop,
-	conf *config.Config,
 	bnkMngr *be.BankManager,
 	saveTab *be.BankTab,
 	saveName string,
 ) {
-	onSave := saveSoundBankFunc(loop, bnkMngr, saveTab, saveName)
-	renderF, done, err := saveFileDialogFunc(onSave, conf.Home)
+	onSave := saveSoundBankFunc(bnkMngr, saveTab, saveName)
+	renderF, done, err := saveFileDialogFunc(onSave, GlobalCtx.Config.Home)
 	if err != nil {
 		slog.Error(
 			fmt.Sprintf("Failed create save file dialog for saving sound bank %s",
@@ -93,7 +88,7 @@ func pushSaveSoundBankModal(
 			"error", err,
 		)
 	} else {
-		modalQ.QModal(
+		GlobalCtx.ModalQ.QModal(
 			done,
 			0,
 			fmt.Sprintf("Save sound bank %s to ...", saveName),
@@ -103,15 +98,12 @@ func pushSaveSoundBankModal(
 }
 
 func pushHD2PatchModal(
-	modalQ *ModalQ,
-	loop *async.EventLoop,
-	conf *config.Config,
 	bnkMngr *be.BankManager,
 	saveTab *be.BankTab,
 	saveName string,
 ) {
-	onSave := HD2PatchFunc(loop, bnkMngr, saveTab, saveName)
-	if renderF, done, err := saveFileDialogFunc(onSave, conf.Home);
+	onSave := HD2PatchFunc(bnkMngr, saveTab, saveName)
+	if renderF, done, err := saveFileDialogFunc(onSave, GlobalCtx.Config.Home);
 	   err != nil {
 		slog.Error(
 			fmt.Sprintf("Failed create save file dialog for saving sound " +
@@ -120,7 +112,7 @@ func pushHD2PatchModal(
 			"error", err,
 		)
 	} else {
-		modalQ.QModal(
+		GlobalCtx.ModalQ.QModal(
 			done,
 			0,
 			fmt.Sprintf("Save sound bank %s to HD2 patch ...", saveName),
@@ -129,14 +121,10 @@ func pushHD2PatchModal(
 	}
 }
 
-func pushSelectGameArchiveModal(
-	modalQ *ModalQ,
-	loop *async.EventLoop,
-	conf *config.Config,
-) {
-	onOpen := selectGameArchiveFunc(modalQ, loop, conf)
+func pushSelectGameArchiveModal() {
+	onOpen := selectHD2ArchiveFunc()
 	renderF, done, err := openFileDialogFunc(
-		onOpen, false, conf.Home, []string{},
+		onOpen, false, GlobalCtx.Config.Home, []string{},
 	)
 	if err != nil {
 		slog.Error(
@@ -145,7 +133,7 @@ func pushSelectGameArchiveModal(
 			"error", err,
 		)
 	} else {
-		modalQ.QModal(
+		GlobalCtx.ModalQ.QModal(
 			done, 
 			0,
 			"Select Helldivers 2 game archives",
@@ -154,14 +142,9 @@ func pushSelectGameArchiveModal(
 	}
 }
 
-func pushExtractSoundBanksModal(
-	modalQ *ModalQ,
-	loop *async.EventLoop,
-	conf *config.Config,
-	paths []string,
-) {
-	onSave := extractSoundBanksFunc(loop, paths)
-	renderF, done, err := saveFileDialogFunc(onSave, conf.Home)
+func pushExtractSoundBanksModal(paths []string) {
+	onSave := extractHD2SoundBanksFunc(paths)
+	renderF, done, err := saveFileDialogFunc(onSave, GlobalCtx.Config.Home)
 	if err != nil {
 		slog.Error(
 			"Failed create save file dialog for saving extracted sound banks",
@@ -169,7 +152,7 @@ func pushExtractSoundBanksModal(
 		)
 		return
 	}
-	modalQ.QModal(
+	GlobalCtx.ModalQ.QModal(
 		done,
 		0,
 		"Save extracted sound banks to ...",
@@ -177,14 +160,14 @@ func pushExtractSoundBanksModal(
 	)
 }
 
-func pushCommandPaletteModal(modalQ *ModalQ, cmdPaletteMngr *CmdPaletteMngr) {
+func pushCommandPaletteModal(cmdPaletteMngr *CmdPaletteMngr) {
 	renderF, done := commandPaletteModal(cmdPaletteMngr)
-	modalQ.QModal(done, 0, "Command Palette", renderF, nil)
+	GlobalCtx.ModalQ.QModal(done, 0, "Command Palette", renderF, nil)
 }
 
-func pushSimpleTextModal(modalQ *ModalQ, title string, c func(string)) {
+func pushSimpleTextModal(title string, c func(string)) {
 	renderF, done := simpleTextModal(c)
-	modalQ.QModal(done, imgui.WindowFlagsAlwaysAutoResize, title, renderF, nil)
+	GlobalCtx.ModalQ.QModal(done, imgui.WindowFlagsAlwaysAutoResize, title, renderF, nil)
 }
 
 func simpleTextModal(c func(string)) (func(), *bool) {
