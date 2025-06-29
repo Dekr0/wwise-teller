@@ -20,6 +20,8 @@ const DefaultMultiSelectFlags = imgui.MultiSelectFlagsClearOnEscape |
 
 const DefaultSelectableFlags = imgui.SelectableFlagsSpanAllColumns
 
+const DefaultTreeFlags = imgui.TreeNodeFlagsSpanAllColumns | imgui.TreeNodeFlagsOpenOnDoubleClick
+
 const DefaultTabFlags = imgui.TabBarFlagsReorderable | 
 		         imgui.TabBarFlagsTabListPopupButton | 
 	             imgui.TabBarFlagsFittingPolicyScroll
