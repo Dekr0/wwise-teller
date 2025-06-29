@@ -7,15 +7,13 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
-	"github.com/Dekr0/wwise-teller/config"
-	"github.com/Dekr0/wwise-teller/ui/async"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBankExplorer(bnkMngr *be.BankManager, conf *config.Config, modalQ *ModalQ, loop *async.EventLoop) {
+func renderBankExplorer(bnkMngr *be.BankManager) {
 	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
-	renderBankExplorerMenu(bnkMngr, conf, modalQ, loop)
+	renderBankExplorerMenu(bnkMngr)
 	if imgui.BeginTabBarV("BankExplorerTabBar", DefaultTabFlags) {
 		paths := []string{}
 		bnkMngr.Banks.Range(func(key any, value any) bool {
@@ -148,18 +146,13 @@ func renderBankExplorerTab(path string, t *be.BankTab) {
 	}
 }
 
-func renderBankExplorerMenu(
-	bnkMngr *be.BankManager,
-	conf *config.Config,
-	modalQ *ModalQ,
-	loop *async.EventLoop,
-) {
+func renderBankExplorerMenu(bnkMngr *be.BankManager) {
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("File") {
 			if imgui.BeginMenuV("Save", !bnkMngr.WriteLock.Load()) {
 				bnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
-						pushSaveSoundBankModal(modalQ, loop, conf, bnkMngr, value.(*be.BankTab), key.(string))
+						pushSaveSoundBankModal(bnkMngr, value.(*be.BankTab), key.(string))
 						return false
 					}
 					return true
@@ -193,7 +186,7 @@ func renderBankExplorerMenu(
 				if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
 					bnkMngr.Banks.Range(func(key, value any) bool {
 						if imgui.MenuItemBool(key.(string)) {
-							pushHD2PatchModal(modalQ, loop, conf, bnkMngr, value.(*be.BankTab), key.(string))
+							pushHD2PatchModal(bnkMngr, value.(*be.BankTab), key.(string))
 							return false
 						}
 						return true
