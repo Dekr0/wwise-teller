@@ -187,3 +187,18 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 	}
 	return nil
 }
+
+func GetHelldivers2Data() (string, error) {
+	data := os.Getenv("HD2DATA")
+	if !filepath.IsAbs(data) {
+		return "", fmt.Errorf("Helldivers 2 data directory path %s is not an absolute path.", data)
+	}
+	stat, err := os.Lstat(data)
+	if err != nil {
+		return "", fmt.Errorf("Invalid Helldivers 2 data directory path %s: %w", data, err)
+	}
+	if !stat.IsDir() {
+		return "", fmt.Errorf("Helldivers 2 data directory path %s points to a file", data)
+	}
+	return data, nil
+}
