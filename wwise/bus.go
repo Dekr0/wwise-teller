@@ -91,6 +91,7 @@ type Bus struct {
 
 	ChannelConf               uint32
 	HDRBitVector              uint8
+	CanSetHDR                 int8
 	RecoveryTime              int32
 	MaxDuckVolume             float32
 	// NumDucks               uint32
