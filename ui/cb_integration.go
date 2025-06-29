@@ -6,30 +6,24 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/integration/helldivers"
-	"github.com/Dekr0/wwise-teller/ui/async"
 )
 
-func selectGameArchiveFunc(
-	modalQ *ModalQ,
-	loop *async.EventLoop,
-	conf *config.Config,
-) func([]string) {
+func selectHD2ArchiveFunc() func([]string) {
 	return func(paths []string) {
-		pushExtractSoundBanksModal(modalQ, loop, conf, paths)
+		pushExtractSoundBanksModal(paths)
 	}
 }
 
-func extractSoundBanksFunc(loop *async.EventLoop, paths []string) func(string) {
+func extractHD2SoundBanksFunc(paths []string) func(string) {
 	return func(dest string) {
 		for _, path := range paths {
-			dispatchExtractSoundBank(loop, path, dest)
+			dispatchHD2ExtractSoundBank(path, dest)
 		}
 	}
 }
 
-func dispatchExtractSoundBank(loop *async.EventLoop, path string, dest string) {
+func dispatchHD2ExtractSoundBank(path string, dest string) {
 	timeout, cancel := context.WithTimeout(
 		context.Background(), time.Second * 8,
 	)
@@ -49,7 +43,7 @@ func dispatchExtractSoundBank(loop *async.EventLoop, path string, dest string) {
 			)
 		}
 	}
-	err := loop.QTask(timeout, cancel, onProcMsg, onDoneMsg, f)
+	err := GlobalCtx.Loop.QTask(timeout, cancel, onProcMsg, onDoneMsg, f)
 	if err != nil {
 		slog.Error(
 			fmt.Sprintf(
