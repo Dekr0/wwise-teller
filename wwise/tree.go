@@ -63,7 +63,7 @@ func (h *HIRC) BuildTree() {
 	busNodes := make(map[uint32]*BusHircNode)
 	// This should be able to allocated in a deterministic manner because the 
 	// exact # can be accumulative during the parsing phase and post modification phase
-	h.BusRoots = []BusHircNode{}
+	h.BusRoots = []*BusHircNode{}
 	// First pass, obtain all nodes. Since bus hierarchy object does not keep 
 	// track of leaf buses with a list of IDs, there's chances that a leaf node 
 	// is allocated first but parent node is yet allocated.
@@ -81,7 +81,7 @@ func (h *HIRC) BuildTree() {
 			}
 			busNodes[bus.Id] = node
 			if bus.OverrideBusId == 0 {
-				h.BusRoots = append(h.BusRoots, *node)
+				h.BusRoots = append(h.BusRoots, node)
 			}
 		case *AuxBus:
 			node := &BusHircNode{
@@ -92,8 +92,10 @@ func (h *HIRC) BuildTree() {
 			}
 			busNodes[bus.Id] = node
 			if bus.OverrideBusId == 0 {
-				h.BusRoots = append(h.BusRoots, *node)
+				h.BusRoots = append(h.BusRoots, node)
 			}
+		default:
+			panic("Panic Trap")
 		}
 	}
 	// Second pass, construct tree
@@ -138,6 +140,36 @@ func (h *HIRC) BuildTree() {
 			root.LeafsIdx = slices.Insert(root.LeafsIdx, insertIdx, uint32(i))
 		}
 	}
+}
+
+// Resolve which bus can use enable HDR
+func (h *HIRC) HDRAvailability() {
+	for i := range h.HircObjs {
+		o := h.HircObjs[i]
+		switch bus := o.(type) {
+		case *Bus:
+			bus.CanSetHDR = h.CanSetHDR(bus, bus.OverrideBusId)
+		default:
+		}
+	}
+}
+
+func (h *HIRC) CanSetHDR(b *Bus, parentID uint32) int8 {
+	if parentID == 0 {
+		b.CanSetHDR = 1
+		return b.CanSetHDR
+	}
+	v, in := h.Buses.Load(parentID)
+	if !in {
+		panic("Panic Trap")
+	}
+	parentBus := v.(*Bus)
+	if parentBus.CanSetHDR != -1 {
+		b.CanSetHDR = parentBus.CanSetHDR
+		return b.CanSetHDR
+	}
+	b.CanSetHDR = h.CanSetHDR(parentBus, parentBus.OverrideBusId)
+	return b.CanSetHDR
 }
 
 func (h *HIRC) WalkActorMixerHircRoot(node *ActorMixerHircNode) {
