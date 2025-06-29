@@ -33,8 +33,8 @@ type Task struct {
 	Cancel context.CancelFunc
 }
 
-func NewEventLoop() *EventLoop {
-	return &EventLoop{
+func NewEventLoop() EventLoop {
+	return EventLoop{
 		SyncTaskCounter : 0,
 		SyncTasks       : make([]*Task, 0, InitialSycnTasks),
 		AsyncTaskCounter: 0,
