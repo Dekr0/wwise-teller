@@ -11,51 +11,50 @@ type ActionType              uint16
 type ActionParamType         uint8
 type ActionSpecificParamType uint8
 
-const ActionTypeCount = 42
-var ActionTypeName []string = []string{
-	"",
-	"Stop",
-	"Pause",
-	"Resume",
-	"Play",
-	"Play And Continue", // early (removed in later versions)
-	"Mute",
-	"Mute",
-	"Set Pitch", // AkPropID_Pitch
-	"Set Pitch", // AkPropID_Pitch
-	"Set Volume", // (none) / AkPropID_Volume (~v145) / AkPropID_FirstRtpc (v150) 
-	"Set Volume", // (none) / AkPropID_Volume (~v145) / AkPropID_FirstRtpc (v150)
-	"Set Bus Volume", // AkPropID_BusVolume
-	"Set Bus Volume", // AkPropID_BusVolume
-	"Set LPF", // AkPropID_LPF
-	"Set LPF", // AkPropID_LPF
-	"Use State",
-	"Use State",
-	"Set State",
-	"Set Game Parameter",
-	"Set Game Parameter",
-	"Event", // not in v150
-	"Event", // not in v150
-	"Event", // not in v150
-	"Set Switch",
-	"Bypass FX",
-	"Bypass FX",
-	"Break",
-	"Trigger",
-	"Seek",
-	"Release",
-	"Set Prop HPF", // AkPropID_HPF
-	"Play Event",
-	"Reset Play list",
-	"Play Event Unknown", // normally not defined
-	"Set Prop HPF", // AkPropID_HPF
-	"Set FX",
-	"Set FX",
-	"Bypass FX",
-	"Bypass FX",
-	"Bypass FX",
-	"Bypass FX",
-	"Bypass FX",
+var ActionTypeName map[uint16]string = map[uint16]string{
+	0x00: "",
+	0x01: "Stop",
+	0x02: "Pause",
+	0x03: "Resume",
+	0x04: "Play",
+	0x05: "Play And Continue", // early (removed in later versions)
+	0x06: "Mute",
+	0x07: "Mute",
+	0x08: "Set Pitch", // AkPropID_Pitch
+	0x09: "Set Pitch", // AkPropID_Pitch
+	0x0A: "Set Volume", // (none) / AkPropID_Volume (~v145) / AkPropID_FirstRtpc (v150) 
+	0x0B: "Set Volume", // (none) / AkPropID_Volume (~v145) / AkPropID_FirstRtpc (v150)
+	0x0C: "Set Bus Volume", // AkPropID_BusVolume
+	0x0D: "Set Bus Volume", // AkPropID_BusVolume
+	0x0E: "Set LPF", // AkPropID_LPF
+	0x0F: "Set LPF", // AkPropID_LPF
+	0x10: "Use State",
+	0x11: "Use State",
+	0x12: "Set State",
+	0x13: "Set Game Parameter",
+	0x14: "Set Game Parameter",
+	0x15: "Event", // not in v150
+	0x16: "Event", // not in v150
+	0x17: "Event", // not in v150
+	0x19: "Set Switch",
+	0x1A: "Bypass FX",
+	0x1B: "Bypass FX",
+	0x1C: "Break",
+	0x1D: "Trigger",
+	0x1E: "Seek",
+	0x1F: "Release",
+	0x20: "Set Prop HPF", // AkPropID_HPF
+	0x21: "Play Event",
+	0x22: "Reset Play list",
+	0x23: "Play Event Unknown", // normally not defined
+	0x30: "Set Prop HPF", // AkPropID_HPF
+	0x31: "Set FX",
+	0x32: "Set FX",
+	0x33: "Bypass FX",
+	0x34: "Bypass FX",
+	0x35: "Bypass FX",
+	0x36: "Bypass FX",
+	0x37: "Bypass FX",
 }
 
 const (
@@ -348,7 +347,7 @@ func (p *ActionNoParam) Clone() ActionParam {
 }
 
 type ActionActiveParam struct {
-	EnumFadeCurve    uint8
+	EnumFadeCurve    InterpCurveType
 	AkSpecificParam  ActionSpecificParam
 	ExceptParams   []ExceptParam
 }
@@ -390,7 +389,7 @@ func (p *ActionActiveParam) Encode() []byte {
 }
 
 type ActionPlayParam struct {
-	EnumFadeCurve uint8
+	EnumFadeCurve InterpCurveType
 	BankID        uint32
 }
 
@@ -416,7 +415,7 @@ func (p *ActionPlayParam) Encode() []byte {
 }
 
 type ActionSetValueParam struct {
-	EnumFadeCurve uint8
+	EnumFadeCurve InterpCurveType
 	AkSpecificParam ActionSpecificParam
 	ExceptParams  []ExceptParam
 }
@@ -523,6 +522,14 @@ func (p *ActionSetFXParam) Size() uint32 {
 	return 1 + 1 + 4 + 1 + 1 + uint32(len(p.ExceptParams)) * SizeOfExceptParam
 }
 
+func (p *ActionSetFXParam) AudioDeviceElement() bool {
+	return p.IsAudioDeviceElement == 1
+}
+
+func (p *ActionSetFXParam) Shared() bool {
+	return p.IsShared == 1
+}
+
 func (p *ActionSetFXParam) Clone() ActionParam {
 	return &ActionSetFXParam{
 		p.IsAudioDeviceElement,
@@ -559,6 +566,10 @@ func (p *ActionByPassFXParam) Size() uint32 {
 	return 1 + 1 + 1 + uint32(len(p.ExceptParams)) * SizeOfExceptParam
 }
 
+func (p *ActionByPassFXParam) ByPass() bool {
+	return p.IsByPass == 1
+}
+
 func (p *ActionByPassFXParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
 func (p *ActionByPassFXParam) Type() ActionParamType { return TypeActionBypassFXParam }
@@ -590,6 +601,36 @@ type ActionSeekParam struct {
 
 func (p *ActionSeekParam) Size() uint32 {
 	return 1 + 4 * 3 + 1 + 1 + uint32(len(p.ExceptParams))
+}
+
+func (p *ActionSeekParam) SeekRelativeDuration() bool {
+	return p.IsSeekRelativeDuration == 1
+}
+
+func (p *ActionSeekParam) SetSeekRelativeDuration(set bool) {
+	if set {
+		p.IsSeekRelativeDuration = 1
+		p.SeekValue = 0.0
+		p.SeekValueMin = 0.0
+		p.SeekValueMax = 0.0
+	} else {
+		p.IsSeekRelativeDuration = 0
+		p.SeekValue = 0.0
+		p.SeekValueMin = 0.0
+		p.SeekValueMax = 0.0
+	}
+}
+
+func (p *ActionSeekParam) IsSnapToNearestMark() bool {
+	return p.SnapToNearestMark == 1
+}
+
+func (p *ActionSeekParam) SetSnapToNearestMark(set bool) {
+	if set {
+		p.SnapToNearestMark = 1
+	} else {
+		p.SnapToNearestMark = 0
+	}
 }
 
 func (p *ActionSeekParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
