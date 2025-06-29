@@ -4,17 +4,13 @@ import (
 	"fmt"
 
 	"github.com/AllenDang/cimgui-go/imgui"
-	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/ui/async"
 	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 )
 
 func renderMainMenuBar(
 	dockMngr       *dockmanager.DockManager,
-	conf           *config.Config,
 	cmdPaletteMngr *CmdPaletteMngr,
-	modalQ         *ModalQ,
-	loop           *async.EventLoop,
 ) {
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("Layout") {
@@ -31,7 +27,7 @@ func renderMainMenuBar(
 			imgui.Vec4{X: 0.0, Y: 0.0, Z: 0.0, W: 0.0},
 		)
 		if imgui.Button("Config") {
-			pushConfigModalFunc(modalQ, conf)
+			pushConfigModalFunc()
 		}
 		imgui.PopStyleColor()
 
@@ -46,14 +42,14 @@ func renderMainMenuBar(
 			imgui.InputFlagsRouteGlobal,
 		)
 		if imgui.Button("Command") {
-			pushCommandPaletteModal(modalQ, cmdPaletteMngr)
+			pushCommandPaletteModal(cmdPaletteMngr)
 		}
 		imgui.PopStyleColor()
 
 		if imgui.BeginMenu("Integration") {
 			if imgui.BeginMenu("Helldivers 2") {
 				if imgui.MenuItemBool("Extract sound banks from game archives") {
-					pushSelectGameArchiveModal(modalQ, loop, conf)
+					pushSelectGameArchiveModal()
 				}
 				imgui.EndMenu()
 			}
