@@ -8,18 +8,16 @@ import (
 	"time"
 
 	"github.com/Dekr0/wwise-teller/integration/helldivers"
-	"github.com/Dekr0/wwise-teller/ui/async"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/utils"
 )
 
 func openSoundBankFunc(
-	loop *async.EventLoop,
 	bnkMngr *be.BankManager,
 ) func([]string) {
 	return func(paths []string) {
 		for _, path := range paths {
-			dispatchOpenSoundBank(path, bnkMngr, loop)
+			dispatchOpenSoundBank(path, bnkMngr)
 		}
 	}
 }
@@ -27,7 +25,6 @@ func openSoundBankFunc(
 func dispatchOpenSoundBank(
 	path string,
 	bnkMngr *be.BankManager,
-	loop *async.EventLoop,
 ) {
 	timeout, cancel := context.WithTimeout(
 		context.Background(), time.Second * 30,
@@ -35,7 +32,7 @@ func dispatchOpenSoundBank(
 	base := filepath.Base(path)
 	onProcMsg := fmt.Sprintf("Loading sound bank %s", base)
 	onDoneMsg := fmt.Sprintf("Loaded sound bank %s", base)
-	if err := loop.QTask(timeout, cancel,
+	if err := GlobalCtx.Loop.QTask(timeout, cancel,
 		onProcMsg, onDoneMsg,
 		func (ctx context.Context) {
 			slog.Info(onProcMsg)
@@ -56,7 +53,6 @@ func dispatchOpenSoundBank(
 }
 
 func saveSoundBankFunc(
-	loop *async.EventLoop,
 	bnkMngr *be.BankManager,
 	saveTab *be.BankTab,
 	saveName string,
@@ -69,7 +65,7 @@ func saveSoundBankFunc(
 		onProcMsg := fmt.Sprintf("Saving sound bank %s to %s", saveName, path)
 		onDoneMsg := fmt.Sprintf("Saved sound bank %s to %s", saveName, path)
 
-		if err := loop.QTask(timeout, cancel,
+		if err := GlobalCtx.Loop.QTask(timeout, cancel,
 			onProcMsg, onDoneMsg,
 			func (ctx context.Context) {
 				slog.Info(onProcMsg)
@@ -106,7 +102,6 @@ func saveSoundBankFunc(
 }
 
 func HD2PatchFunc(
-	loop *async.EventLoop,
 	bnkMngr *be.BankManager,
 	saveTab *be.BankTab,
 	saveName string,
@@ -121,7 +116,7 @@ func HD2PatchFunc(
 		onDoneMsg := fmt.Sprintf("Saved sound bank %s to HD2 patch %s",
 			saveName, path)
 
-		if err := loop.QTask(timeout, cancel, onProcMsg, onDoneMsg, 
+		if err := GlobalCtx.Loop.QTask(timeout, cancel, onProcMsg, onDoneMsg, 
 			func(ctx context.Context) {
 				slog.Info(onProcMsg)
 				bnkMngr.WriteLock.Store(true)
