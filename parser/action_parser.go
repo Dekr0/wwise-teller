@@ -193,7 +193,7 @@ func ParseActionNoParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam
 
 func ParseActionActiveParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
 	param := wwise.ActionActiveParam{
-		EnumFadeCurve: r.U8Unsafe(),
+		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
 		AkSpecificParam: p(r),
 		ExceptParams: make([]wwise.ExceptParam, r.U8Unsafe()),
 	}
@@ -203,14 +203,14 @@ func ParseActionActiveParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionP
 
 func ParseActionPlayParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
 	return &wwise.ActionPlayParam{
-		EnumFadeCurve: r.U8Unsafe(),
+		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
 		BankID: r.U32Unsafe(),
 	}
 }
 
 func ParseActionSetValueParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
 	param := &wwise.ActionSetValueParam{
-		EnumFadeCurve: r.U8Unsafe(),
+		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
 		AkSpecificParam: p(r),
 		ExceptParams: make([]wwise.ExceptParam, r.U8Unsafe()),
 	}
