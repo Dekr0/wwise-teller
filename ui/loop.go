@@ -44,8 +44,10 @@ func Run() error {
 
 	err := clipboard.Init()
 	if err != nil {
-		slog.Error("Failed to initialized clipboard. Copy content will only output to stdout.")
+		slog.Error("Failed to initialized clipboard. Copying is disabled")
+		GlobalCtx.CopyEnable = false
 	}
+	GlobalCtx.CopyEnable = true
 
 	// Begin of app state
 	gLog := &glog.GuiLog{
