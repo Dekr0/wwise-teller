@@ -273,6 +273,9 @@ func WwiseConversion(ctx context.Context, wsource string, project string) error 
 	)
 	res, err := cmd.CombinedOutput()
 	for line := range bytes.SplitSeq(res, []byte{'\n'}) {
+		if bytes.EqualFold(line, []byte{'\r'}) {
+			continue
+		}
 		slog.Info(string(line))
 	}
 	return err
