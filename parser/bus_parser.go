@@ -11,6 +11,7 @@ func ParseBus(size uint32, r *wio.Reader) *wwise.Bus {
 	begin := r.Pos()
 	bus := wwise.Bus{
 		Id: r.U32Unsafe(),
+		CanSetHDR: -1,
 		OverrideBusId: r.U32Unsafe(),
 	}
 	if bus.OverrideBusId == 0 {
