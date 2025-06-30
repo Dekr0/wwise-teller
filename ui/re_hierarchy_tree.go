@@ -4,11 +4,14 @@ package ui
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
+	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
+	"golang.design/x/clipboard"
 )
 
 func renderActorMixerHircTree(t *be.BankTab)  {
@@ -56,12 +59,18 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 	}
 
 	open := imgui.TreeNodeExStrV(sid, flags)
-	if imgui.IsItemClicked() {
+	if imgui.IsItemClickedV(imgui.MouseButtonLeft) {
 		if !imgui.CurrentIO().KeyCtrl() {
 			t.ActorMixerViewer.LinearStorage.Clear()
 		}
 		t.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(id), true)
 	}
+
+	if imgui.BeginPopupContextItem() {
+		renderActorMixerHircCtx(t, node, o, id)
+		imgui.EndPopup()
+	}
+
 	imgui.TableSetColumnIndex(1)
 	st := wwise.HircTypeName[o.HircType()]
 	if o.HircType() == wwise.HircTypeSound {
@@ -77,6 +86,73 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 		}
 		imgui.TreePop()
 	}
+}
+
+func renderActorMixerHircCtx(
+	t *be.BankTab,
+	node *wwise.ActorMixerHircNode,
+	o wwise.HircObj,
+	id uint32,
+) {
+	imgui.BeginDisabledV(GlobalCtx.CopyEnable)
+	if imgui.SelectableBool("Copy ID") {
+		clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
+		imgui.EndDisabled()
+		return
+	}
+	imgui.EndDisabled()
+
+	switch sound := node.Obj.(type) {
+	case *wwise.Sound:
+		imgui.BeginDisabledV(GlobalCtx.CopyEnable)
+		if imgui.SelectableBool("Copy Source ID") {
+			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
+			imgui.EndDisabled()
+			return
+		}
+		imgui.EndDisabled()
+	}
+
+	if len(node.Leafs) <= 1 {
+		return
+	}
+
+	imgui.BeginDisabledV(GlobalCtx.CopyEnable)
+	if imgui.SelectableBool("Copy Leafs' IDs") {
+		l := len(node.Leafs)
+		var builder strings.Builder
+		for i := range node.Leafs {
+			id, err := node.Leafs[l - i - 1].Obj.HircID()
+			if err != nil {
+				panic(err)
+			}
+			if _, err := builder.WriteString(fmt.Sprintf("%d\n", id)); err != nil {
+				slog.Error(fmt.Sprintf("Failed to copy leafs IDs of actor mixer hierarchy object %d", id), "error", err)
+			}
+		}
+		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
+		imgui.EndDisabled()
+		return
+	}
+	imgui.EndDisabled()
+
+	imgui.BeginDisabledV(GlobalCtx.CopyEnable)
+	if imgui.SelectableBool("Copy Leafs' Source IDs") {
+		l := len(node.Leafs)
+		var builder strings.Builder
+		for i := range node.Leafs {
+			switch sound := node.Leafs[l - i - 1].Obj.(type) {
+			case *wwise.Sound:
+				if _, err := builder.WriteString(fmt.Sprintf("%d\n", sound.BankSourceData.SourceID)); err != nil {
+					slog.Error(fmt.Sprintf("Failed to copy leafs IDs of actor mixer hierarchy object %d", id), "error", err)
+				}
+			}
+		}
+		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
+		imgui.EndDisabled()
+		return
+	}
+	imgui.EndDisabled()
 }
 
 func renderMusicHircTree(t *be.BankTab) {
