@@ -100,10 +100,14 @@ func renderAction(t *be.BankTab, a *wwise.Action) {
 		switch a.ActionParam.(type) {
 		case *wwise.ActionActiveParam:
 			t.SetActiveActorMixerHirc(a.IdExt)
+			// This is only handle at the end of rendering loop
+			// Thus, only Bank Explorer is focused
+			imgui.SetWindowFocusStr("Actor Mixer Hierarchy")
 			imgui.SetWindowFocusStr("Bank Explorer")
 			t.Focus = be.BankTabActorMixer
 		case *wwise.ActionPlayParam:
 			t.SetActiveActorMixerHirc(a.IdExt)
+			imgui.SetWindowFocusStr("Actor Mixer Hierarchy")
 			imgui.SetWindowFocusStr("Bank Explorer")
 			t.Focus = be.BankTabActorMixer
 		}
