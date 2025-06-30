@@ -69,6 +69,7 @@ func renderBusTable(t *be.BankTab) {
 		}
 		clipper := imgui.NewListClipper()
 		clipper.Begin(int32(len(filterState.Buses)))
+		text := ""
 		for clipper.Step() {
 			for n := clipper.DisplayStart(); n < clipper.DisplayEnd(); n++ {
 				bus := filterState.Buses[n]
@@ -92,11 +93,97 @@ func renderBusTable(t *be.BankTab) {
 					t.BusViewer.ActiveBus = bus
 				}
 
+				switch b := bus.(type) {
+				case *wwise.Bus:
+					if b.CanSetHDR == -1 {
+						panic(fmt.Sprintf("HDR Availability isn't resolve for Bus %d", b.Id))
+					}
+					if b.IsHDRBus() {
+						text = fmt.Sprintf("%s (HDR Bus)", wwise.HircTypeName[bus.HircType()])
+					} else {
+						text = wwise.HircTypeName[bus.HircType()]
+					}
+				case *wwise.AuxBus:
+					text = wwise.HircTypeName[bus.HircType()]
+				}
 				imgui.TableSetColumnIndex(1)
-				imgui.Text(wwise.HircTypeName[bus.HircType()])
+				imgui.Text(text)
 			}
 		}
 		imgui.EndTable()
+	}
+}
+
+func renderMasterMixerHierarchy(t *be.BankTab) {
+	imgui.Begin("Master Mixer Hierachy")
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
+		imgui.End()
+		return 
+	}
+	renderMasterMixerHierarchyTreeTable(t)
+	imgui.End()
+}
+
+func renderMasterMixerHierarchyTreeTable(t *be.BankTab) {
+	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
+	if imgui.BeginTableV("MasterMixerHierarchy", 2, flags, DefaultSize, 0) {
+		imgui.TableSetupColumn("Hierarchy ID")
+		imgui.TableSetupColumn("Hierarchy Type")
+		imgui.TableSetupScrollFreeze(0, 1)
+		imgui.TableHeadersRow()
+		for _, root := range t.Bank.HIRC().BusRoots {
+			renderMasterMixerHierarchyNode(t, root)
+		}
+		imgui.EndTable()
+	}
+}
+
+func renderMasterMixerHierarchyNode(t *be.BankTab, node *wwise.BusHircNode) {
+	o := node.Obj
+
+	var sid string
+	selected := false
+	id, err := o.HircID()
+	if err != nil { panic(err) }
+	sid = strconv.FormatUint(uint64(id), 10) 
+	selected = t.BusViewer.ActiveBus == o
+
+	imgui.TableNextRow()
+	imgui.TableSetColumnIndex(0)
+	flags := DefaultTreeFlags
+	if selected {
+		flags |= imgui.TreeNodeFlagsSelected
+	}
+	open := imgui.TreeNodeExStrV(sid, flags)
+	if imgui.IsItemClicked() {
+		t.BusViewer.ActiveBus = o
+	}
+
+	imgui.TableSetColumnIndex(1)
+	st := ""
+	switch bus := o.(type) {
+	case *wwise.Bus:
+		if bus.CanSetHDR == -1 {
+			panic(fmt.Sprintf("HDR Availability isn't resolve for Bus %d", bus.Id))
+		}
+		if bus.IsHDRBus() {
+			st = fmt.Sprintf("%s (HDR Bus)", wwise.HircTypeName[bus.HircType()])
+		} else {
+			st = wwise.HircTypeName[bus.HircType()]
+		}
+	case *wwise.AuxBus:
+		st = wwise.HircTypeName[bus.HircType()]
+	}
+	imgui.Text(st)
+	if open {
+		for _, leafIdx := range node.LeafsIdx {
+			if leaf, in := node.Leafs[leafIdx]; !in {
+				panic(fmt.Sprintf("Failed to locate leaf using leaf index in Bus %d", id))
+			} else {
+				renderMasterMixerHierarchyNode(t, leaf)
+			}
+		}
+		imgui.TreePop()
 	}
 }
 
@@ -114,7 +201,7 @@ func renderBusViewer(t *be.BankTab) {
 		case *wwise.AuxBus:
 			renderAuxBus(t, bus)
 		default:
-			panic("Panic trap")
+			panic("Non Master Mix Hierarchy object is in the bus viewer")
 		}
 	}
 
@@ -123,17 +210,35 @@ func renderBusViewer(t *be.BankTab) {
 
 func renderBus(t *be.BankTab, b *wwise.Bus) {
 	imgui.Text(fmt.Sprintf("Bus %d", b.Id))
-
+	imgui.Text(fmt.Sprintf("Override Bus ID (Parent Bus) %d", b.OverrideBusId))
+	if b.OverrideBusId != 0 {
+		imgui.SameLine()
+		if imgui.ArrowButton(fmt.Sprintf("GoToOverrideBus%d", b.OverrideBusId), imgui.DirRight) {
+			t.SetActiveBus(b.OverrideBusId)
+			imgui.SetWindowFocusStr("Buses")
+		}
+	}
 	renderBusAuxParam(t, &b.AuxParam, &b.PropBundle)
 	renderBusEarlyReflection(t, &b.AuxParam, &b.PropBundle)
+	renderHDR(b)
+	renderBusAdvanceSetting(b)
 	renderAllProp(&b.PropBundle, nil)
 	renderBusFxParam(t, &b.BusFxParam)
 }
 
 func renderAuxBus(t *be.BankTab, b *wwise.AuxBus) {
 	imgui.Text(fmt.Sprintf("Auxiliary Bus %d", b.Id))
+	imgui.Text(fmt.Sprintf("Override Bus ID (Parent Bus) %d", b.OverrideBusId))
+	if b.OverrideBusId != 0 {
+		imgui.SameLine()
+		if imgui.ArrowButton(fmt.Sprintf("GoToOverrideBus%d", b.OverrideBusId), imgui.DirRight) {
+			t.SetActiveBus(b.OverrideBusId)
+			imgui.SetWindowFocusStr("Buses")
+		}
+	}
 	renderBusAuxParam(t, &b.AuxParam, &b.PropBundle)
 	renderBusEarlyReflection(t, &b.AuxParam, &b.PropBundle)
+	renderAuxBusAdvanceSetting(b)
 	renderAllProp(&b.PropBundle, nil)
 	renderBusFxParam(t, &b.BusFxParam)
 }
@@ -412,6 +517,225 @@ func renderBusEarlyReflection(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBun
 		imgui.PopID()
 		imgui.EndDisabled()
 
+		imgui.TreePop()
+	}
+}
+
+func renderBusAdvanceSetting(b *wwise.Bus) {
+	if imgui.TreeNodeExStr("Advance Settings") {
+		DefaultSize.Y = 128
+		imgui.BeginChildStrV("BusAdvanceSetting", DefaultSize, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+		imgui.SeparatorText("Playback Limit")
+		{
+			imgui.BeginDisabledV(b.OverrideBusId == 0)
+			ignoreParent := b.IgnoreParentMaxNumInstance()
+			if imgui.Checkbox("Ignore Parent", &ignoreParent) {
+				b.SetIgnoreParentMaxNumInstance(ignoreParent)
+			}	
+			imgui.EndDisabled()
+		}
+		{
+			imgui.BeginDisabledV(b.OverrideBusId != 0 && !b.IgnoreParentMaxNumInstance())
+			{
+				imgui.Text("Limit sound instances to:")
+				imgui.SameLine()
+				maxNumInstance := int32(b.MaxNumInstance)
+				imgui.SetNextItemWidth(96)
+				// Zero is no limiting
+				if imgui.InputInt("##MaxNumInstance", &maxNumInstance) {
+					if maxNumInstance >= 0 && maxNumInstance <= 1000 {
+						b.MaxNumInstance = uint16(maxNumInstance)
+					}
+				}
+			}
+			var preview string
+			{
+				imgui.Text("When limit is reached:")
+				imgui.SameLine()
+
+				if !b.UseVirtualBehavior() {
+					preview = "Kill voice"
+				} else {
+					preview = "Use virtual voice setting"
+				}
+
+				imgui.SetNextItemWidth(200)
+				if imgui.BeginCombo("##ReachPlaybackLimitBehavior", preview) {
+					selected := !b.UseVirtualBehavior()
+					if imgui.SelectableBoolPtr("Kill voice", &selected) {
+						b.SetUseVirtualBehavior(false)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+					selected = b.UseVirtualBehavior()
+					if imgui.SelectableBoolPtr("Use virtual voice setting", &selected) {
+						b.SetUseVirtualBehavior(true)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+					imgui.EndCombo()
+				}
+				imgui.SameLine()
+				imgui.Text("for lowest priroty")
+			}
+			{
+				imgui.Text("When priority is equal:")
+				imgui.SameLine()
+				if !b.KillNewest() {
+					preview = "Discard oldest instance"
+				} else {
+					preview = "Discard newest instance"
+				}
+				imgui.SetNextItemWidth(192)
+				if imgui.BeginCombo("##PriorityEqualBehavior", preview) {
+					selected := !b.KillNewest()
+					if imgui.SelectableBoolPtr("Discard oldest instance", &selected) {
+						b.SetKillNewest(false)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+					selected = b.KillNewest()
+					if imgui.SelectableBoolPtr("Discard newest instance", &selected) {
+						b.SetKillNewest(true)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+					imgui.EndCombo()
+				}
+			}
+			imgui.EndDisabled()
+		}
+		imgui.EndChild()
+		imgui.TreePop()
+		DefaultSize.Y = 0
+	}
+}
+
+func renderHDR(b *wwise.Bus) {
+	if imgui.TreeNodeExStr("HDR") {
+		if b.CanSetHDR == -1 {
+			panic(fmt.Sprintf("HDR Availability isn't resolve for Bus %d", b.Id))
+		}
+		{
+			imgui.BeginDisabledV(b.CanSetHDR == 0)
+
+			if b.CanSetHDR == 0 {
+				imgui.Text("HDR is enabled in a parent bus.")
+			} else {
+				HDREnable := b.IsHDRBus()
+				imgui.BeginDisabled()
+				if imgui.Checkbox("Enable HDR", &HDREnable) {
+					b.SetHDRBus(HDREnable)
+				}
+				imgui.EndDisabled()
+			}
+			{
+				DefaultSize.Y = 128
+				imgui.BeginChildStrV("HDRDynamics", DefaultSize, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+				imgui.SeparatorText("Dynamics")
+				imgui.EndChild()
+				DefaultSize.Y = 0
+			}
+			imgui.EndDisabled()
+		}
+		imgui.TreePop()
+	}
+}
+
+func renderAuxBusAdvanceSetting(b *wwise.AuxBus) {
+	if imgui.TreeNodeExStr("Advance Settings") {
+		DefaultSize.Y = 128
+		imgui.BeginChildStrV("BusAdvanceSetting", DefaultSize, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
+		imgui.SeparatorText("Playback Limit")
+		{
+			imgui.BeginDisabledV(b.OverrideBusId == 0)
+			ignoreParent := b.IgnoreParentMaxNumInstance()
+			if imgui.Checkbox("Ignore Parent", &ignoreParent) {
+				b.SetIgnoreParentMaxNumInstance(ignoreParent)
+			}	
+			imgui.EndDisabled()
+		}
+		{
+			imgui.BeginDisabledV(b.OverrideBusId != 0 && !b.IgnoreParentMaxNumInstance())
+			{
+				imgui.Text("Limit sound instances to:")
+				imgui.SameLine()
+				maxNumInstance := int32(b.MaxNumInstance)
+				imgui.SetNextItemWidth(96)
+				// Zero is no limiting
+				if imgui.InputInt("##MaxNumInstance", &maxNumInstance) {
+					if maxNumInstance >= 0 && maxNumInstance <= 1000 {
+						b.MaxNumInstance = uint16(maxNumInstance)
+					}
+				}
+			}
+			var preview string
+			{
+				imgui.Text("When limit is reached:")
+				imgui.SameLine()
+
+				if !b.UseVirtualBehavior() {
+					preview = "Kill voice"
+				} else {
+					preview = "Use virtual voice setting"
+				}
+
+				imgui.SetNextItemWidth(200)
+				if imgui.BeginCombo("##ReachPlaybackLimitBehavior", preview) {
+					selected := !b.UseVirtualBehavior()
+					if imgui.SelectableBoolPtr("Kill voice", &selected) {
+						b.SetUseVirtualBehavior(false)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+					selected = b.UseVirtualBehavior()
+					if imgui.SelectableBoolPtr("Use virtual voice setting", &selected) {
+						b.SetUseVirtualBehavior(true)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+					imgui.EndCombo()
+				}
+				imgui.SameLine()
+				imgui.Text("for lowest priroty")
+			}
+			{
+				imgui.Text("When priority is equal:")
+				imgui.SameLine()
+				if !b.KillNewest() {
+					preview = "Discard oldest instance"
+				} else {
+					preview = "Discard newest instance"
+				}
+				imgui.SetNextItemWidth(192)
+				if imgui.BeginCombo("##PriorityEqualBehavior", preview) {
+					selected := !b.KillNewest()
+					if imgui.SelectableBoolPtr("Discard oldest instance", &selected) {
+						b.SetKillNewest(false)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+					selected = b.KillNewest()
+					if imgui.SelectableBoolPtr("Discard newest instance", &selected) {
+						b.SetKillNewest(true)
+					}
+					if selected {
+						imgui.SetItemDefaultFocus()
+					}
+					imgui.EndCombo()
+				}
+			}
+			imgui.EndDisabled()
+		}
+		imgui.EndChild()
+		DefaultSize.Y = 0
 		imgui.TreePop()
 	}
 }
