@@ -122,3 +122,5 @@ func ParseAuxBus(size uint32, r *wio.Reader) *wwise.AuxBus {
 	)
 	return &bus
 }
+
+func ParseAudioDevice(size uint32, r *wio.Reader) {}
