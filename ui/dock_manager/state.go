@@ -37,6 +37,7 @@ func NewDockManager() *DockManager {
 			"FX",
 			"Game Sync",
 			"Log",
+			"Master Mixer Hierarchy",
 			"Music Hierarchy",
 			"Object Editor (Actor Mixer)",
 			"Object Editor (Music)",
@@ -97,6 +98,7 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("FX", dock3)
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
+		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Music Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Music)", dock3)
@@ -127,6 +129,7 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
 		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
 		imgui.InternalDockBuilderDockWindow("Log", dock3)
+		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Music Hierarchy", dock2)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", dock3)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Music)", dock3)
