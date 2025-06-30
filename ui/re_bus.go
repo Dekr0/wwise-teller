@@ -115,7 +115,7 @@ func renderBusTable(t *be.BankTab) {
 }
 
 func renderMasterMixerHierarchy(t *be.BankTab) {
-	imgui.Begin("Master Mixer Hierachy")
+	imgui.Begin("Master Mixer Hierarchy")
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
 		imgui.End()
 		return 
