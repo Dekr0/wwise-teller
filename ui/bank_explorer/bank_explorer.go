@@ -177,6 +177,23 @@ func (b *BankTab) SetActiveFX(id uint32) {
 	}
 }
 
+func (b *BankTab) SetActiveActorMixerHirc(id uint32) {
+	hirc := b.Bank.HIRC()
+	if hirc == nil {
+		return
+	}
+	v, ok := hirc.ActorMixerHirc.Load(id)
+	if !ok {
+		return
+	}
+	h := v.(wwise.HircObj)
+	b.ActorMixerViewer.ActiveHirc = h
+	b.ActorMixerViewer.CntrStorage.Clear()
+	b.ActorMixerViewer.RanSeqPlaylistStorage.Clear()
+	b.ActorMixerViewer.LinearStorage.Clear()
+	b.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(id), true)
+}
+
 func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
 	b.WriteLock.Store(true)
 	defer b.WriteLock.Store(false)
