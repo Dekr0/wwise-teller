@@ -263,9 +263,13 @@ func WwiseConversion(ctx context.Context, wsource string, project string) error 
 		return err
 	}
 	output := filepath.Dir(wsource)
+	cli, err := GetWwiseCLI()
+	if err != nil {
+		return err
+	}
 	cmd := exec.CommandContext(
 		ctx,
-		"WwiseConsole.exe",
+		cli,
 		"convert-external-source", project,
 		"--platform", "Windows",
 		"--source-file", wsource,
@@ -279,4 +283,24 @@ func WwiseConversion(ctx context.Context, wsource string, project string) error 
 		slog.Info(string(line))
 	}
 	return err
+}
+
+func GetWwiseCLI() (string, error) {
+	wwiseRoot := os.Getenv("WWISEROOT")
+	if !filepath.IsAbs(wwiseRoot) {
+		return "", fmt.Errorf("Path specified in environmental variable WWISEROOT is not in absolute path.")
+	}
+	stat, err := os.Lstat(wwiseRoot)
+	if err != nil {
+		return "", err
+	}
+	if !stat.IsDir() {
+		return "", fmt.Errorf("Path specified in environmental variable WWISEROOT is not a directory.")
+	}
+	cli := filepath.Join(wwiseRoot, "Authoring/x64/Release/bin/WwiseConsole.exe")
+	stat, err = os.Lstat(cli)
+	if err != nil {
+		return "", err
+	}
+	return cli, nil
 }
