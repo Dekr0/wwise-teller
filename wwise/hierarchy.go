@@ -388,6 +388,10 @@ func (h *HIRC) AppendNewSoundToRanSeqContainer(s *Sound, rsId uint32) error {
 	r.AddLeaf(s)
 	r.AddLeafToPlayList(len(r.Container.Children) - 1)
 	h.HircObjs = slices.Insert(h.HircObjs, idx, HircObj(s))
+	_, in := h.ActorMixerHirc.LoadOrStore(s.Id, s)
+	if in {
+		panic(fmt.Sprintf("Sound object %d already exist!", s.Id))
+	}
 	return nil
 }
 
@@ -419,6 +423,10 @@ func (h *HIRC) AppendNewRanSeqCntrToActorMixer(r *RanSeqCntr, actorId uint32) er
 	mixer := h.HircObjs[idx].(*ActorMixer)
 	mixer.AddLeaf(r)
 	h.HircObjs = slices.Insert(h.HircObjs, idx, HircObj(r))
+	_, in := h.ActorMixerHirc.LoadOrStore(r.Id, r)
+	if in {
+		panic(fmt.Sprintf("Randome / Sequence object %d already exist!", r.Id))
+	}
 	return nil
 }
 
@@ -437,5 +445,9 @@ func (h *HIRC) AppendNewActionToEvent(a *Action, eventID uint32) error {
 	event := h.HircObjs[idx].(*Event)
 	event.NewAction(a.Id)
 	h.HircObjs = slices.Insert(h.HircObjs, idx, HircObj(a))
+	_, in := h.ActorMixerHirc.LoadOrStore(a.Id, a)
+	if in {
+		panic(fmt.Sprintf("Action object %d already exist!", a.Id))
+	}
 	return nil
 }
