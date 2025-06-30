@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 )
 
@@ -123,8 +124,12 @@ func pushHD2PatchModal(
 
 func pushSelectGameArchiveModal() {
 	onOpen := selectHD2ArchiveFunc()
+	initialDir, err := helldivers.GetHelldivers2Data()
+	if err != nil {
+		initialDir = GlobalCtx.Config.Home
+	}
 	renderF, done, err := openFileDialogFunc(
-		onOpen, false, GlobalCtx.Config.Home, []string{},
+		onOpen, false, initialDir, []string{},
 	)
 	if err != nil {
 		slog.Error(
