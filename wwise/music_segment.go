@@ -85,9 +85,9 @@ func (h *MusicSegment) NumLeaf() int { return len(h.Children.Children) }
 
 func (h *MusicSegment) ParentID() uint32 { return h.BaseParam.DirectParentId }
 
-func (h *MusicSegment) AddLeaf(o HircObj) { panic("") }
+func (h *MusicSegment) AddLeaf(o HircObj) {}
 
-func (h *MusicSegment) RemoveLeaf(o HircObj) { panic("") }
+func (h *MusicSegment) RemoveLeaf(o HircObj) {}
 
 func (h *MusicSegment) Leafs() []uint32 { return h.Children.Children }
 
