@@ -12,6 +12,7 @@ import (
 	"github.com/AllenDang/cimgui-go/utils"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
+	"golang.design/x/clipboard"
 )
 
 func renderRanSeqPlayList(t *be.BankTab, r *wwise.RanSeqCntr) {
@@ -123,6 +124,7 @@ func renderRanSeqPlayListTable(t *be.BankTab, r *wwise.RanSeqCntr) {
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 	size := imgui.NewVec2(0, 180)
 
+	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
 	if imgui.Button("Copy") {
 		var builder strings.Builder
 		var err error
@@ -132,13 +134,9 @@ func renderRanSeqPlayListTable(t *be.BankTab, r *wwise.RanSeqCntr) {
 				break
 			}
 		}
-		if err == nil {
-			if _, err = fmt.Println(builder.String()); err != nil {
-				slog.Error("Failed to copy items' ID", "error", err)
-			}
-		}
-		builder.Reset()
+		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
 	}
+	imgui.EndDisabled()
 
 	if imgui.BeginTableV("PLTable", 5, flags, size, 0) {
 		v := t.ActorMixerViewer
