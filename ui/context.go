@@ -6,13 +6,15 @@ import (
 )
 
 type Context struct {
-	Loop      async.EventLoop
-	ModalQ    ModalQ
-	Config    config.Config
+	Loop       async.EventLoop
+	ModalQ     ModalQ
+	Config     config.Config
+	CopyEnable bool
 }
 
 var GlobalCtx Context = Context{
 	async.NewEventLoop(),
 	NewModalQ(),
 	config.Config{},
+	false,
 }
