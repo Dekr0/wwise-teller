@@ -347,6 +347,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 	)
 
 	hirc.BuildTree()
+	hirc.HDRAvailability()
 
 	return hirc, nil
 }
