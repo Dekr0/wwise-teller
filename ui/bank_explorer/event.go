@@ -69,9 +69,9 @@ func (f *StateFilter) Filter(objs []wwise.HircObj) {
 		if err != nil {
 			slog.Error(
 				"Error message before panic",
-				"error", "State struct does not implement HircObj.HircID?",
+				"error", "",
 			)
-			panic("Panic Trap")
+			panic("State struct does not implement HircObj.HircID?")
 		}
 		if !fuzzy.Match(
 			strconv.FormatUint(uint64(f.Id), 10),
