@@ -106,11 +106,11 @@ var ActionDispatchLUT []ActionDispatch = []ActionDispatch{
 }
 
 func ParseActionParamPanic(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
-	panic("")
+	panic("Unknown action parameter. Please use Hex editor investigate this")
 }
 
 func ParseActionSpecificParamPanic(r *wio.Reader) wwise.ActionSpecificParam {
-	panic("")
+	panic("Unknonw action specific parameter. Please use Hex editor investigate this")
 }
 
 func ParseAction(size uint32, r *wio.Reader) *wwise.Action {
