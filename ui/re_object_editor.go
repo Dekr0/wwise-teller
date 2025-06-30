@@ -11,6 +11,7 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
+	"golang.design/x/clipboard"
 )
 
 func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTab) {
@@ -186,7 +187,9 @@ func renderContainer(t *be.BankTab, id uint32, cntr *wwise.Container, actorMixer
 		imgui.Button("Add New Children")
 		imgui.EndDisabled()
 
-		if imgui.Button("Copy") {
+		imgui.SameLine()
+		imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
+		if imgui.Button("Copy IDs") {
 			var builder strings.Builder
 			var err error
 			for _, child := range cntr.Children {
@@ -195,18 +198,7 @@ func renderContainer(t *be.BankTab, id uint32, cntr *wwise.Container, actorMixer
 					break
 				}
 			}
-			if err == nil {
-				if _, err := fmt.Println(builder.String()); err != nil {
-					slog.Error("Failed to copy children IDs", "error", err)
-				}
-			}
-			builder.Reset()
-		}
-
-		imgui.SameLine()
-		imgui.BeginDisabled()
-		if imgui.Button("Copy (Recursive)") {
-
+			clipboard.Write(clipboard.FmtText, []byte(builder.String()))
 		}
 		imgui.EndDisabled()
 
