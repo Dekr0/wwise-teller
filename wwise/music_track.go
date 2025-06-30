@@ -132,9 +132,9 @@ func (h *MusicTrack) NumLeaf() int { return 0 }
 
 func (h *MusicTrack) ParentID() uint32 { return h.BaseParam.DirectParentId }
 
-func (h *MusicTrack) AddLeaf(o HircObj) { panic("") }
+func (h *MusicTrack) AddLeaf(o HircObj) { panic("Music Track cannot add leaf") }
 
-func (h *MusicTrack) RemoveLeaf(o HircObj) { panic("") }
+func (h *MusicTrack) RemoveLeaf(o HircObj) { panic("Music Track cannot remove leaf") }
 
 func (h *MusicTrack) Leafs() []uint32 { return []uint32{} }
 

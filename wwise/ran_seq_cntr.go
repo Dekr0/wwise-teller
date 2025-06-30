@@ -96,7 +96,7 @@ func (r *RanSeqCntr) RemoveLeaf(o HircObj) {
 	}
 	b := o.BaseParameter()
 	if b == nil {
-		panic("%d is not containable.")
+		panic(fmt.Sprintf("Hierarchy object %d is not containable.", id))
 	}
 	l := len(r.Container.Children)
 	r.Container.Children = slices.DeleteFunc(

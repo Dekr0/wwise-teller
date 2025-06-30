@@ -151,8 +151,8 @@ func (h *AuxBus) NumLeaf() int { return 0 }
 
 func (h *AuxBus) ParentID() uint32 { return 0 }
 
-func (h *AuxBus) AddLeaf(o HircObj) { panic("") }
+func (h *AuxBus) AddLeaf(o HircObj) { panic("Auxiliary Bus object cannot add leaf") }
 
-func (h *AuxBus) RemoveLeaf(o HircObj) { panic("") }
+func (h *AuxBus) RemoveLeaf(o HircObj) { panic("Auxiliary Bus object cannot remove leaf") }
 
 func (h *AuxBus) Leafs() []uint32 { return []uint32{} }

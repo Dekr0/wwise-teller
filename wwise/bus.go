@@ -237,9 +237,9 @@ func (h *Bus) NumLeaf() int { return 0 }
 
 func (h *Bus) ParentID() uint32 { return 0 }
 
-func (h *Bus) AddLeaf(o HircObj) { panic("") }
+func (h *Bus) AddLeaf(o HircObj) { panic("Bus object cannot add leaf") }
 
-func (h *Bus) RemoveLeaf(o HircObj) { panic("") }
+func (h *Bus) RemoveLeaf(o HircObj) { panic("Bus object cannot remove leaf") }
 
 func (h *Bus) Leafs() []uint32 { return []uint32{} }
 

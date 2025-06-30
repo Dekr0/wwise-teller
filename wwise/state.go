@@ -54,8 +54,8 @@ func (s *State) NumLeaf() int { return 0 }
 
 func (s *State) ParentID() uint32 { return 0 }
 
-func (s *State) AddLeaf(o HircObj) { panic("") }
+func (s *State) AddLeaf(o HircObj) { panic("State object cannot add leaf") }
 
-func (s *State) RemoveLeaf(o HircObj) { panic("") }
+func (s *State) RemoveLeaf(o HircObj) { panic("State object cannot remove leaf") }
 
 func (s *State) Leafs() []uint32 { return []uint32{} }
