@@ -23,8 +23,7 @@ func renderActorMixerHircTree(t *be.BankTab)  {
 
 func renderActorMixerHircTreeTable(t *be.BankTab) {
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("TreeTable", 2, flags, outerSize, 0) {
+	if imgui.BeginTableV("ActorMixerHierarchy", 2, flags, DefaultSize, 0) {
 		imgui.TableSetupColumn("Hierarchy ID")
 		imgui.TableSetupColumn("Hierarchy Type")
 		imgui.TableSetupScrollFreeze(0, 1)
@@ -51,7 +50,7 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 	imgui.TableNextRow()
 	imgui.TableSetColumnIndex(0)
 
-	flags := imgui.TreeNodeFlagsSpanAllColumns | imgui.TreeNodeFlagsOpenOnDoubleClick
+	flags := DefaultTreeFlags
 	if selected {
 		flags |= imgui.TreeNodeFlagsSelected
 	}
