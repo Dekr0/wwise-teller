@@ -369,7 +369,7 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 	}
 
 	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-	if imgui.SelectableBool("Copy Leafs' Source IDs") {
+	if imgui.SelectableBool("Copy Leafs' IDs") {
 		var builder strings.Builder
 		for _, l := range leafs {
 			if _, err := builder.WriteString(fmt.Sprintf("%d\n", l)); err != nil {
