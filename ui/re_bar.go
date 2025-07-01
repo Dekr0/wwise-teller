@@ -9,7 +9,7 @@ import (
 )
 
 func renderMainMenuBar(
-	dockMngr       *dockmanager.DockManager,
+	dockMngr *dockmanager.DockManager,
 	cmdPaletteMngr *CmdPaletteMngr,
 ) {
 	if imgui.BeginMenuBar() {
@@ -52,6 +52,16 @@ func renderMainMenuBar(
 					pushSelectGameArchiveModal()
 				}
 				imgui.EndMenu()
+			}
+			imgui.EndMenu()
+		}
+
+		if imgui.BeginMenu("Developer") {
+			if imgui.MenuItemBool("Debug Menu") {
+				dockMngr.ShowDebug = !dockMngr.ShowDebug
+			}
+			if imgui.MenuItemBool("Log") {
+				dockMngr.ShowLog = !dockMngr.ShowLog
 			}
 			imgui.EndMenu()
 		}
