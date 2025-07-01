@@ -8,8 +8,9 @@ import (
 
 type ActorMixerHircNode struct {
 	Obj   HircObj
-	Root  uint32
-	Leafs []ActorMixerHircNode
+	Root *ActorMixerHircNode
+	Open  bool // Helper state for tree node rendering
+	Leafs []*ActorMixerHircNode
 }
 
 // Don't abstract with ActorMixerHircNode
@@ -26,10 +27,12 @@ type BusHircNode struct {
 	Leafs    map[uint32]*BusHircNode
 }
 
+// TODO Optimize tree rebuilding
 func (h *HIRC) BuildTree() {
 	// This should be able to allocated in a deterministic manner because the 
 	// exact # can be accumulative during the parsing phase and post modification phase
-	h.ActorMixerRoots = []ActorMixerHircNode{}
+	h.ActorMixerRoots = []*ActorMixerHircNode{}
+	h.ActorMixerHircNodesMap = map[uint32]*ActorMixerHircNode{}
 	h.MusicHircRoots = []MusicHircNode{}
 
 	var o HircObj
@@ -42,8 +45,16 @@ func (h *HIRC) BuildTree() {
 				panic(fmt.Sprintf("%d should have base parameter", o.HircType()))
 			}
 			if b.DirectParentId == 0 {
-				node := ActorMixerHircNode{o, 0, make([]ActorMixerHircNode, o.NumLeaf())}
-				h.WalkActorMixerHircRoot(&node)
+				node := &ActorMixerHircNode{o, nil, false, make([]*ActorMixerHircNode, o.NumLeaf())}
+				id, err := o.HircID()
+				if err != nil {
+					panic(err)
+				}
+				if _, in := h.ActorMixerHircNodesMap[id]; in {
+					panic(fmt.Sprintf("Duplicate actor mixer hierarchy node %d", id))
+				}
+				h.ActorMixerHircNodesMap[id] = node
+				h.WalkActorMixerHircRoot(node)
 				h.ActorMixerRoots = append(h.ActorMixerRoots, node)
 			}
 		} else if MusicHircType(o) {
@@ -142,6 +153,19 @@ func (h *HIRC) BuildTree() {
 	}
 }
 
+func (h *HIRC) OpenActorMixerHircNode(id uint32) {
+	node, in := h.ActorMixerHircNodesMap[id]
+	if !in {
+		panic(fmt.Sprintf("No actor mixer hierarchy node has ID %d", id))
+	}
+	node.Open = true
+	parent := node.Root
+	for parent != nil {
+		parent.Open = true
+		parent = parent.Root
+	}
+}
+
 // Resolve which bus can use enable HDR
 func (h *HIRC) HDRAvailability() {
 	for i := range h.HircObjs {
@@ -176,20 +200,23 @@ func (h *HIRC) WalkActorMixerHircRoot(node *ActorMixerHircNode) {
 	if !ActorMixerHircType(node.Obj) {
 		panic("Panic Trap")
 	}
-	id, err := node.Obj.HircID()
-	if err != nil {
-		panic("Panic trap")
-	}
 	leafs := node.Obj.Leafs()
 	l := len(leafs)
 	for i := range leafs {
-		v, ok := h.ActorMixerHirc.Load(leafs[l - i - 1])
+		id := leafs[l - i - 1]
+		v, ok := h.ActorMixerHirc.Load(id)
 		if !ok {
 			panic("Panic Trap")
 		}
 		obj := v.(HircObj)
-		node.Leafs[i] = ActorMixerHircNode{obj, id, make([]ActorMixerHircNode, obj.NumLeaf())}
-		h.WalkActorMixerHircRoot(&node.Leafs[i])
+		node.Leafs[i] = &ActorMixerHircNode{
+			obj, node, false, make([]*ActorMixerHircNode, obj.NumLeaf()),
+		}
+		if _, in := h.ActorMixerHircNodesMap[id]; in {
+			panic(fmt.Sprintf("Duplicate actor mixer hierarchy object %d", id))
+		}
+		h.ActorMixerHircNodesMap[id] = node.Leafs[i]
+		h.WalkActorMixerHircRoot(node.Leafs[i])
 	}
 }
 
