@@ -30,8 +30,49 @@ func renderRanSeqPlayList(t *be.BankTab, r *wwise.RanSeqCntr) {
 }
 
 func renderRanSeqPlayListTableSet(t *be.BankTab, r *wwise.RanSeqCntr) {
-	outerSize := imgui.NewVec2(0, 0)
-	if imgui.BeginTableV("PLTransfer", 3, 0, outerSize, 0) {
+	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
+	if imgui.Button("Copy IDs") {
+		var builder strings.Builder
+		var err error
+		for _, p := range r.PlayListItems {
+			if _, err = builder.WriteString(strconv.FormatUint(uint64(p.UniquePlayID), 10)+"\n"); err != nil {
+				slog.Error("Failed to copy items' ID", "error", err)
+				break
+			}
+		}
+		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
+	}
+	imgui.EndDisabled()
+
+	imgui.SameLine()
+
+	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
+	if imgui.Button("Copy Source IDs") {
+		h := t.Bank.HIRC()
+		if h == nil {
+			panic("A random / sequence container object is being rendered but no HIRC chunk is found.")
+		}
+		var builder strings.Builder
+		var err error
+		for _, p := range r.PlayListItems {
+			v, in := h.ActorMixerHirc.Load(p.UniquePlayID)
+			if !in {
+				panic(fmt.Sprintf("Hierarchy object %d doesn't exist", p.UniquePlayID))
+			}
+			switch sound := v.(wwise.HircObj).(type) {
+			case *wwise.Sound:
+				if _, err = builder.WriteString(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10) + "\n"); err != nil {
+					slog.Error("Failed to copy items' source ID", "error", err)
+					break
+				}
+			}
+		}
+		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
+	}
+	imgui.EndDisabled()
+
+	size := imgui.NewVec2(0, 256)
+	if imgui.BeginTableV("PLTransfer", 3, 0, size, 0) {
 		v := t.ActorMixerViewer
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
@@ -58,12 +99,13 @@ func renderRanSeqPlayListTableSet(t *be.BankTab, r *wwise.RanSeqCntr) {
 }
 
 func renderRanSeqPlayListPendingTable(t *be.BankTab, r *wwise.RanSeqCntr) {
-	size := imgui.NewVec2(200, 0)
+	size := imgui.NewVec2(200, 256)
 	imgui.BeginChildStrV("PLPendingCell", size, imgui.ChildFlagsNone, imgui.WindowFlagsNone)
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
 
 	hirc := t.Bank.HIRC()
 	size.X = 0
+
 	if imgui.BeginTableV("PLPendTable", 3, flags, size, 0) {
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 0, 0)
 		imgui.TableSetupColumn("Target ID")
@@ -122,21 +164,7 @@ func bindToRanSeqPlayList(v *be.ActorMixerViewer, r *wwise.RanSeqCntr, i int) fu
 func renderRanSeqPlayListTable(t *be.BankTab, r *wwise.RanSeqCntr) {
 	imgui.BeginChildStr("PLCell")
 	const flags = DefaultTableFlags | imgui.TableFlagsScrollY
-	size := imgui.NewVec2(0, 180)
-
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-	if imgui.Button("Copy") {
-		var builder strings.Builder
-		var err error
-		for _, p := range r.PlayListItems {
-			if _, err = builder.WriteString(strconv.FormatUint(uint64(p.UniquePlayID), 10)+"\n"); err != nil {
-				slog.Error("Failed to copy items' ID", "error", err)
-				break
-			}
-		}
-		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
-	}
-	imgui.EndDisabled()
+	size := imgui.NewVec2(0, 256)
 
 	if imgui.BeginTableV("PLTable", 5, flags, size, 0) {
 		v := t.ActorMixerViewer
