@@ -26,6 +26,9 @@ func renderDebug(bnkMngr *be.BankManager) {
 		return true
 	})
 
+	imgui.SeparatorText("Clipboard")
+	imgui.Text(fmt.Sprintf("Clipboard enabled: %v", GlobalCtx.CopyEnable))
+
 	imgui.SeparatorText("Bank Manager")
 	imgui.Text(fmt.Sprintf("# of bank tabs: %d", numBnks))
 	imgui.Text(fmt.Sprintf("Active bank: %s", activeBankName))
