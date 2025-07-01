@@ -159,6 +159,7 @@ func renderChangeParentQuery(
 		if idx != -1 {
 			if actorMixerHirc {
 				t.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(b.DirectParentId), true)
+				t.OpenActorMixerHircNode(hid)
 			} else {
 				t.MusicHircViewer.LinearStorage.SetItemSelected(imgui.ID(b.DirectParentId), true)
 			}
