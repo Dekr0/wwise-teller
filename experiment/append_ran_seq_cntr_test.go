@@ -97,12 +97,12 @@ func TestAppendRanSeqCntr(t *testing.T) {
 
 	// Append random sequence container to actor mixer
 	const actorMixerId = 455686496
-	if err := h.AppendNewRanSeqCntrToActorMixer(&newRanSeqCntr, actorMixerId); err != nil {
+	if err := h.AppendNewRanSeqCntrToActorMixer(&newRanSeqCntr, actorMixerId, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// Append the new sound to the new sequence container
-	if err := h.AppendNewSoundToRanSeqContainer(&newSound, newRanSeqCntrID); err != nil {
+	if err := h.AppendNewSoundToRanSeqContainer(&newSound, newRanSeqCntrID, false); err != nil {
 		t.Fatal(err)
 	}
 

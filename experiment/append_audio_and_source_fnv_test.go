@@ -165,8 +165,8 @@ func TestAppendAudioAndSoundUsingFNV(t *testing.T) {
 		BaseParam: ref.BaseParam.Clone(false),
 	}
 
-	hirc.AppendNewSoundToRanSeqContainer(&soundA, 274049716)
-	hirc.AppendNewSoundToRanSeqContainer(&soundB, 274049716)
+	hirc.AppendNewSoundToRanSeqContainer(&soundA, 274049716, false)
+	hirc.AppendNewSoundToRanSeqContainer(&soundB, 274049716, false)
 
 	fmt.Println("desertSid", desertSid)
 	fmt.Println("urban0Sid", urban0Sid)

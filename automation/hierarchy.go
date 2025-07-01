@@ -307,7 +307,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 			p.SetPropByIdxF32(i, s.HDRActiveRange)
 		}
 	}
-	if err := h.AppendNewRanSeqCntrToActorMixer(&newCntr, s.Parent); err != nil {
+	if err := h.AppendNewRanSeqCntrToActorMixer(&newCntr, s.Parent, false); err != nil {
 		rollback()
 		return fmt.Errorf("Failed to add a new random / sequence container to actor mixer %d: %w", s.Parent, err)
 	}
@@ -336,7 +336,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 			},
 			BaseParam: refSound.BaseParam.Clone(false),
 		}
-		if err := h.AppendNewSoundToRanSeqContainer(newSound, newCntrId); err != nil {
+		if err := h.AppendNewSoundToRanSeqContainer(newSound, newCntrId, false); err != nil {
 			rollback()
 			return fmt.Errorf("Failed to add a new sound object to random / sequence container %d: %w", newCntrId, err)
 		}
