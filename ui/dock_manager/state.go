@@ -16,6 +16,8 @@ type DockManager struct {
 	Focused     int
 	DockWindows []string
 	Layout      Layout
+	ShowDebug   bool
+	ShowLog     bool
 	Rebuild     bool
 }
 

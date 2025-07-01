@@ -2,8 +2,11 @@ package log
 
 import "github.com/AllenDang/cimgui-go/imgui"
 
-func RenderLog(gLog *GuiLog) {
-	imgui.Begin("Log")
+func RenderLog(gLog *GuiLog, showLog *bool) {
+	if !*showLog {
+		return
+	}
+	imgui.BeginV("Log", showLog, 0)
 	gLog.Log.Logs.Do(func(a any) {
 		if a == nil {
 			return

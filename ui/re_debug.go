@@ -5,10 +5,16 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 )
 
-func renderDebug(bnkMngr *be.BankManager) {
-	imgui.Begin("Debug")
+func renderDebug(bnkMngr *be.BankManager, dockMngr *dockmanager.DockManager) {
+	if !dockMngr.ShowDebug {
+		return
+	}
+
+	imgui.BeginV("Debug", &dockMngr.ShowDebug, 0)
+
 	imgui.PushTextWrapPos()
 
 	numBnks := 0
