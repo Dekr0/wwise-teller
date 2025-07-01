@@ -32,8 +32,9 @@ func renderActorMixerHircTreeTable(t *be.BankTab) {
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 		// Clipper does not play well with Tree Node :(
-		for _, root := range t.Bank.HIRC().ActorMixerRoots {
-			renderActorMixerHircNode(t, &root)
+		root := t.Bank.HIRC().ActorMixerRoots
+		for i := range root {
+			renderActorMixerHircNode(t, root[i])
 		}
 		imgui.EndTable()
 	}
@@ -58,6 +59,7 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 		flags |= imgui.TreeNodeFlagsSelected
 	}
 
+	imgui.SetNextItemOpen(node.Open)
 	open := imgui.TreeNodeExStrV(sid, flags)
 	if imgui.IsItemClickedV(imgui.MouseButtonLeft) {
 		if !imgui.CurrentIO().KeyCtrl() {
@@ -81,10 +83,13 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 	}
 	imgui.Text(st)
 	if open {
-		for _, leaf := range node.Leafs {
-			renderActorMixerHircNode(t, &leaf)
+		node.Open = true
+		for i := range node.Leafs {
+			renderActorMixerHircNode(t, node.Leafs[i])
 		}
 		imgui.TreePop()
+	} else {
+		node.Open = false
 	}
 }
 
@@ -94,7 +99,7 @@ func renderActorMixerHircCtx(
 	o wwise.HircObj,
 	id uint32,
 ) {
-	imgui.BeginDisabledV(GlobalCtx.CopyEnable)
+	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
 	if imgui.SelectableBool("Copy ID") {
 		clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
 		imgui.EndDisabled()
@@ -104,7 +109,7 @@ func renderActorMixerHircCtx(
 
 	switch sound := node.Obj.(type) {
 	case *wwise.Sound:
-		imgui.BeginDisabledV(GlobalCtx.CopyEnable)
+		imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
 		if imgui.SelectableBool("Copy Source ID") {
 			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
 			imgui.EndDisabled()
@@ -113,11 +118,11 @@ func renderActorMixerHircCtx(
 		imgui.EndDisabled()
 	}
 
-	if len(node.Leafs) <= 1 {
+	if len(node.Leafs) <= 0 {
 		return
 	}
 
-	imgui.BeginDisabledV(GlobalCtx.CopyEnable)
+	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
 	if imgui.SelectableBool("Copy Leafs' IDs") {
 		l := len(node.Leafs)
 		var builder strings.Builder
@@ -136,7 +141,7 @@ func renderActorMixerHircCtx(
 	}
 	imgui.EndDisabled()
 
-	imgui.BeginDisabledV(GlobalCtx.CopyEnable)
+	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
 	if imgui.SelectableBool("Copy Leafs' Source IDs") {
 		l := len(node.Leafs)
 		var builder strings.Builder
@@ -157,5 +162,6 @@ func renderActorMixerHircCtx(
 
 func renderMusicHircTree(t *be.BankTab) {
 	imgui.Begin("Music Hierarchy")
+	imgui.Text("Under Construction")
 	imgui.End()
 }
