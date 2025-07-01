@@ -58,14 +58,14 @@ type BankTab struct {
 }
 
 func (b *BankTab) ChangeRoot(hid, np, op uint32) {
-	b.Bank.HIRC().ChangeRoot(hid, np, op)
+	b.Bank.HIRC().ChangeRoot(hid, np, op, true)
 	b.FilterActorMixerHircs()
 	b.ActorMixerViewer.CntrStorage.Clear()
 	b.ActorMixerViewer.RanSeqPlaylistStorage.Clear()
 }
 
 func (b *BankTab) RemoveRoot(hid, op uint32) {
-	b.Bank.HIRC().RemoveRoot(hid, op)
+	b.Bank.HIRC().RemoveRoot(hid, op, true)
 	b.FilterActorMixerHircs()
 	b.ActorMixerViewer.CntrStorage.Clear()
 	b.ActorMixerViewer.RanSeqPlaylistStorage.Clear()
@@ -192,6 +192,14 @@ func (b *BankTab) SetActiveActorMixerHirc(id uint32) {
 	b.ActorMixerViewer.RanSeqPlaylistStorage.Clear()
 	b.ActorMixerViewer.LinearStorage.Clear()
 	b.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(id), true)
+}
+
+func (b *BankTab) OpenActorMixerHircNode(id uint32) {
+	h := b.Bank.HIRC()
+	if h == nil {
+		panic("There's actor mixer hierarchy node but no HIRC chunk is found")
+	}
+	h.OpenActorMixerHircNode(id)
 }
 
 func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
