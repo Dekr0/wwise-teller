@@ -22,10 +22,10 @@ type HIRC struct {
 
 	// Retain the tree structure that comes from the decoding with minimal
 	// modification
-	HircObjs        []HircObj
+	HircObjs []HircObj
 
 	// 1
-	AudioDevices      sync.Map
+	AudioDevices sync.Map
 
 	// Master Mixer Hierarchy 8
 	Buses             sync.Map
@@ -45,13 +45,14 @@ type HIRC struct {
 	// Actor Mixer
 	// Layer Container
 	// Dialogue Event?
-	ActorMixerHirc    sync.Map // 6
-	ActorMixerRoots []ActorMixerHircNode
+	ActorMixerHirc          sync.Map // 6
+	ActorMixerRoots         []*ActorMixerHircNode
+	ActorMixerHircNodesMap  map[uint32]*ActorMixerHircNode
 
 	// Game Sync 3
-	Actions           sync.Map
-	Events            sync.Map
-	States            sync.Map
+	Actions sync.Map
+	Events  sync.Map
+	States  sync.Map
 
 	// Music Segment
 	// Music Track
@@ -185,9 +186,9 @@ func (h *HIRC) HierarchyCount() HircCount {
 	return c
 }
 
-func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
+func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32, syncUITree bool) {
 	if newRootID == 0 {
-		h.RemoveRoot(id, oldRootID)
+		h.RemoveRoot(id, oldRootID, syncUITree)
 		return
 	}
 
@@ -290,9 +291,13 @@ func (h *HIRC) ChangeRoot(id, newRootID, oldRootID uint32) {
 	if leaf.BaseParameter().DirectParentId != newRootID {
 		panic(fmt.Sprintf("AddLeaf contract break. %d parent ID is non zero after attaching to %d", id, newRootID))
 	}
+
+	if syncUITree {
+		h.BuildTree()
+	}
 }
 
-func (h *HIRC) RemoveRoot(id, oldRootID uint32) {
+func (h *HIRC) RemoveRoot(id, oldRootID uint32, syncUITree bool) {
 	idx := slices.IndexFunc(h.HircObjs, func(h HircObj) bool {
 		i, err := h.HircID()
 		if err != nil {
@@ -370,7 +375,7 @@ func (h *HIRC) RemoveRoot(id, oldRootID uint32) {
 }
 
 // Prototyping
-func (h *HIRC) AppendNewSoundToRanSeqContainer(s *Sound, rsId uint32) error {
+func (h *HIRC) AppendNewSoundToRanSeqContainer(s *Sound, rsId uint32, syncUITree bool) error {
 	if s.BaseParam.DirectParentId != 0 {
 		return fmt.Errorf("Sound %d already has a parent", s.Id)
 	}
@@ -392,6 +397,9 @@ func (h *HIRC) AppendNewSoundToRanSeqContainer(s *Sound, rsId uint32) error {
 	if in {
 		panic(fmt.Sprintf("Sound object %d already exist!", s.Id))
 	}
+	if syncUITree {
+		h.BuildTree()
+	}
 	return nil
 }
 
@@ -406,7 +414,7 @@ func (h *HIRC) TreeArrIdx(tid uint32) int {
 }
 
 // Prototyping
-func (h *HIRC) AppendNewRanSeqCntrToActorMixer(r *RanSeqCntr, actorId uint32) error {
+func (h *HIRC) AppendNewRanSeqCntrToActorMixer(r *RanSeqCntr, actorId uint32, syncUITree bool) error {
 	if r.BaseParam.DirectParentId != 0 {
 		return fmt.Errorf("Random / Sequence Container %d already has a parent", r.Id)
 	}
@@ -426,6 +434,9 @@ func (h *HIRC) AppendNewRanSeqCntrToActorMixer(r *RanSeqCntr, actorId uint32) er
 	_, in := h.ActorMixerHirc.LoadOrStore(r.Id, r)
 	if in {
 		panic(fmt.Sprintf("Randome / Sequence object %d already exist!", r.Id))
+	}
+	if syncUITree {
+		h.BuildTree()
 	}
 	return nil
 }
