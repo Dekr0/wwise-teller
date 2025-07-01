@@ -200,8 +200,8 @@ func createLoop(
 
 		renderMainMenuBar(dockMngr, cmdPaletteMngr)
 		GlobalCtx.ModalQ.renderModal()
-		glog.RenderLog(gLog)
-		renderDebug(bnkMngr)
+		glog.RenderLog(gLog, &dockMngr.ShowLog)
+		renderDebug(bnkMngr, dockMngr)
 		renderFileExplorer(fileExplorer)
 		renderBankExplorer(bnkMngr)
 		renderActorMixerHircTree(bnkMngr.ActiveBank)
