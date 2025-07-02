@@ -14,13 +14,20 @@ import (
 	"golang.design/x/clipboard"
 )
 
-func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTab) {
-	imgui.Begin("Object Editor (Actor Mixer)")
-
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
-		imgui.End()
+func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTab, open *bool) {
+	if !*open {
 		return
 	}
+	imgui.BeginV("Object Editor (Actor Mixer)", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
+		return
+	}
+
+	// Display loading screen for write lock
 
 	useViUp()
 	useViDown()
@@ -41,8 +48,6 @@ func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTa
 		}
 		imgui.EndTabBar()
 	}
-
-	imgui.End()
 }
 
 func renderActorMixerTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h wwise.HircObj) {
@@ -82,11 +87,16 @@ func renderActorMixerTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h w
 	}
 }
 
-func renderObjEditorMusic(m *be.BankManager, t *be.BankTab, init *be.BankTab) {
-	imgui.Begin("Object Editor (Music)")
-
+func renderObjEditorMusic(m *be.BankManager, t *be.BankTab, init *be.BankTab, open *bool) {
+	if !*open {
+		return
+	}
+	imgui.BeginV("Object Editor (Music)", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
-		imgui.End()
 		return
 	}
 
@@ -109,7 +119,6 @@ func renderObjEditorMusic(m *be.BankManager, t *be.BankTab, init *be.BankTab) {
 		}
 		imgui.EndTabBar()
 	}
-	imgui.End()
 }
 
 func renderMusicTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h wwise.HircObj) {
