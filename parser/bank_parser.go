@@ -72,7 +72,7 @@ type DecodeResult struct {
 	e error
 }
 
-func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
+func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,6 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 	var tag []byte
 	var size uint32
 	var dataPos uint64 = 0 
-	var dataSize uint32 = 0
 	var dataIndex uint8 = 0
 	for err == nil {
 		tag, err = bankReader.FourCC()
@@ -145,15 +144,29 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			hasBKHD = true
 		} else if bytes.Compare(tag, []byte{'D', 'A', 'T', 'A'}) == 0 {
 			hasDATA = true
-			dataSize, err = bankReader.U32()
+			size, err = bankReader.U32()
 			if err != nil {
 				return nil, err
 			}
-			dataPos = bankReader.Pos()
-			if err := bankReader.SeekCurrent(int64(dataSize)); err != nil {
-				return nil, err
+			if diffTest {
+				var blob []byte
+				blob, err = bankReader.ReadN(uint64(size), 0)
+				if err != nil {
+					return nil, err
+				}
+				if err := bnk.AddChunk(&wwise.DATAAppendOnly{
+					I: I, T: tag, B: blob,
+				}); err != nil {
+					return nil, err
+				}
+				slog.Debug("Read DATA section", "size", size)
+			} else {
+				dataPos = bankReader.Pos()
+				if err := bankReader.SeekCurrent(int64(size)); err != nil {
+					return nil, err
+				}
+				dataIndex = I
 			}
-			dataIndex = I
 			I += 1
 		} else if bytes.Compare(tag, []byte{'D', 'I', 'D', 'X'}) == 0 {
 			size, err = bankReader.U32()
@@ -332,6 +345,10 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		return nil, NoHIRC
 	}
 
+	if diffTest {
+		return &bnk, nil
+	}
+
 	if hasDIDX && hasDATA {
 		didx := bnk.DIDX()
 		if didx == nil {
@@ -369,6 +386,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			offset += didx.MediaIndexs[i].Size
 		}
 		bnk.Chunks = append(bnk.Chunks, &DATA)
+		slog.Debug("Read DATA section", "size", offset)
 	}
 
 	return &bnk, nil

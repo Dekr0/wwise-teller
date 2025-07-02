@@ -247,7 +247,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	}
 	
 	go func() {
-		bank, err := parser.ParseBank(path, ctx)
+		bank, err := parser.ParseBank(path, ctx, false)
 		c <- &result{bank, err}
 	}()
 
