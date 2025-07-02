@@ -15,7 +15,8 @@ func renderMainMenuBar(
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("Layout") {
 			for i := range dockmanager.LayoutCount {
-				if imgui.MenuItemBool(dockmanager.LayoutName[i]) {
+				selected := dockMngr.Layout == i
+				if imgui.MenuItemBoolV(dockmanager.LayoutName[i], fmt.Sprintf("F%d", i + 1), selected, true) {
 					dockMngr.SetLayout(i)
 				}
 			}
@@ -58,7 +59,7 @@ func renderMainMenuBar(
 
 		if imgui.BeginMenu("Views") {
 			for tag, open := range dockMngr.Opens {
-				if imgui.MenuItemBool(dockmanager.DockWindowNames[tag]) {
+				if imgui.MenuItemBoolV(dockmanager.DockWindowNames[tag], "", open, true) {
 					dockMngr.Opens[tag] = !open
 				}
 			}
