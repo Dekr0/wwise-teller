@@ -14,7 +14,7 @@ import (
 func TestMediaIndex(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 2)
 	defer cancel()
-	bnk, err := ParseBank("../tests/bnks/wep_cr1_adjudicator.bnk", ctx)
+	bnk, err := ParseBank("../tests/bnks/wep_cr1_adjudicator.bnk", ctx, true)
 	if err != nil {
 		cancel()
 		t.Fatal(err)
@@ -34,7 +34,7 @@ func TestAllAlignment(t *testing.T) {
 		bnkPath := filepath.Join("../tests/bnks", bank.Name())
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 360)
-		bnk, err := ParseBank(bnkPath, ctx)
+		bnk, err := ParseBank(bnkPath, ctx, true)
 		if err != nil {
 			cancel()
 			if err == NoBKHD || err == NoDATA || err == NoDIDX || err == NoHIRC {

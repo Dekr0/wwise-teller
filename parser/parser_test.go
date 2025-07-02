@@ -19,7 +19,7 @@ type malformedSoundbank struct {
 }
 
 func TestParseBank(t *testing.T) {
-	banks, err := os.ReadDir("../tests/bnks")
+	banks, err := os.ReadDir("../tests/default_st_bnks")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestParseBank(t *testing.T) {
 
 	for _, bank := range banks {
 		t.Log(bank.Name())
-		bnkPath := filepath.Join("../tests/bnks", bank.Name())
+		bnkPath := filepath.Join("../tests/default_st_bnks", bank.Name())
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 360)
 		bnk, err := ParseBank(bnkPath, ctx, true)
@@ -84,7 +84,7 @@ func TestParseBank(t *testing.T) {
 }
 
 func TestParseMusicBank(t *testing.T) {
-	banks, err := os.ReadDir("../tests/bnks")
+	banks, err := os.ReadDir("../tests/default_st_bnks")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestParseMusicBank(t *testing.T) {
 		}
 		t.Log(bank.Name())
 
-		bnkPath := filepath.Join("../tests/bnks", bank.Name())
+		bnkPath := filepath.Join("../tests/default_st_bnks", bank.Name())
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*360)
 		bnk, err := ParseBank(bnkPath, ctx, true)
@@ -154,7 +154,7 @@ func TestParseMusicBank(t *testing.T) {
 
 func TestFaulty(t *testing.T) {
 	banks := []string{
-		"../tests/bnks/Helldiver_Standard_VO.bnk",
+		"../tests/default_st_bnks/content_audio_Helldiver_Standard_VO.st_bnk",
 	}
 	
 	excludes := []*malformedSoundbank{}
@@ -214,7 +214,7 @@ func TestFaulty(t *testing.T) {
 }
 
 func TestTreeRendering(t *testing.T) {
-	bnk, err := ParseBank("../tests/bnks/wep_ar19_liberator.bnk", context.Background(), true)
+	bnk, err := ParseBank("../tests/default_st_bnks/content_audio_wep_ar19_liberator.st_bnk", context.Background(), true)
 	if err != nil {
 		t.Fatal(err)
 	}
