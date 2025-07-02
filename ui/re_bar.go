@@ -15,7 +15,7 @@ func renderMainMenuBar(
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("Layout") {
 			for i := range dockmanager.LayoutCount {
-				if imgui.MenuItemBool(fmt.Sprintf("Layout %d", i),) {
+				if imgui.MenuItemBool(dockmanager.LayoutName[i]) {
 					dockMngr.SetLayout(i)
 				}
 			}
@@ -56,12 +56,11 @@ func renderMainMenuBar(
 			imgui.EndMenu()
 		}
 
-		if imgui.BeginMenu("Developer") {
-			if imgui.MenuItemBool("Debug Menu") {
-				dockMngr.ShowDebug = !dockMngr.ShowDebug
-			}
-			if imgui.MenuItemBool("Log") {
-				dockMngr.ShowLog = !dockMngr.ShowLog
+		if imgui.BeginMenu("Views") {
+			for tag, open := range dockMngr.Opens {
+				if imgui.MenuItemBool(dockmanager.DockWindowNames[tag]) {
+					dockMngr.Opens[tag] = !open
+				}
 			}
 			imgui.EndMenu()
 		}
