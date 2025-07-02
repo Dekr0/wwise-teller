@@ -25,7 +25,7 @@ func TestAppendRanSeqCntr(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 2)
 	defer cancel()
 
-	bnk, err := parser.ParseBank(filepath.Join(TestBankDir, bank), ctx)
+	bnk, err := parser.ParseBank(filepath.Join(TestBankDir, bank), ctx, false)
 	if err != nil {
 		cancel()
 		t.Fatal(err)

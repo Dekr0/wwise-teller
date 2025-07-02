@@ -250,7 +250,7 @@ func RunProcessScripts(
 	if !filepath.IsAbs(bank) {
 		bank = filepath.Join(p.BanksWorkspace, bank)
 	}
-	bnk, err := parser.ParseBank(bank, ctx)
+	bnk, err := parser.ParseBank(bank, ctx, false)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Failed to parse sound bank %s", bank), "error", err)
 		return

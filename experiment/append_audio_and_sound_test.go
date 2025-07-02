@@ -16,7 +16,7 @@ import (
 func TestAppendAudio(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 2)
 	defer cancel()
-	bnk, err := parser.ParseBank("../tests/st_bnks/wep_cr1_adjudicator.st_bnk", ctx)
+	bnk, err := parser.ParseBank("../tests/st_bnks/wep_cr1_adjudicator.st_bnk", ctx, false)
 	if err != nil {
 		cancel()
 		t.Fatal(err)
@@ -55,7 +55,7 @@ func TestAppendAudio(t *testing.T) {
 func TestAppendAudioAndSound(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 2)
 	defer cancel()
-	bnk, err := parser.ParseBank("../tests/st_bnks/wep_cr1_adjudicator.st_bnk", ctx)
+	bnk, err := parser.ParseBank("../tests/st_bnks/wep_cr1_adjudicator.st_bnk", ctx, false)
 	if err != nil {
 		cancel()
 		t.Fatal(err)

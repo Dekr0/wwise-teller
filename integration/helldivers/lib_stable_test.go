@@ -18,7 +18,7 @@ func TestExtractSoundBanksStable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bnk, err := parser.ParseBank("./content_audio_vehicle_combat_walker.st_bnk", context.Background())
+	bnk, err := parser.ParseBank("./content_audio_vehicle_combat_walker.st_bnk", context.Background(), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestExtractSoundBanksPatchStable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := parser.ParseBank("../content_audio_vehicle_combat_walker.st_bnk", context.Background())
+	_, err := parser.ParseBank("../content_audio_vehicle_combat_walker.st_bnk", context.Background(), false)
 	if err != nil {
 		t.Fatal(err)
 	}

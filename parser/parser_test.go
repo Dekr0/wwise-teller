@@ -1,3 +1,5 @@
+// NOTES: since DATA chunk and DIDX chunk omit alignment, all byte-by-byte will 
+// fail.
 package parser
 
 import (
@@ -29,7 +31,7 @@ func TestParseBank(t *testing.T) {
 		bnkPath := filepath.Join("../tests/bnks", bank.Name())
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 360)
-		bnk, err := ParseBank(bnkPath, ctx)
+		bnk, err := ParseBank(bnkPath, ctx, true)
 		if err != nil {
 			cancel()
 			if err == NoBKHD || err == NoDATA || err == NoDIDX || err == NoHIRC {
@@ -98,7 +100,7 @@ func TestParseMusicBank(t *testing.T) {
 		bnkPath := filepath.Join("../tests/bnks", bank.Name())
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*360)
-		bnk, err := ParseBank(bnkPath, ctx)
+		bnk, err := ParseBank(bnkPath, ctx, true)
 		if err != nil {
 			cancel()
 			if err == NoBKHD || err == NoDATA || err == NoDIDX || err == NoHIRC {
@@ -159,7 +161,7 @@ func TestFaulty(t *testing.T) {
 
 	for _, bank := range banks {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*360)
-		bnk, err := ParseBank(bank, ctx)
+		bnk, err := ParseBank(bank, ctx, true)
 		if err != nil {
 			cancel()
 			if err == NoBKHD || err == NoDATA || err == NoDIDX || err == NoHIRC {
@@ -212,7 +214,7 @@ func TestFaulty(t *testing.T) {
 }
 
 func TestTreeRendering(t *testing.T) {
-	bnk, err := ParseBank("../tests/bnks/wep_ar19_liberator.bnk", context.Background())
+	bnk, err := ParseBank("../tests/bnks/wep_ar19_liberator.bnk", context.Background(), true)
 	if err != nil {
 		t.Fatal(err)
 	}

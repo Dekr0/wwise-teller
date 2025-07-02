@@ -104,6 +104,7 @@ func TestRewireWithNewSources(t *testing.T) {
 		bnk, err := parser.ParseBank(
 			filepath.Join(testStBankDir, test.Bank),
 			ctx,
+			false,
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -152,6 +153,7 @@ func TestRewireWithNewSourcesPartial(t *testing.T) {
 		bnk, err := parser.ParseBank(
 			filepath.Join(testStBankDir, test.Bank),
 			ctx,
+			false,
 		)
 		if err != nil {
 			t.Fatal(err)
