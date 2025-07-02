@@ -151,10 +151,12 @@ func (b *BankTab) SetActiveBus(id uint32) bool {
 			return false
 		} else {
 			b.BusViewer.ActiveBus = v.(wwise.HircObj)
+			b.OpenBusHircNode(id)
 			return true
 		}
 	} else {
 		b.BusViewer.ActiveBus = v.(wwise.HircObj)
+		b.OpenBusHircNode(id)
 		return true
 	}
 }
@@ -197,9 +199,17 @@ func (b *BankTab) SetActiveActorMixerHirc(id uint32) {
 func (b *BankTab) OpenActorMixerHircNode(id uint32) {
 	h := b.Bank.HIRC()
 	if h == nil {
-		panic("There's actor mixer hierarchy node but no HIRC chunk is found")
+		panic("An actor mixer hierarchy node attempts to expand but no HIRC chunk is found")
 	}
 	h.OpenActorMixerHircNode(id)
+}
+
+func (b *BankTab) OpenBusHircNode(id uint32) {
+	h := b.Bank.HIRC()
+	if h == nil {
+		panic("An bus hierarchy node attempts to expand but no HIRC chunk is found")
+	}
+	h.OpenBusHircNode(id)
 }
 
 func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
