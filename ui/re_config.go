@@ -17,7 +17,7 @@ func configModalFunc() (func(), *bool) {
 			pushSetHomeModal()
 		}
 
-		if imgui.Button("Save") {
+		if imgui.Button("Apply") {
 			if err := GlobalCtx.Config.Save(); err != nil {
 				slog.Error("Failed to save configuration")
 			}
