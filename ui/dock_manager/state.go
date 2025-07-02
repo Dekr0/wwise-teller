@@ -60,6 +60,7 @@ type DockManager struct {
 	Focused       int
 	Layout        Layout
 	Rebuild       bool
+	Init          bool
 }
 
 const DockSpaceFlags imgui.DockNodeFlags = 
@@ -76,6 +77,7 @@ func NewDockManager() *DockManager {
 		Opens: open,
 		Layout: ActorMixerEventLayout,
 		Rebuild: true,
+		Init: true,
 	}
 }
 
@@ -114,7 +116,6 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		)
 
 		opens := []DockWindowTag{
-			FileExplorerTag,
 			BankExplorerTag,
 			ActorMixerHierarchyTag,
 			MusicHierarchyTag,
@@ -122,6 +123,10 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 			ObjectEditorActorMixerTag,
 			EventsTag,
 			GameSyncTag,
+		}
+		if d.Init {
+			opens = append(opens, FileExplorerTag)
+			d.Init = false
 		}
 		for _, tag := range opens {
 			d.Opens[tag] = true
@@ -155,10 +160,13 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		)
 
 		opens := []DockWindowTag{
-			FileExplorerTag,
 			BankExplorerTag,
 			ActorMixerHierarchyTag,
 			ObjectEditorActorMixerTag,
+		}
+		if d.Init {
+			opens = append(opens, FileExplorerTag)
+			d.Init = false
 		}
 		for _, tag := range opens {
 			d.Opens[tag] = true
@@ -192,11 +200,14 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		)
 
 		opens := []DockWindowTag{
-			FileExplorerTag,
 			BankExplorerTag,
 			MasterMixerHierarchyTag,
 			BusesTag,
 			FXTag,
+		}
+		if d.Init {
+			opens = append(opens, FileExplorerTag)
+			d.Init = false
 		}
 		for _, tag := range opens {
 			d.Opens[tag] = true
