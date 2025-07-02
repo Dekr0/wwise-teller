@@ -77,6 +77,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	bankReader := wio.NewReader(f, binary.LittleEndian)
 
@@ -93,6 +94,7 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 	hasBKHD := false
 	hasDIDX := false
 	hasHIRC := false
+	hasDATA := false
 	pending := 0
 	I := uint8(0)
 
@@ -117,6 +119,9 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 	err = nil
 	var tag []byte
 	var size uint32
+	var dataPos uint64 = 0 
+	var dataSize uint32 = 0
+	var dataIndex uint8 = 0
 	for err == nil {
 		tag, err = bankReader.FourCC()
 		if err != nil {
@@ -139,20 +144,17 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 			pending += 1
 			hasBKHD = true
 		} else if bytes.Compare(tag, []byte{'D', 'A', 'T', 'A'}) == 0 {
-			size, err = bankReader.U32()
+			hasDATA = true
+			dataSize, err = bankReader.U32()
 			if err != nil {
 				return nil, err
 			}
-			var blob []byte
-			blob, err = bankReader.ReadN(uint64(size), 0)
-			if err != nil {
+			dataPos = bankReader.Pos()
+			if err := bankReader.SeekCurrent(int64(dataSize)); err != nil {
 				return nil, err
 			}
-			if err := bnk.AddChunk(wwise.NewDATA(I, tag, blob)); err != nil {
-				return nil, err
-			}
+			dataIndex = I
 			I += 1
-			slog.Debug("Read DATA section", "size", size)
 		} else if bytes.Compare(tag, []byte{'D', 'I', 'D', 'X'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
@@ -330,28 +332,44 @@ func ParseBank(path string, ctx context.Context) (*wwise.Bank, error) {
 		return nil, NoHIRC
 	}
 
-	/*
-	didx := bnk.DIDX()
-	data := bnk.DATA()
-	if didx != nil && data != nil {
-		bnk.Sources = make([]wwise.Source, len(didx.MediaIndexs))
-		validOffset := false
-		inBound := false
-		for i, m := range didx.MediaIndexs {
-			bnk.Sources[i].Sid = m.Sid
-			bnk.Sources[i].Data = []byte{}
-			validOffset = m.Offset >= 0 && m.Offset < uint32(len(data.B))
-			inBound = m.Offset + m.Size <= uint32(len(data.B))
-			if validOffset && inBound {
-				bnk.Sources[i].Data = bytes.Clone(data.B[m.Offset:m.Offset + m.Size])
-			} else if !validOffset {
-				slog.Error("Invalid offset", "Offset", m.Offset, "Sid", m.Sid)
-			} else if !inBound {
-				slog.Error("Invalid data region", "From", m.Offset, "To", m.Offset + m.Size, "Sid", m.Sid)
-			}
+	if hasDIDX && hasDATA {
+		didx := bnk.DIDX()
+		if didx == nil {
+			panic("DIDX flag is set but no DIDX chunk find")
 		}
+		df, err := os.Open(path)
+		defer df.Close()
+		if err != nil {
+			slog.Error("Failed to obtain audio data from DATA chunk", "error", err)
+			return &bnk, nil
+		}
+		DATA := wwise.DATA{
+			I: dataIndex, 
+			T: []byte{'D', 'A', 'T', 'A'},
+			Audios: make([][]byte, len(didx.MediaIndexs)),
+			AudiosMap: make(map[uint32][]byte, len(didx.MediaIndexs)),
+		}
+		offset := uint32(0)
+		for i, entry := range didx.MediaIndexs {
+			DATA.Audios[i] = make([]byte, entry.Size)
+			if _, err = df.Seek(int64(entry.Offset) + int64(dataPos), 0); err != nil {
+				slog.Error(fmt.Sprintf("Failed to seek the start position specified by %d media index entry", i), "error", err)
+				return &bnk, nil
+			}
+			if _, err = df.Read(DATA.Audios[i]); err != nil {
+				slog.Error(fmt.Sprintf("Failed to read audio data specified by %d media index entry", i), "error", err)
+				return &bnk, nil
+			}
+			if _, in := DATA.AudiosMap[entry.Sid]; in {
+				panic(fmt.Sprintf("Duplicate audio data with ID %d", entry.Sid))
+			}
+			DATA.AudiosMap[entry.Sid] = DATA.Audios[i]
+			// Omit alignment
+			didx.MediaIndexs[i].Offset = offset
+			offset += didx.MediaIndexs[i].Size
+		}
+		bnk.Chunks = append(bnk.Chunks, &DATA)
 	}
-	*/
 
 	return &bnk, nil
 }
