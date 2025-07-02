@@ -173,13 +173,14 @@ func createLoop(
 
 		viewport := imgui.MainViewport()
 
-		if imgui.ShortcutNilV(DefaultNavPrevSC, imgui.InputFlagsRouteGlobal) {
-			dockMngr.FocusPrev()
-			imgui.SetWindowFocusStr(dockMngr.Focus())
+		if imgui.Shortcut(imgui.KeyChord(imgui.KeyF1)) {
+			dockMngr.SetLayout(dockmanager.ActorMixerObjEditorLayout)
 		}
-		if imgui.ShortcutNilV(DefaultNavNextSC, imgui.InputFlagsRouteGlobal) {
-			dockMngr.FocusNext()
-			imgui.SetWindowFocusStr(dockMngr.Focus())
+		if imgui.Shortcut(imgui.KeyChord(imgui.KeyF2)) {
+			dockMngr.SetLayout(dockmanager.ActorMixerEventLayout)
+		}
+		if imgui.Shortcut(imgui.KeyChord(imgui.KeyF3)) {
+			dockMngr.SetLayout(dockmanager.MasterMixerLayout)
 		}
 
 		renderStatusBar(GlobalCtx.Loop.AsyncTasks)
@@ -200,18 +201,20 @@ func createLoop(
 
 		renderMainMenuBar(dockMngr, cmdPaletteMngr)
 		GlobalCtx.ModalQ.renderModal()
-		glog.RenderLog(gLog, &dockMngr.ShowLog)
-		renderDebug(bnkMngr, dockMngr)
-		renderFileExplorer(fileExplorer)
+
+		glog.RenderLog(gLog, &dockMngr.Opens[dockmanager.LogTag])
+
+		renderDebug(bnkMngr, &dockMngr.Opens[dockmanager.DebugTag])
+		renderFileExplorer(fileExplorer, &dockMngr.Opens[dockmanager.FileExplorerTag])
 		renderBankExplorer(bnkMngr)
-		renderActorMixerHircTree(bnkMngr.ActiveBank)
-		renderMusicHircTree(bnkMngr.ActiveBank)
-		renderMasterMixerHierarchy(bnkMngr.ActiveBank)
-		renderObjEditorActorMixer(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank)
-		renderObjEditorMusic(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank)
-		renderBusViewer(bnkMngr.ActiveBank)
-		renderFXViewer(bnkMngr.ActiveBank)
-		renderEventsViewer(bnkMngr.ActiveBank)
+		renderActorMixerHircTree(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.ActorMixerHierarchyTag])
+		renderMusicHircTree(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.MusicHierarchyTag])
+		renderMasterMixerHierarchy(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.MasterMixerHierarchyTag])
+		renderObjEditorActorMixer(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank, &dockMngr.Opens[dockmanager.ObjectEditorActorMixerTag])
+		renderObjEditorMusic(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank, &dockMngr.Opens[dockmanager.ObjectEditorMusicTag])
+		renderBusViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.BusesTag])
+		renderFXViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.FXTag])
+		renderEventsViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.EventsTag])
 		notify.RenderNotify(nQ)
 		imgui.End()
 	}
