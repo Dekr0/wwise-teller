@@ -66,6 +66,7 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 
 	imgui.SetNextItemOpen(node.Open)
 	open := imgui.TreeNodeExStrV(sid, flags)
+	node.Open = open 
 	if imgui.IsItemClickedV(imgui.MouseButtonLeft) {
 		if !imgui.CurrentIO().KeyCtrl() {
 			t.ActorMixerViewer.LinearStorage.Clear()
@@ -88,13 +89,10 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 	}
 	imgui.Text(st)
 	if open {
-		node.Open = true
 		for i := range node.Leafs {
 			renderActorMixerHircNode(t, node.Leafs[i])
 		}
 		imgui.TreePop()
-	} else {
-		node.Open = false
 	}
 }
 
