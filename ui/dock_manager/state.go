@@ -15,7 +15,7 @@ const (
 
 var LayoutName []string = []string{
 	"Editor Layout (Actor Mixer)",
-	"Event Layer (Actor Mixer)",
+	"Event Layout (Actor Mixer)",
 	"Master Mixer Layout",
 }
 
