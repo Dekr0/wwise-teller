@@ -5,15 +5,17 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
-	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 )
 
-func renderDebug(bnkMngr *be.BankManager, dockMngr *dockmanager.DockManager) {
-	if !dockMngr.ShowDebug {
+func renderDebug(bnkMngr *be.BankManager, open *bool) {
+	if !*open {
 		return
 	}
-
-	imgui.BeginV("Debug", &dockMngr.ShowDebug, 0)
+	imgui.BeginV("Debug", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
 
 	imgui.PushTextWrapPos()
 
@@ -73,5 +75,4 @@ func renderDebug(bnkMngr *be.BankManager, dockMngr *dockmanager.DockManager) {
 	imgui.Text(fmt.Sprintf("# of pending async tasks: %d", stat.NumRunningAsyncTask))
 	imgui.SeparatorText("Memory")
 	imgui.PopTextWrapPos()
-	imgui.End()
 }

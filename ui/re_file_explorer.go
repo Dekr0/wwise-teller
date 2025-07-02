@@ -10,17 +10,23 @@ import (
 	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
-	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/ui/fs"
+	"github.com/Dekr0/wwise-teller/utils"
 )
 
-func renderFileExplorer(fe *fs.FileExplorer) {
-	imgui.BeginV("File Explorer", nil, 0)
+func renderFileExplorer(fe *fs.FileExplorer, open *bool) {
+	if !*open {
+		return
+	}
+	imgui.BeginV("File Explorer", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
 	if imgui.BeginTabBar("FileExplorerTabBar") {
 		renderFileExplorerTab(fe)
 		imgui.EndTabBar()
 	}
-	imgui.End()
 }
 
 func renderFileExplorerTab(fe *fs.FileExplorer) {

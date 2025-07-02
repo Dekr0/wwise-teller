@@ -7,6 +7,10 @@ func RenderLog(gLog *GuiLog, showLog *bool) {
 		return
 	}
 	imgui.BeginV("Log", showLog, 0)
+	defer imgui.End()
+	if !*showLog {
+		return
+	}
 	gLog.Log.Logs.Do(func(a any) {
 		if a == nil {
 			return
@@ -15,5 +19,4 @@ func RenderLog(gLog *GuiLog, showLog *bool) {
 		imgui.Text(a.(string))
 		imgui.PopTextWrapPos()
 	})
-	imgui.End()
 }

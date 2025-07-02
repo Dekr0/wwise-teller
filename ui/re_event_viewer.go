@@ -14,13 +14,18 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderEventsViewer(t *be.BankTab) {
-	imgui.Begin("Events")
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
-		imgui.End()
+func renderEventsViewer(t *be.BankTab, open *bool) {
+	if !*open {
 		return
 	}
-
+	imgui.BeginV("Events", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
+		return
+	}
 	if t.EventViewer.ActiveEvent != nil {
 		size := imgui.NewVec2(0, 0)
 
@@ -36,7 +41,6 @@ func renderEventsViewer(t *be.BankTab) {
 			imgui.EndChild()
 		}
 	}
-	imgui.End()
 }
 
 func renderActionsTable(t *be.BankTab) {
@@ -100,6 +104,7 @@ func renderAction(t *be.BankTab, a *wwise.Action) {
 		switch a.ActionParam.(type) {
 		case *wwise.ActionActiveParam:
 			t.SetActiveActorMixerHirc(a.IdExt)
+			t.OpenActorMixerHircNode(a.IdExt)
 			// This is only handle at the end of rendering loop
 			// Thus, only Bank Explorer is focused
 			imgui.SetWindowFocusStr("Actor Mixer Hierarchy")
@@ -107,6 +112,7 @@ func renderAction(t *be.BankTab, a *wwise.Action) {
 			t.Focus = be.BankTabActorMixer
 		case *wwise.ActionPlayParam:
 			t.SetActiveActorMixerHirc(a.IdExt)
+			t.OpenActorMixerHircNode(a.IdExt)
 			imgui.SetWindowFocusStr("Actor Mixer Hierarchy")
 			imgui.SetWindowFocusStr("Bank Explorer")
 			t.Focus = be.BankTabActorMixer

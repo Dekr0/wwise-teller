@@ -118,13 +118,18 @@ func renderFxTable(t *be.BankTab) {
 	}
 }
 
-func renderFXViewer(t *be.BankTab) {
-	imgui.Begin("FX")
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
-		imgui.End()
+func renderFXViewer(t *be.BankTab, open *bool) {
+	if !*open {
 		return
 	}
-
+	imgui.BeginV("FX", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
+		return
+	}
 	if t.FxViewer.ActiveFx != nil {
 		switch f := t.FxViewer.ActiveFx.(type) {
 		case *wwise.FxShareSet:
@@ -135,7 +140,6 @@ func renderFXViewer(t *be.BankTab) {
 			panic("Panic trap")
 		}
 	}
-	imgui.End()
 }
 
 func renderFxShareSet(f *wwise.FxShareSet) {

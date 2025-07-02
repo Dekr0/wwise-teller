@@ -114,14 +114,19 @@ func renderBusTable(t *be.BankTab) {
 	}
 }
 
-func renderMasterMixerHierarchy(t *be.BankTab) {
-	imgui.Begin("Master Mixer Hierarchy")
+func renderMasterMixerHierarchy(t *be.BankTab, open *bool) {
+	if !*open {
+		return
+	}
+	imgui.BeginV("Master Mixer Hierarchy", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
-		imgui.End()
 		return 
 	}
 	renderMasterMixerHierarchyTreeTable(t)
-	imgui.End()
 }
 
 func renderMasterMixerHierarchyTreeTable(t *be.BankTab) {
@@ -187,13 +192,18 @@ func renderMasterMixerHierarchyNode(t *be.BankTab, node *wwise.BusHircNode) {
 	}
 }
 
-func renderBusViewer(t *be.BankTab) {
-	imgui.Begin("Buses")
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
-		imgui.End()
+func renderBusViewer(t *be.BankTab, open *bool) {
+	if !*open {
 		return
 	}
-
+	imgui.BeginV("Buses", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
+		return
+	}
 	if t.BusViewer.ActiveBus != nil {
 		switch bus := t.BusViewer.ActiveBus.(type) {
 		case *wwise.Bus:
@@ -204,8 +214,6 @@ func renderBusViewer(t *be.BankTab) {
 			panic("Non Master Mix Hierarchy object is in the bus viewer")
 		}
 	}
-
-	imgui.End()
 }
 
 func renderBus(t *be.BankTab, b *wwise.Bus) {
