@@ -10,6 +10,7 @@ import (
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
+	"golang.design/x/clipboard"
 )
 
 func renderBusTable(t *be.BankTab) {
@@ -93,6 +94,19 @@ func renderBusTable(t *be.BankTab) {
 					t.BusViewer.ActiveBus = bus
 				}
 
+				if imgui.BeginPopupContextItem() {
+					cloneId := idA
+					Disabled(!GlobalCtx.CopyEnable, func() {
+						if imgui.SelectableBool("Copy ID") {
+							clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(cloneId), 10)))
+						}
+						if imgui.SelectableBool("Expand Node in Hierarchy") {
+							t.OpenBusHircNode(cloneId)
+						}
+					})
+					imgui.EndPopup()
+				}
+
 				switch b := bus.(type) {
 				case *wwise.Bus:
 					if b.CanSetHDR == -1 {
@@ -159,9 +173,19 @@ func renderMasterMixerHierarchyNode(t *be.BankTab, node *wwise.BusHircNode) {
 	if selected {
 		flags |= imgui.TreeNodeFlagsSelected
 	}
+	imgui.SetNextItemOpen(node.Open)
 	open := imgui.TreeNodeExStrV(sid, flags)
 	if imgui.IsItemClicked() {
 		t.BusViewer.ActiveBus = o
+	}
+	node.Open = open
+	if imgui.BeginPopupContextItem() {
+		Disabled(!GlobalCtx.CopyEnable, func() {
+			if imgui.SelectableBool("Copy ID") {
+				clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
+			}
+		})
+		imgui.EndPopup()
 	}
 
 	imgui.TableSetColumnIndex(1)
