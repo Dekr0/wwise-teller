@@ -14,14 +14,19 @@ import (
 	"golang.design/x/clipboard"
 )
 
-func renderActorMixerHircTree(t *be.BankTab)  {
-	imgui.Begin("Actor Mixer Hierarchy")
+func renderActorMixerHircTree(t *be.BankTab, open *bool) {
+	if !*open {
+		return 
+	}
+	imgui.BeginV("Actor Mixer Hierarchy", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
 	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
-		imgui.End()
 		return
 	}
 	renderActorMixerHircTreeTable(t)
-	imgui.End()
 }
 
 func renderActorMixerHircTreeTable(t *be.BankTab) {
@@ -160,8 +165,14 @@ func renderActorMixerHircCtx(
 	imgui.EndDisabled()
 }
 
-func renderMusicHircTree(t *be.BankTab) {
-	imgui.Begin("Music Hierarchy")
+func renderMusicHircTree(t *be.BankTab, open *bool) {
+	if !*open {
+		return
+	}
+	imgui.BeginV("Music Hierarchy", open, imgui.WindowFlagsNone)
+	defer imgui.End()
+	if !*open {
+		return
+	}
 	imgui.Text("Under Construction")
-	imgui.End()
 }
