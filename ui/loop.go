@@ -171,17 +171,17 @@ func createLoop(
 		imgui.ClearSizeCallbackPool()
 		imguizmo.BeginFrame()
 
-		viewport := imgui.MainViewport()
-
-		if imgui.Shortcut(imgui.KeyChord(imgui.KeyF1)) {
+		if imgui.ShortcutNilV(imgui.KeyChord(imgui.KeyF1), imgui.InputFlagsRouteGlobal) {
 			dockMngr.SetLayout(dockmanager.ActorMixerObjEditorLayout)
 		}
-		if imgui.Shortcut(imgui.KeyChord(imgui.KeyF2)) {
+		if imgui.ShortcutNilV(imgui.KeyChord(imgui.KeyF2), imgui.InputFlagsRouteGlobal) {
 			dockMngr.SetLayout(dockmanager.ActorMixerEventLayout)
 		}
-		if imgui.Shortcut(imgui.KeyChord(imgui.KeyF3)) {
+		if imgui.ShortcutNilV(imgui.KeyChord(imgui.KeyF3), imgui.InputFlagsRouteGlobal) {
 			dockMngr.SetLayout(dockmanager.MasterMixerLayout)
 		}
+
+		viewport := imgui.MainViewport()
 
 		renderStatusBar(GlobalCtx.Loop.AsyncTasks)
 
