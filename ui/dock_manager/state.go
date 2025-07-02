@@ -7,18 +7,59 @@ import (
 type Layout uint8
 
 const (
-	Layout01    Layout = 0
-	Layout02    Layout = 1
-	LayoutCount Layout = 2
+	ActorMixerObjEditorLayout    Layout = 0
+	ActorMixerEventLayout        Layout = 1
+	MasterMixerLayout            Layout = 2
+	LayoutCount                  Layout = 3
 )
 
+var LayoutName []string = []string{
+	"Editor Layout (Actor Mixer)",
+	"Event Layer (Actor Mixer)",
+	"Master Mixer Layout",
+}
+
+type DockWindowTag uint8
+
+const (
+	AttenuationsTag           DockWindowTag = 0
+	ActorMixerHierarchyTag    DockWindowTag = 1
+	BankExplorerTag           DockWindowTag = 2
+	BusesTag                  DockWindowTag = 3
+	DebugTag                  DockWindowTag = 4
+	EventsTag                 DockWindowTag = 5
+	FileExplorerTag           DockWindowTag = 6
+	FXTag                     DockWindowTag = 7
+	GameSyncTag               DockWindowTag = 8
+	LogTag                    DockWindowTag = 9
+	MasterMixerHierarchyTag   DockWindowTag = 10
+	MusicHierarchyTag         DockWindowTag = 11
+	ObjectEditorActorMixerTag DockWindowTag = 12
+	ObjectEditorMusicTag      DockWindowTag = 13
+)
+
+var DockWindowNames []string = []string{
+	"Attenuations",
+	"Actor Mixer Hierarchy",
+	"Bank Explorer",
+	"Buses",
+	"Debug",
+	"Events",
+	"File Explorer",
+	"FX",
+	"Game Sync",
+	"Log",
+	"Master Mixer Hierarchy",
+	"Music Hierarchy",
+	"Object Editor (Actor Mixer)",
+	"Object Editor (Music)",
+}
+
 type DockManager struct {
-	Focused     int
-	DockWindows []string
-	Layout      Layout
-	ShowDebug   bool
-	ShowLog     bool
-	Rebuild     bool
+	Opens         []bool
+	Focused       int
+	Layout        Layout
+	Rebuild       bool
 }
 
 const DockSpaceFlags imgui.DockNodeFlags = 
@@ -26,47 +67,22 @@ const DockSpaceFlags imgui.DockNodeFlags =
 	imgui.DockNodeFlags(imgui.DockNodeFlagsNoWindowMenuButton)
 
 func NewDockManager() *DockManager {
+	open := make([]bool, len(DockWindowNames))
+	for i := range DockWindowNames {
+		open[i] = false
+	}
+
 	return &DockManager{
-		Focused: 0,
-		DockWindows: []string{
-			"Attenuations",
-			"Actor Mixer Hierarchy",
-			"Bank Explorer",
-			"Buses",
-			"Debug",
-			"Events",
-			"File Explorer",
-			"FX",
-			"Game Sync",
-			"Log",
-			"Master Mixer Hierarchy",
-			"Music Hierarchy",
-			"Object Editor (Actor Mixer)",
-			"Object Editor (Music)",
-		},
-		Layout: Layout02,
+		Opens: open,
+		Layout: ActorMixerEventLayout,
 		Rebuild: true,
 	}
 }
 
-func (d *DockManager) FocusNext() {
-	if d.Focused + 1 > len(d.DockWindows) - 1 {
-		d.Focused = 0
-	} else {
-		d.Focused += 1
+func (d *DockManager) HideAllDockingWindow() {
+	for tag := range d.Opens {
+		d.Opens[tag] = false
 	}
-}
-
-func (d *DockManager) FocusPrev() {
-	if d.Focused - 1 < 0 {
-		d.Focused = len(d.DockWindows) - 1
-	} else {
-		d.Focused -= 1
-	}
-}
-
-func (d *DockManager) Focus() string {
-	return d.DockWindows[d.Focused]
 }
 
 func (d *DockManager) BuildDockSpace() imgui.ID {
@@ -75,68 +91,126 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		return dockSpaceID
 	}
 
-	if d.Layout == Layout01 {
+	d.HideAllDockingWindow()
+
+	if d.Layout == ActorMixerEventLayout {
 		imgui.InternalDockBuilderRemoveNode(dockSpaceID)
 		imgui.InternalDockBuilderAddNodeV(dockSpaceID, DockSpaceFlags)
 
 		mainDock := dockSpaceID
-		dock1 := imgui.InternalDockBuilderSplitNode(
-			mainDock, imgui.DirLeft, 0.45, nil, &mainDock,
+		explorerDock := imgui.ID(0)
+		hierarchyDock := imgui.ID(0)
+		editorDock := imgui.ID(0)
+		eventDock := imgui.ID(0)
+
+		explorerDock = imgui.InternalDockBuilderSplitNode(
+			mainDock, imgui.DirLeft, 0.30, nil, &hierarchyDock,
 		)
-		dock2 := imgui.InternalDockBuilderSplitNode(
-			mainDock, imgui.DirRight, 0.75, nil, &mainDock,
+		hierarchyDock = imgui.InternalDockBuilderSplitNode(
+			hierarchyDock, imgui.DirLeft, 0.50, nil, &editorDock,
 		)
-		dock3 := imgui.InternalDockBuilderSplitNode(
-			mainDock, imgui.DirDown, 0.45, nil, &dock2,
+		editorDock = imgui.InternalDockBuilderSplitNode(
+			editorDock, imgui.DirDown, 0.50, nil, &eventDock,
 		)
 
-		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", dock2)
-		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
-		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock2)
-		imgui.InternalDockBuilderDockWindow("Buses", dock3)
-		imgui.InternalDockBuilderDockWindow("Debug", dock3)
-		imgui.InternalDockBuilderDockWindow("Events", dock3)
-		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
-		imgui.InternalDockBuilderDockWindow("FX", dock3)
-		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
-		imgui.InternalDockBuilderDockWindow("Log", dock3)
-		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", dock2)
-		imgui.InternalDockBuilderDockWindow("Music Hierarchy", dock2)
-		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", dock3)
-		imgui.InternalDockBuilderDockWindow("Object Editor (Music)", dock3)
-		imgui.InternalDockBuilderFinish(mainDock)
+		opens := []DockWindowTag{
+			FileExplorerTag,
+			BankExplorerTag,
+			ActorMixerHierarchyTag,
+			MusicHierarchyTag,
+			MasterMixerHierarchyTag,
+			ObjectEditorActorMixerTag,
+			EventsTag,
+			GameSyncTag,
+		}
+		for _, tag := range opens {
+			d.Opens[tag] = true
+		}
+
+		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", hierarchyDock)
+		imgui.InternalDockBuilderDockWindow("Music Hierarchy", hierarchyDock)
+		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", hierarchyDock)
+		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", editorDock)
+		imgui.InternalDockBuilderDockWindow("Events", eventDock)
+		imgui.InternalDockBuilderDockWindow("Game Sync", eventDock)
+
+		imgui.InternalDockBuilderFinish(eventDock)
 		d.Rebuild = false
-	} else if d.Layout == Layout02 {
+	} else if d.Layout == ActorMixerObjEditorLayout {
 		imgui.InternalDockBuilderRemoveNode(dockSpaceID)
 		imgui.InternalDockBuilderAddNodeV(dockSpaceID, DockSpaceFlags)
 
 		mainDock := dockSpaceID
-		dock1 := imgui.InternalDockBuilderSplitNode(
-			mainDock, imgui.DirLeft, 0.30, nil, &mainDock,
-			)
-		dock2 := imgui.InternalDockBuilderSplitNode(
-			mainDock, imgui.DirRight, 0.60, nil, &mainDock,
-			)
-		dock3 := imgui.InternalDockBuilderSplitNode(
-			mainDock, imgui.DirRight, 0.50, nil, &dock2,
+		explorerDock := imgui.ID(0)
+		hierarchyDock := imgui.ID(0)
+		editorDock := imgui.ID(0)
+
+		explorerDock = imgui.InternalDockBuilderSplitNode(
+			mainDock, imgui.DirLeft, 0.30, nil, &hierarchyDock,
+		)
+		hierarchyDock = imgui.InternalDockBuilderSplitNode(
+			hierarchyDock, imgui.DirLeft, 0.50, nil, &editorDock,
 		)
 
-		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", dock2)
-		imgui.InternalDockBuilderDockWindow("Attenuations", dock3)
-		imgui.InternalDockBuilderDockWindow("Bank Explorer", dock1)
-		imgui.InternalDockBuilderDockWindow("Buses", dock3)
-		imgui.InternalDockBuilderDockWindow("Debug", dock3)
-		imgui.InternalDockBuilderDockWindow("Events", dock3)
-		imgui.InternalDockBuilderDockWindow("FX", dock3)
-		imgui.InternalDockBuilderDockWindow("Game Sync", dock3)
-		imgui.InternalDockBuilderDockWindow("File Explorer", dock1)
-		imgui.InternalDockBuilderDockWindow("Log", dock3)
-		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", dock2)
-		imgui.InternalDockBuilderDockWindow("Music Hierarchy", dock2)
-		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", dock3)
-		imgui.InternalDockBuilderDockWindow("Object Editor (Music)", dock3)
+		opens := []DockWindowTag{
+			FileExplorerTag,
+			BankExplorerTag,
+			ActorMixerHierarchyTag,
+			ObjectEditorActorMixerTag,
+		}
+		for _, tag := range opens {
+			d.Opens[tag] = true
+		}
+
+		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", hierarchyDock)
+		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", editorDock)
+
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.Rebuild = false
+	} else if d.Layout == MasterMixerLayout {
+		imgui.InternalDockBuilderRemoveNode(dockSpaceID)
+		imgui.InternalDockBuilderAddNodeV(dockSpaceID, DockSpaceFlags)
+
+		mainDock := dockSpaceID
+		explorerDock := imgui.ID(0)
+		hierarchyDock := imgui.ID(0)
+		busDock := imgui.ID(0)
+		fxDock := imgui.ID(0)
+
+		explorerDock = imgui.InternalDockBuilderSplitNode(
+			mainDock, imgui.DirLeft, 0.30, nil, &hierarchyDock,
+		)
+		hierarchyDock = imgui.InternalDockBuilderSplitNode(
+			hierarchyDock, imgui.DirLeft, 0.50, nil, &busDock,
+		)
+		busDock = imgui.InternalDockBuilderSplitNode(
+			busDock, imgui.DirDown, 0.50, nil, &fxDock,
+		)
+
+		opens := []DockWindowTag{
+			FileExplorerTag,
+			BankExplorerTag,
+			MasterMixerHierarchyTag,
+			BusesTag,
+			FXTag,
+		}
+		for _, tag := range opens {
+			d.Opens[tag] = true
+		}
+
+		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", hierarchyDock)
+		imgui.InternalDockBuilderDockWindow("Buses", busDock)
+		imgui.InternalDockBuilderDockWindow("FX", fxDock)
+
+		imgui.InternalDockBuilderFinish(mainDock)
+		d.Rebuild = false
+
 	}
 	return dockSpaceID
 }
