@@ -40,17 +40,17 @@ func NewCmdPaletteMngr(dockMngr *dockmanager.DockManager) *CmdPaletteMngr {
 		"config",
 		func() { pushConfigModalFunc() },
 	})
-	for _, dw := range dockMngr.DockWindows {
-		c := dw
+	for _, name := range dockmanager.DockWindowNames {
+		c := name
 		mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-			fmt.Sprintf("focus %s", dw),
+			fmt.Sprintf("focus %s", name),
 			func() { dockMngr.SetFocus(c) },
 		})
 	}
 	for i := range dockmanager.LayoutCount {
 		li := i
 		mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
-			fmt.Sprintf("use layout %d", i),
+			dockmanager.LayoutName[i],
 			func() { dockMngr.SetLayout(li) },
 		})
 	}
