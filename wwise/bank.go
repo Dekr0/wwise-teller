@@ -162,10 +162,14 @@ func (b *Bank) AppendAudio(audioData []byte, sid uint32) error {
 	if data == nil {
 		return NoDATA
 	}
+	if _, in := data.AudiosMap[sid]; in {
+		return fmt.Errorf("ID %d already has an associate audio data", sid)
+	}
 	err := didx.Append(sid, uint32(len(audioData)))
 	if err != nil {
 		return err
 	}
-	data.B = append(data.B, audioData...)
+	data.Audios = append(data.Audios, audioData)
+	data.AudiosMap[sid] = audioData
 	return nil
 }
