@@ -22,7 +22,8 @@ type MusicHircNode struct {
 
 type BusHircNode struct {
 	Obj      HircObj
-	Root     uint32 // OverrideBusId
+	Root    *BusHircNode // OverrideBusId
+	Open     bool
 	LeafsIdx []uint32
 	Leafs    map[uint32]*BusHircNode
 }
@@ -71,7 +72,7 @@ func (h *HIRC) BuildTree() {
 	}
 
 	// Memory allocation most likely scatter all over the place
-	busNodes := make(map[uint32]*BusHircNode)
+	h.BusHircNodesMap = make(map[uint32]*BusHircNode)
 	// This should be able to allocated in a deterministic manner because the 
 	// exact # can be accumulative during the parsing phase and post modification phase
 	h.BusRoots = []*BusHircNode{}
@@ -85,28 +86,28 @@ func (h *HIRC) BuildTree() {
 		switch bus := o.(type) {
 		case *Bus:
 			node := &BusHircNode{
-				bus, bus.OverrideBusId, []uint32{}, make(map[uint32]*BusHircNode),
+				bus, nil, false, []uint32{}, make(map[uint32]*BusHircNode),
 			}
-			if _, in := busNodes[bus.Id]; in {
-				panic("Panic Trap")
+			if _, in := h.BusHircNodesMap[bus.Id]; in {
+				panic(fmt.Sprintf("Duplicate bus hierarchy node %d", bus.Id))
 			}
-			busNodes[bus.Id] = node
+			h.BusHircNodesMap[bus.Id] = node
 			if bus.OverrideBusId == 0 {
 				h.BusRoots = append(h.BusRoots, node)
 			}
 		case *AuxBus:
 			node := &BusHircNode{
-				bus, bus.OverrideBusId, []uint32{}, make(map[uint32]*BusHircNode),
+				bus, nil, false, []uint32{}, make(map[uint32]*BusHircNode),
 			}
-			if _, in := busNodes[bus.Id]; in {
-				panic("Panic Trap")
+			if _, in := h.BusHircNodesMap[bus.Id]; in {
+				panic(fmt.Sprintf("Duplicate aux bus hierarchy node %d", bus.Id))
 			}
-			busNodes[bus.Id] = node
+			h.BusHircNodesMap[bus.Id] = node
 			if bus.OverrideBusId == 0 {
 				h.BusRoots = append(h.BusRoots, node)
 			}
 		default:
-			panic("Panic Trap")
+			panic("Non bus hierarchy object is being processed during the bus hierarchy tree construction.")
 		}
 	}
 	// Second pass, construct tree
@@ -114,33 +115,42 @@ func (h *HIRC) BuildTree() {
 		if !BusHircType(o) {
 			continue
 		}
-
-		id, err := o.HircID()
-		if err != nil {
-			panic("Panic Trap")
+		overrideBusId := uint32(0)
+		switch bus := o.(type) {
+		case *Bus:
+			overrideBusId = bus.OverrideBusId
+		case *AuxBus:
+			overrideBusId = bus.OverrideBusId
+		default:
+			panic("Non bus hierarchy object is being processed during the bus hierarchy tree construction.")
 		}
-
-		node, in := busNodes[id];
-		if !in {
-			panic("Panic Trap")
-		}
-		if node.Root == 0 {
+		if overrideBusId == 0 {
 			continue
 		}
 
-		root, in := busNodes[node.Root]; 
+		id, err := o.HircID()
+		if err != nil {
+			panic(err)
+		}
+		node, in := h.BusHircNodesMap[id];
 		if !in {
-			panic("Panic Trap")
+			panic(fmt.Sprintf("No bus hierarchy node has ID %d.", id))
+		}
+
+		root, in := h.BusHircNodesMap[overrideBusId]; 
+		if !in {
+			panic(fmt.Sprintf("No root bus hierarchy node has ID %d.", overrideBusId))
 		} 
+		node.Root = root
 
 		if _, in := root.Leafs[uint32(i)]; in {
-			panic("Panic Trap")
+			panic(fmt.Sprintf("Duplicate bus hierarchy object index %d", i))
 		}
 		root.Leafs[uint32(i)] = node
 
 		insertIdx, in := sort.Find(len(root.LeafsIdx), func(j int) int {
 			if root.LeafsIdx[j] == uint32(i) {
-				panic("Panic Trap")
+				panic(fmt.Sprintf("Duplicate bus hierarchy object index %d", i))
 			}
 			if root.LeafsIdx[j] > uint32(i) {
 				return 1
@@ -163,6 +173,19 @@ func (h *HIRC) OpenActorMixerHircNode(id uint32) {
 	for parent != nil {
 		parent.Open = true
 		parent = parent.Root
+	}
+}
+
+func (h *HIRC) OpenBusHircNode(id uint32) {
+	node, in := h.BusHircNodesMap[id]
+	if !in {
+		panic(fmt.Sprintf("No bus hierarchy node has ID %d", id))
+	}
+	node.Open = true
+	root := node.Root
+	for root != nil {
+		root.Open = true
+		root = root.Root
 	}
 }
 
