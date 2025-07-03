@@ -170,7 +170,7 @@ func ParseProcessor(fspec string) (*Processor, error) {
 				slog.Error(fmt.Sprintf("%s is a directory.", n.Script))
 				return true
 			}
-			if TypeRewireWithNewSources < n.Type || n.Type >= ProcessScriptTypeCount {
+			if n.Type < TypeRewireWithNewSources || n.Type >= ProcessScriptTypeCount {
 				slog.Error(fmt.Sprintf("Unsupported process script type %d", n.Type))
 				return true
 			}
