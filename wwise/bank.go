@@ -173,3 +173,20 @@ func (b *Bank) AppendAudio(audioData []byte, sid uint32) error {
 	data.AudiosMap[sid] = audioData
 	return nil
 }
+
+func (b *Bank) ReplaceAudio(audioData []byte, sid uint32) error {
+	didx := b.DIDX()
+	if didx == nil {
+		return NoDIDX
+	}
+	data := b.DATA()
+	if data == nil {
+		return NoDATA
+	}
+	_, in := data.AudiosMap[sid]
+	if !in {
+		return fmt.Errorf("No audio data has ID %d", sid)
+	}
+	data.AudiosMap[sid] = audioData
+	return nil
+}
