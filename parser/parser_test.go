@@ -44,7 +44,7 @@ func TestParseBank(t *testing.T) {
 		cancel()
 
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second * 4)
-		blob, err := bnk.Encode(ctx)
+		blob, err := bnk.Encode(ctx, true)
 		if err != nil {
 			cancel()
 			t.Fatal(bnkPath, err)
@@ -113,7 +113,7 @@ func TestParseMusicBank(t *testing.T) {
 		cancel()
 
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second*360)
-		blob, err := bnk.Encode(ctx)
+		blob, err := bnk.Encode(ctx, true)
 		if err != nil {
 			cancel()
 			t.Fatal(bnkPath, err)
@@ -174,7 +174,7 @@ func TestFaulty(t *testing.T) {
 		cancel()
 
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second*360)
-		blob, err := bnk.Encode(ctx)
+		blob, err := bnk.Encode(ctx, true)
 		if err != nil {
 			cancel()
 			t.Fatal(bank, err)

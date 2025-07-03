@@ -23,7 +23,7 @@ func TestExtractSoundBanksStable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	b, err := bnk.Encode(context.Background())
+	b, err := bnk.Encode(context.Background(), false)
 	if err != nil {
 		t.Fatal(err)
 	}
