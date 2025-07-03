@@ -17,16 +17,16 @@ import (
 )
 
 const (
-	RewireTypeSound RewireType = 0
-	RewireTypeCntr  RewireType = 1
+	FilesToSoundsTypeGrain FilesToSoundsType = 0
+	FilesToSoundsTypeGroup FilesToSoundsType = 1
 )
 
-type RewireType uint8;
+type FilesToSoundsType uint8;
 
-type RewireWithNewSourcesHeader struct {
+type FilesToSoundsHeader struct {
 	Workspace  string
 	Conversion string
-	Type       RewireType
+	Type       FilesToSoundsType
 	Format     waapi.ConversionFormatType
 }
 
@@ -63,17 +63,17 @@ func RewireWithNewSources(
 
 	reader := csv.NewReader(f)
 	iniDir := filepath.Base(mappingFile)
-	header := RewireWithNewSourcesHeader{
+	header := FilesToSoundsHeader{
 		Workspace: iniDir,
 		Type: 0,
 	}
 	row := uint16(0)
-	if err = ParseRewireWithNewSourcesHeader(&header, reader, &row); err != nil {
+	if err = ParseFilesToSoundsHeader(&header, reader, &row); err != nil {
 		return err
 	}
 
 	wavsMapSound := make(map[string][]*wwise.Sound, 32)
-	if header.Type == RewireTypeSound {
+	if header.Type == FilesToSoundsTypeGrain {
 		err = ParseSoundMapping(reader, &header, h, wavsMapSound, &row)
 		if err != nil {
 			return err
@@ -83,17 +83,17 @@ func RewireWithNewSources(
 		}
 	}
 
-	wemsMapSound := make(map[string][]*wwise.Sound, len(wavsMapSound))
-	wsource, err := waapi.CreateConversionList(ctx, wavsMapSound, wemsMapSound, header.Conversion, dry)
-	if len(wavsMapSound) != len(wemsMapSound) {
-		panic("Panic Trap")
+	wemsMapSounds := make(map[string][]*wwise.Sound, len(wavsMapSound))
+	wsource, err := waapi.CreateConversionList(ctx, wavsMapSound, wemsMapSounds, header.Conversion, dry)
+	if len(wavsMapSound) != len(wemsMapSounds) {
+		panic("# of wavs file in indexing map does not equal # of output wem in indexing map")
 	}
 	if err != nil {
 		return err
 	}
 
 	if dry {
-		for wem, sounds := range wemsMapSound {
+		for wem, sounds := range wemsMapSounds {
 			fmt.Println(wem)
 			for _, s := range sounds {
 				fmt.Println(s.Id)
@@ -107,11 +107,11 @@ func RewireWithNewSources(
 		return err
 	}
 
-	wemsMapAudioData := make(map[string][]byte, len(wemsMapSound))
-	errorWems := make([]string, 0, len(wemsMapSound))
-	for wem := range wemsMapSound {
+	wemsMapAudioData := make(map[string][]byte, len(wemsMapSounds))
+	errorWems := make([]string, 0, len(wemsMapSounds))
+	for wem := range wemsMapSounds {
 		if _, in := wemsMapAudioData[wem]; in {
-			panic("Panic Trap")
+			panic(fmt.Sprintf("Detect duplicated wem file %s when storing audio data", wem))
 		}
 		wemsMapAudioData[wem], err = os.ReadFile(wem)
 		if err != nil {
@@ -121,7 +121,7 @@ func RewireWithNewSources(
 		}
 	}
 	for _, errorWem := range errorWems {
-		delete(wemsMapSound, errorWem)
+		delete(wemsMapSounds, errorWem)
 	}
 
 	q, closeDb, commit, txRollback, err := db.CreateDefaultConnWithTxQuery(ctx)
@@ -130,16 +130,18 @@ func RewireWithNewSources(
 	}
 	defer closeDb()
 
-	wemsMapMediaIndexs := make(map[string]wwise.MediaIndex, len(wemsMapSound))
-	for wem := range wemsMapSound {
+	wemsMapMediaIndexs := make(map[string]wwise.MediaIndex, len(wemsMapSounds))
+	for wem := range wemsMapSounds {
 		sid, err := db.TrySid(ctx, q)
 		if err != nil {
 			txRollback()
 			return fmt.Errorf("Failed to allocate a new source ID: %w", err)
 		}
-		if _, in := wemsMapMediaIndexs[wem]; in { panic("Panic Trap") }
+		if _, in := wemsMapMediaIndexs[wem]; in {
+			panic(fmt.Sprintf("Detect duplicated wem file %s when storing media index", wem))
+		}
 		if audioData, in := wemsMapAudioData[wem]; !in { 
-			panic("Panic Trap") 
+			panic(fmt.Sprintf("Cannot find audio data with wem file %s", wem)) 
 		} else {
 			wemsMapMediaIndexs[wem] = wwise.MediaIndex{Sid: sid, Size: uint32(len(audioData))}
 		}
@@ -153,18 +155,20 @@ func RewireWithNewSources(
 
 	for wem, m := range wemsMapMediaIndexs {
 		if audioData, in := wemsMapAudioData[wem]; !in {
-			panic("Panic Trap")
+			panic(fmt.Sprintf("Cannot find audio data with wem file %s", wem)) 
 		} else {
 			if err := bnk.AppendAudio(audioData, m.Sid); err != nil {
 				// Database is out of sync
-				panic("Panic Trap")
+				panic(fmt.Sprintf("Source ID %d collision after allocating source ID and commit it into the database", m.Sid))
 			}
 		}
 	}
 
-	for wem, sounds := range wemsMapSound {
+	for wem, sounds := range wemsMapSounds {
 		m, in := wemsMapMediaIndexs[wem]
-		if !in { panic("Panic Trap") }
+		if !in {
+			panic(fmt.Sprintf("Cannot find audio data with wem file %s", wem)) 
+		}
 		for _, sound := range sounds {
 			switch header.Format {
 			case waapi.ConversionFormatTypePCM:
@@ -176,7 +180,7 @@ func RewireWithNewSources(
 			case waapi.ConversionFormatTypeWEMOpus:
 				sound.BankSourceData.PluginID = wwise.WEM_OPUS
 			default:
-				panic("Panic trap")
+				panic(fmt.Sprintf("Unsupported conversion format %d", header.Format))
 			}
 			sound.BankSourceData.SourceID = m.Sid
 			sound.BankSourceData.InMemoryMediaSize = m.Size
@@ -192,8 +196,8 @@ func RewireWithNewSources(
 // project,absolute_path
 // type,0
 // workspace,workspace_relative_path_or_absolute_path
-func ParseRewireWithNewSourcesHeader(
-	header *RewireWithNewSourcesHeader,
+func ParseFilesToSoundsHeader(
+	header *FilesToSoundsHeader,
 	reader *csv.Reader,
 	row *uint16,
 ) error {
@@ -239,7 +243,7 @@ func ParseRewireWithNewSourcesHeader(
 // Merge duplicate input
 func ParseSoundMapping(
 	reader *csv.Reader,
-	header *RewireWithNewSourcesHeader,
+	header *FilesToSoundsHeader,
 	h *wwise.HIRC,
 	wavsMapping map[string][]*wwise.Sound,
 	rowNum *uint16,
@@ -384,7 +388,7 @@ func CheckFormatRow(reader *csv.Reader, row uint16) (waapi.ConversionFormatType,
 	return waapi.ConversionFormatType(format), nil
 }
 
-func CheckRewireTypeRow(reader *csv.Reader, row uint16) (RewireType, error) {
+func CheckRewireTypeRow(reader *csv.Reader, row uint16) (FilesToSoundsType, error) {
 	rewireTypeRow, err := reader.Read()
 	if err != nil {
 		return 0, fmt.Errorf("Failed to obtain rewire type value: %w", err)
@@ -399,10 +403,10 @@ func CheckRewireTypeRow(reader *csv.Reader, row uint16) (RewireType, error) {
 	if err != nil {
 		return 0, fmt.Errorf("Failed to parse rewire type: %w", err)
 	}
-	if rewireType < int(RewireTypeSound) || rewireType > int(RewireTypeCntr) {
+	if rewireType < int(FilesToSoundsTypeGrain) || rewireType > int(FilesToSoundsTypeGroup) {
 		return 0, fmt.Errorf("Invalid rewire type %d", rewireType)
 	}
-	return RewireType(rewireType), nil
+	return FilesToSoundsType(rewireType), nil
 }
 
 func CheckWorkspaceRow(reader *csv.Reader, init string, row uint16) (string, error) {
