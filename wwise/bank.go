@@ -84,6 +84,18 @@ func (b *Bank) DATA() *DATA {
 	return nil
 }
 
+func (b *Bank) DATAAppendOnly() *DATAAppendOnly {
+	for _, chunk := range b.Chunks {
+		if bytes.Compare(chunk.Tag(), []byte{'D', 'A', 'T', 'A'}) == 0 {
+			switch c := chunk.(type) {
+			case *DATAAppendOnly:
+				return c
+			}
+		}
+	}
+	return nil
+}
+
 func (b *Bank) HIRC() *HIRC {
 	for _, chunk := range b.Chunks {
 		if bytes.Compare(chunk.Tag(), []byte{'H', 'I', 'R', 'C'}) == 0 {
@@ -118,7 +130,16 @@ func CreateEncodeClosure(
 	}
 }
 
-func (bnk *Bank) Encode(ctx context.Context) ([]byte, error) {
+func (bnk *Bank) Encode(ctx context.Context, diffTest bool) ([]byte, error) {
+	if diffTest {
+		bnk.ComputeDIDXOffset()
+		if bnk.DIDX() != nil && bnk.DATA() != nil {
+			if err := bnk.CheckDIDXDATA(); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	c := make(chan *EncodedChunk, len(bnk.Chunks))
 
 	// No initialization since I want it to crash and catch encoding bugs
