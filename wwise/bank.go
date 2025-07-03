@@ -143,7 +143,7 @@ func (bnk *Bank) Encode(ctx context.Context) ([]byte, error) {
 			}
 			chunks[res.i] = res.b
 			slog.Info(
-				fmt.Sprintf("Encoded %s section", res.b[0:4]),
+				fmt.Sprintf("Encoded %s section.", res.b[0:4]),
 				"size", len(res.b[8:]),
 			)
 			i -= 1
@@ -163,7 +163,7 @@ func (b *Bank) AppendAudio(audioData []byte, sid uint32) error {
 		return NoDATA
 	}
 	if _, in := data.AudiosMap[sid]; in {
-		return fmt.Errorf("ID %d already has an associate audio data", sid)
+		return fmt.Errorf("ID %d already has an associate audio data.", sid)
 	}
 	err := didx.Append(sid, uint32(len(audioData)))
 	if err != nil {
@@ -187,6 +187,56 @@ func (b *Bank) ReplaceAudio(audioData []byte, sid uint32) error {
 	if !in {
 		return fmt.Errorf("No audio data has ID %d", sid)
 	}
+	_, in = didx.MediaIndexsMap[sid]
+	if !in {
+		return fmt.Errorf("No media index has ID %d", sid)
+	}
+	didx.MediaIndexsMap[sid].Size = uint32(len(audioData))
 	data.AudiosMap[sid] = audioData
+
+	return nil
+}
+
+func (b *Bank) ComputeDIDXOffset() {
+	didx := b.DIDX()
+	if didx == nil {
+		return
+	}
+	data := b.DATA()
+	if data == nil {
+		return
+	}
+	offset := uint64(0)
+	for i, entry := range didx.MediaIndexs {
+		didx.MediaIndexs[i].Offset = uint32(offset)
+		offset += uint64(entry.Size)
+	}
+}
+
+func (b *Bank) CheckDIDXDATA() error {
+	didx := b.DIDX()
+	if didx == nil {
+		return NoDIDX
+	}
+	data := b.DATA()
+	if data == nil {
+		return NoDATA
+	}
+	offset := uint64(0)
+	for i, entry := range didx.MediaIndexs {
+		if uint32(len(data.Audios[i])) != entry.Size {
+			return fmt.Errorf("Audio source size at index %d does not equal to size of Media Index (%d) at index %d.", i, entry.Size, i)
+		}
+		if _, in := didx.MediaIndexsMap[entry.Sid]; !in {
+			return fmt.Errorf("Media index %d is not in index.", entry.Sid)
+		}
+		if _, in := data.AudiosMap[entry.Sid]; !in {
+			return fmt.Errorf("Media index %d cannot find audio data in audio data index", entry.Sid)
+		}
+		if offset != uint64(entry.Offset) {
+			return fmt.Errorf("Expecting media index (%d) at index %d has offset of %d but received %d", entry.Sid, i, offset, entry.Offset)
+		}
+		offset += uint64(entry.Size)
+	}
 	return nil
 }
