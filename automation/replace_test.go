@@ -15,11 +15,12 @@ func TestReplace(t *testing.T) {
 	bnk, err := parser.ParseBank(
 		"../tests/default_st_bnks/content_audio_wep_ar61_marauder.st_bnk",
 		context.Background(),
+		false,
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = bnk.Encode(context.Background())
+	_, err = bnk.Encode(context.Background(), false)
 	if err != nil {
 		t.Fatal(err)
 	}
