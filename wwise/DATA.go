@@ -10,6 +10,35 @@ import (
 	"github.com/Dekr0/wwise-teller/wio"
 )
 
+type DATAAppendOnly struct {
+	I   uint8
+	T []byte
+	B []byte
+}
+
+func (d *DATAAppendOnly) Encode(ctx context.Context) ([]byte, error) {
+	size := uint32(len(d.B))
+	bw := wio.NewWriter(uint64(SizeOfChunkHeader + size))
+	bw.AppendBytes(d.T)
+	bw.Append(size)
+	bw.AppendBytes(d.B)
+	assert.Equal(
+		int(size),
+		bw.Len() - 4 - 4,
+		"(DATA) The size of encoded data does not equal to calculated size.",
+	)
+
+	return bw.Bytes(), nil
+}
+
+func (d *DATAAppendOnly) Tag() []byte {
+	return d.T
+}
+
+func (d *DATAAppendOnly) Idx() uint8 {
+	return d.I
+}
+
 type DATA struct {
 	I             uint8
 	T           []byte
