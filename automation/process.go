@@ -22,10 +22,11 @@ const ProcessSpecVersion = 0
 type ProcessScriptType uint8
 
 const (
-	RewireWithNewSourcesType ProcessScriptType = 0
-	RewireWithOldSourcesType ProcessScriptType = 1
-	BasePropModifiersType    ProcessScriptType = 2
-	ImportAsRanSeqCntrType   ProcessScriptType = 3
+	TypeRewireWithNewSources     ProcessScriptType = 0
+	TypeRewireWithOldSources     ProcessScriptType = 1
+	TypeBasePropModifiers        ProcessScriptType = 2
+	TypeImportAsRanSeqCntr       ProcessScriptType = 3
+	TypeReplaceOldAudioSources   ProcessScriptType = 4
 )
 
 type Processor struct {
@@ -169,7 +170,7 @@ func ParseProcessor(fspec string) (*Processor, error) {
 				return true
 			}
 			switch n.Type {
-			case RewireWithNewSourcesType, RewireWithOldSourcesType, BasePropModifiersType, ImportAsRanSeqCntrType:
+			case TypeRewireWithNewSources, TypeRewireWithOldSources, TypeBasePropModifiers, TypeImportAsRanSeqCntr:
 			default:
 				slog.Error(fmt.Sprintf("Unsupported process script type %d", n.Type))
 				return true
@@ -267,11 +268,11 @@ func RunProcessScripts(
 			script.Script = filepath.Join(p.ScriptsWorkspace, script.Script)
 		}
 		switch script.Type {
-		case RewireWithNewSourcesType:
+		case TypeRewireWithNewSources:
 			err = RewireWithNewSources(ctx, bnk, script.Script, false)
-		case BasePropModifiersType:
+		case TypeBasePropModifiers:
 			err = ProcessBaseProps(bnk, script.Script)
-		case ImportAsRanSeqCntrType:
+		case TypeImportAsRanSeqCntr:
 			err = ImportAsRanSeqCntr(ctx, bnk, script.Script)
 		default:
 			panic("Panic Trap")
@@ -329,11 +330,11 @@ func ProcessActiveBank(ctx context.Context, bnk *wwise.Bank, fspec string) error
 func ProcessPipelineActiveBank(ctx context.Context, bnk *wwise.Bank, p *ProcessPipeline) error {
 	for _, node := range p.Scripts {
 		switch node.Type {
-		case RewireWithNewSourcesType:
+		case TypeRewireWithNewSources:
 			if err := RewireWithNewSources(ctx, bnk, node.Script, false); err != nil {
 				return err
 			}
-		case BasePropModifiersType:
+		case TypeBasePropModifiers:
 			if err := ProcessBaseProps(bnk, node.Script); err != nil {
 				return err
 			}
