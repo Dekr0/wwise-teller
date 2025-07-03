@@ -274,6 +274,12 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 			return fmt.Errorf("Failed to add a new audio source file: %w.", err)
 		}
 	}
+	bnk.ComputeDIDXOffset()
+	if err := bnk.CheckDIDXDATA(); err != nil {
+		rollback()
+		return fmt.Errorf("Invalid Integrity appear in DIDX and DATA chunk: %w", err)
+	}
+
 	newCntr := refCntr.Clone(newCntrId, false)
 	if s.Seq {
 		newCntr.PlayListSetting.Mode = wwise.ModeSequence
