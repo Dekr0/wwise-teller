@@ -22,11 +22,12 @@ const ProcessSpecVersion = 0
 type ProcessScriptType uint8
 
 const (
-	TypeRewireWithNewSources     ProcessScriptType = 0
-	TypeRewireWithOldSources     ProcessScriptType = 1
-	TypeBasePropModifiers        ProcessScriptType = 2
-	TypeImportAsRanSeqCntr       ProcessScriptType = 3
-	TypeReplaceOldAudioSources   ProcessScriptType = 4
+	TypeRewireWithNewSources ProcessScriptType = 0
+	TypeRewireWithOldSources ProcessScriptType = 1
+	TypeBasePropModifiers    ProcessScriptType = 2
+	TypeImportAsRanSeqCntr   ProcessScriptType = 3
+	TypeReplaceAudioSources  ProcessScriptType = 4
+	ProcessScriptTypeCount   ProcessScriptType = 5
 )
 
 type Processor struct {
@@ -169,9 +170,7 @@ func ParseProcessor(fspec string) (*Processor, error) {
 				slog.Error(fmt.Sprintf("%s is a directory.", n.Script))
 				return true
 			}
-			switch n.Type {
-			case TypeRewireWithNewSources, TypeRewireWithOldSources, TypeBasePropModifiers, TypeImportAsRanSeqCntr:
-			default:
+			if TypeRewireWithNewSources < n.Type || n.Type >= ProcessScriptTypeCount {
 				slog.Error(fmt.Sprintf("Unsupported process script type %d", n.Type))
 				return true
 			}
@@ -274,8 +273,10 @@ func RunProcessScripts(
 			err = ProcessBaseProps(bnk, script.Script)
 		case TypeImportAsRanSeqCntr:
 			err = ImportAsRanSeqCntr(ctx, bnk, script.Script)
+		case TypeReplaceAudioSources:
+			err = ReplaceAudioSources(ctx, bnk, script.Script, false)
 		default:
-			panic("Panic Trap")
+			panic(fmt.Sprintf("Unsupport process script type %d.", script.Type))
 		}
 		if err != nil {
 			slog.Error(fmt.Sprintf("Failed to run process script %s", script.Script), "error", err)
@@ -285,7 +286,7 @@ func RunProcessScripts(
 	case integration.IntegrationTypeNone:
 		panic("Panic Trap")
 	case integration.IntegrationTypeDefault:
-		bnkData, err := bnk.Encode(ctx)
+		bnkData, err := bnk.Encode(ctx, false)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Failed to encode sound bank %s", basename), "error", err)
 			return
@@ -296,7 +297,7 @@ func RunProcessScripts(
 			return
 		}
 	case integration.IntegrationTypeHelldivers2:
-		bnkData, err := bnk.Encode(ctx)
+		bnkData, err := bnk.Encode(ctx, false)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Failed to encode sound bank %s", basename), "error", err)
 			return
