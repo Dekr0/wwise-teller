@@ -221,7 +221,7 @@ func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
 	}
 	c := make(chan *result)
 	go func() {
-		data, err := b.Bank.Encode(ctx)
+		data, err := b.Bank.Encode(ctx, false)
 		c <- &result{data, err}
 	}()
 
