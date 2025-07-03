@@ -206,13 +206,20 @@ func (b *Bank) ReplaceAudio(audioData []byte, sid uint32) error {
 	}
 	_, in := data.AudiosMap[sid]
 	if !in {
-		return fmt.Errorf("No audio data has ID %d", sid)
+		return fmt.Errorf("No audio data has ID %d in index", sid)
 	}
 	_, in = didx.MediaIndexsMap[sid]
 	if !in {
-		return fmt.Errorf("No media index has ID %d", sid)
+		return fmt.Errorf("No media index has ID %d in index", sid)
 	}
 	didx.MediaIndexsMap[sid].Size = uint32(len(audioData))
+	audioIdx := slices.IndexFunc(didx.MediaIndexs, func(m MediaIndex) bool {
+		return m.Sid == sid
+	})
+	if audioIdx == -1 {
+		return fmt.Errorf("Failed to index media index using source ID %d", sid)
+	}
+	data.Audios[audioIdx] = audioData
 	data.AudiosMap[sid] = audioData
 
 	return nil
@@ -244,6 +251,11 @@ func (b *Bank) CheckDIDXDATA() error {
 		return NoDATA
 	}
 	offset := uint64(0)
+	if len(didx.MediaIndexs) != len(data.Audios) {
+		return fmt.Errorf(
+			"# of Media Index (%d) doesnt' equal # of audios data (%d)", len(didx.MediaIndexs), len(data.Audios),
+		)
+	}
 	for i, entry := range didx.MediaIndexs {
 		if uint32(len(data.Audios[i])) != entry.Size {
 			return fmt.Errorf("Audio source size at index %d does not equal to size of Media Index (%d) at index %d.", i, entry.Size, i)
