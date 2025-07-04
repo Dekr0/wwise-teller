@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/Dekr0/wwise-teller/db/id"
 	"github.com/Dekr0/wwise-teller/utils"
@@ -21,6 +22,7 @@ const DatabaseEnv = "IDATABASE"
 
 var DatabaseEnvNotSet error = fmt.Errorf("Enviromental variable %s is not set.", DatabaseEnv)
 var DatabaseEnvNotAbs error = fmt.Errorf("Enviromental variable %s is not in absolute path.", DatabaseEnv)
+var WriteLock sync.Mutex
 
 func CheckDatabaseEnv() error {
 	p := os.Getenv(DatabaseEnv)
