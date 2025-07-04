@@ -124,6 +124,8 @@ func RewireWithNewSources(
 		delete(wemsMapSounds, errorWem)
 	}
 
+	db.WriteLock.Lock()
+	defer db.WriteLock.Unlock()
 	q, closeDb, commit, txRollback, err := db.CreateDefaultConnWithTxQuery(ctx)
 	if err != nil {
 		return err

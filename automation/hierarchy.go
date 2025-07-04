@@ -238,6 +238,8 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	}
 
 	// Hierarchy IDs generation and Source IDs generation
+	db.WriteLock.Lock()
+	defer db.WriteLock.Unlock()
 	q, closeDb, commit, rollback, err := db.CreateDefaultConnWithTxQuery(ctx)
 	if err != nil {
 		return err
