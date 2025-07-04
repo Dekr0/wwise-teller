@@ -1,3 +1,4 @@
+// TODO: batch create Random Sequence Container
 package automation
 
 import (
@@ -27,7 +28,10 @@ type ImportAsRanSeqCntrScript struct {
 	InitialDelay   float32                    `json:"initalDelay"`
 	HDRActiveRange float32                    `json:"HDRActiveRange"` // Set this to any negative value if it's unused
 	Parent         uint32                     `json:"parent"`
-	Event          uint32                     `json:"Event"`
+	// Set either Event or RefContainer to zero for creating a container without 
+	// an action, used for creating a new random / sequence container under a 
+	// switch container or a layer container
+	Event          uint32                     `json:"Event"` 
 	RefContainer   uint32                     `json:"refContainer"`
 	RefAction      uint32                     `json:"refAction"`
 }
@@ -70,6 +74,9 @@ func ParseImportAsRanSeqCntrScript(s *ImportAsRanSeqCntrScript, script string) (
 	}
 
 	{
+		if s.Parent == 0 {
+			return nil, fmt.Errorf("A parent ID is required in order to create new random / sequence container")
+		}
 		if s.PlaybackLimit > 1000 {
 			return nil, fmt.Errorf("Invalid playback limit value %d is not in between 0 and 1000", s.PlaybackLimit)
 		}
@@ -264,10 +271,14 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 		rollback()
 		return err
 	}
-	newActionId, err := db.TryHid(ctx, q)
-	if err != nil {
-		rollback()
-		return err
+
+	var newActionId = uint32(0)
+	if s.RefAction != 0 && s.Event != 0 {
+		newActionId, err = db.TryHid(ctx, q)
+		if err != nil {
+			rollback()
+			return err
+		}
 	}
 
 	for i, audioData := range newAudioDatas {
@@ -349,10 +360,13 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 			return fmt.Errorf("Failed to add a new sound object to random / sequence container %d: %w", newCntrId, err)
 		}
 	}
-	newAction := refAction.Clone(newActionId, newCntrId)
-	if err := h.AppendNewActionToEvent(&newAction, s.Event); err != nil {
-		rollback()
-		return fmt.Errorf("Failed to add a new action ot event %d: %w", s.Event, err)
+	
+	if newActionId != 0 {
+		newAction := refAction.Clone(newActionId, newCntrId)
+		if err := h.AppendNewActionToEvent(&newAction, s.Event); err != nil {
+			rollback()
+			return fmt.Errorf("Failed to add a new action ot event %d: %w", s.Event, err)
+		}
 	}
 
 	if err := commit(); err != nil {
