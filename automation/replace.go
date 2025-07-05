@@ -66,6 +66,8 @@ func ReplaceAudioSources(
 	if err != nil {
 		return err
 	}
+	stagingDir := filepath.Dir(wsource)
+	defer os.RemoveAll(stagingDir)
 
 	if dry {
 		for wem, sounds := range wemsMapSounds {
