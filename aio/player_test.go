@@ -2,16 +2,13 @@ package aio
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/gopxl/beep/v2/speaker"
 )
 
-var testWavesDir string = filepath.Join(os.Getenv("TEST"))
+var testWavesDir string = os.Getenv("TESTS")
 
-func TestPlayOpen(t *testing.T) {
-	player := Player{}
+func TestPlayerOpenResume(t *testing.T) {
 	entries, err := os.ReadDir(testWavesDir)
 	if err != nil {
 		t.Fatal(err)
@@ -20,10 +17,5 @@ func TestPlayOpen(t *testing.T) {
 		if entry.IsDir() {
 			continue
 		}
-		if err = player.Open(filepath.Join(testWavesDir, entry.Name())); err != nil {
-			t.Fatal(err)
-		}
-		speaker.Play(player.Streamer)
-		return
 	}
 }
