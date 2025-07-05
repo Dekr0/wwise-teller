@@ -215,6 +215,7 @@ func createLoop(
 		renderBusViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.BusesTag])
 		renderFXViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.FXTag])
 		renderEventsViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.EventsTag])
+		RenderTransportControl(bnkMngr.ActiveBank)
 		notify.RenderNotify(nQ)
 		imgui.End()
 	}
