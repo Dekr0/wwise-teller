@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/google/uuid"
 )
 
@@ -25,10 +26,8 @@ const (
 	ConversionFormatTypeWEMOpus  ConversionFormatType = 3
 )
 
-var StagingCollision = errors.New("Staging folder's name collision. Please remove all content in the .cache folder and try again.")
+var StagingCollision = errors.New("Staging folder's name collision.")
 var NoConversionProj = errors.New("WWISETELLER_WPROJ enviromental variable (used for locating Wwise Project to automate conversion) is not set.")
-
-var Tmp string = ""
 
 type ExternalSourcesList struct {
 	XMLName       xml.Name       `xml:"ExternalSourcesList"`
@@ -45,17 +44,19 @@ type ExternalSource struct {
 	AnalysisType *uint8    `xml:"AnalysisTypes,attr,omitempty"`
 }
 
-func InitTmp() error {
+var WEMCache = ""
+
+func InitWEMCache() error {
 	var err error
-	Tmp, err = os.MkdirTemp("", "wwise-teller-")
+	WEMCache, err = os.MkdirTemp("", "wwise-teller-wem-cache")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func CleanTmp() error {
-	return os.RemoveAll(Tmp)
+func CleanWEMCache() {
+	os.Remove(WEMCache)
 }
 
 func GetProject() (string, error) {
@@ -91,7 +92,13 @@ func CreateConversionList[T any](
 	}
 	var err error
 
-	staging := filepath.Join(Tmp, uuid.New().String())
+	if utils.Tmp == "" {
+		if err := utils.InitTmp(); err != nil {
+			return "", err
+		}
+	}
+
+	staging := filepath.Join(utils.Tmp, uuid.New().String())
 	_, err = os.Lstat(staging)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -176,7 +183,13 @@ func CreateConversionListInOrder(
 	}
 	var err error
 
-	staging := filepath.Join(Tmp, uuid.New().String())
+	if utils.Tmp == "" {
+		if err := utils.InitTmp(); err != nil {
+			return "", err
+		}
+	}
+
+	staging := filepath.Join(utils.Tmp, uuid.New().String())
 	_, err = os.Lstat(staging)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -303,4 +316,71 @@ func GetWwiseCLI() (string, error) {
 		return "", err
 	}
 	return cli, nil
+}
+
+type WEMInfo struct {
+	SampleRate  int
+	NumChannels int
+	ChannelMask int
+	NumSamples  int
+	Encoding    string
+}
+
+func GetVGMStream() string {
+	if runtime.GOOS == "Windows" {
+		return "vgmstream-cli.exe"
+	} else {
+		return "vgmstream-cli"
+	}
+}
+
+func WEMToWAVEByte(ctx context.Context, wem []byte) (string, error) {
+	if WEMCache == "" {
+		if err := InitWEMCache(); err != nil {
+			return "", err
+		}
+	}
+	tmpWEM := filepath.Join(WEMCache, uuid.NewString() + ".wem")
+	err := os.WriteFile(tmpWEM, wem, 0777)
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(tmpWEM)
+	return WEMToWAVEFile(tmpWEM, ctx)
+}
+
+func WEMToWAVEFile(path string, ctx context.Context) (string, error) {
+	if WEMCache == "" {
+		if err := InitWEMCache(); err != nil {
+			return "", err
+		}
+	}
+	cmdName := GetVGMStream()
+	tmpWAV := filepath.Join(WEMCache, uuid.NewString() + ".wav")
+	cmd := exec.CommandContext(ctx, cmdName, "-o", tmpWAV, path)
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return tmpWAV, nil
+}
+
+func GetWEMInfoByte(wem []byte, ctx context.Context) (float32, float32, error) {
+	tmpWEM := filepath.Join(utils.Tmp, uuid.NewString() + ".wem")
+	err := os.WriteFile(tmpWEM, wem, 0777)
+	if err != nil {
+		return 0.0, 0.0, err
+	}
+	defer os.Remove(tmpWEM)
+	return GetWEMInfoFile(tmpWEM, ctx)
+}
+
+func GetWEMInfoFile(wem string, ctx context.Context) (float32, float32, error) {
+	cmdName := GetVGMStream() 
+	cmd := exec.CommandContext(ctx, cmdName, "-m", wem)
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0.0, 0.0, err
+	}
+	return 0.0, 0.0, nil
 }
