@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/Dekr0/wwise-teller/utils"
 )
 
 func TestCreateConversionList(t *testing.T) {
@@ -27,7 +29,7 @@ func TestCreateConversionList(t *testing.T) {
 
 	wemsMapping := make(map[string]struct{}, len(wavsMapping))
 	ctx := context.Background()
-	if err := InitTmp(); err != nil {
+	if err := utils.InitTmp(); err != nil {
 		t.Fatal(err)
 	}
 	wsource, err := CreateConversionList(ctx, wavsMapping, wemsMapping, "Vorbis Quality High", true); 
@@ -39,7 +41,7 @@ func TestCreateConversionList(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(content))
-	CleanTmp()
+	utils.CleanTmp()
 }
 
 func TestWwiseConversion(t *testing.T) {
@@ -62,7 +64,7 @@ func TestWwiseConversion(t *testing.T) {
 
 	wemsMapping := make(map[string]struct{}, len(wavsMapping))
 	ctx := context.Background()
-	if err := InitTmp(); err != nil {
+	if err := utils.InitTmp(); err != nil {
 		t.Fatal(err)
 	}
 	wsource, err := CreateConversionList(ctx, wavsMapping, wemsMapping, "Vorbis Quality High", true); 
@@ -76,5 +78,5 @@ func TestWwiseConversion(t *testing.T) {
 	if err := WwiseConversion(ctx, wsource, proj); err != nil {
 		t.Fatal(err)
 	}
-	CleanTmp()
+	utils.CleanTmp()
 }
