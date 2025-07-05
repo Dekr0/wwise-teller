@@ -55,6 +55,7 @@ type BankTab struct {
 	// Sync
 	Focus              BankTabEnum 
 	WriteLock          atomic.Bool
+	WEMToWaveCache     sync.Map
 }
 
 func (b *BankTab) ChangeRoot(hid, np, op uint32) {
