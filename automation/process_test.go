@@ -10,7 +10,7 @@ import (
 
 	"github.com/Dekr0/wwise-teller/db"
 	"github.com/Dekr0/wwise-teller/db/id"
-	"github.com/Dekr0/wwise-teller/waapi"
+	"github.com/Dekr0/wwise-teller/utils"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
@@ -21,7 +21,7 @@ var testProcessDir = filepath.Join(os.Getenv("TESTS"), "process")
 var testProcessOkDir = filepath.Join(testProcessDir, "ok")
 
 func TestProcess(t *testing.T) {
-	if err := waapi.InitTmp(); err != nil {
+	if err := utils.InitTmp(); err != nil {
 		t.Fatal(err)
 	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true})))
@@ -35,7 +35,7 @@ func TestProcess(t *testing.T) {
 		}
 		Process(context.Background(), filepath.Join(testProcessOkDir, entry.Name()))
 	}
-	waapi.CleanTmp()
+	utils.CleanTmp()
 }
 
 func BenchmarkIDCollisionCheck(b *testing.B) {

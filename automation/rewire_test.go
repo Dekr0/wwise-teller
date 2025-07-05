@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Dekr0/wwise-teller/parser"
-	"github.com/Dekr0/wwise-teller/waapi"
+	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/wwise"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
@@ -85,7 +85,7 @@ type RewireWithNewSourcesTest struct {
 }
 
 func TestRewireWithNewSources(t *testing.T) {
-	waapi.InitTmp()
+	utils.InitTmp()
 	tests := []RewireWithNewSourcesTest{
 		{
 			"squad_ak74_ar19_01.csv",
@@ -130,11 +130,11 @@ func TestRewireWithNewSources(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	waapi.CleanTmp()
+	utils.CleanTmp()
 }
 
 func TestRewireWithNewSourcesPartial(t *testing.T) {
-	waapi.InitTmp()
+	utils.InitTmp()
 	tests := []RewireWithNewSourcesTest{
 		{
 			"squad_ak74_ar19_01.csv",
@@ -179,5 +179,5 @@ func TestRewireWithNewSourcesPartial(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	waapi.CleanTmp()
+	utils.CleanTmp()
 }

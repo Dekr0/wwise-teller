@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/Dekr0/wwise-teller/parser"
-	"github.com/Dekr0/wwise-teller/waapi"
+	"github.com/Dekr0/wwise-teller/utils"
 )
 
 func TestReplace(t *testing.T) {
-	if err := waapi.InitTmp(); err != nil {
+	if err := utils.InitTmp(); err != nil {
 		t.Fatal(err)
 	}
 	bnk, err := parser.ParseBank(
@@ -24,5 +24,5 @@ func TestReplace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	waapi.CleanTmp()
+	utils.CleanTmp()
 }
