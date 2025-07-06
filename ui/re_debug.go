@@ -73,6 +73,15 @@ func renderDebug(bnkMngr *be.BankManager, open *bool) {
 	imgui.Text(fmt.Sprintf("# of async tasks: %d", stat.TotalNumAsyncTask))
 	imgui.Text(fmt.Sprintf("# of running async tasks: %d", stat.NumRunningAsyncTask))
 	imgui.Text(fmt.Sprintf("# of pending async tasks: %d", stat.NumRunningAsyncTask))
+	imgui.SeparatorText("Player Manager")
+	imgui.Text(fmt.Sprintf("# of audio players: %d", GlobalCtx.PlayersManager.NumPlayers()))
+	imgui.Text("Alive audio players (in file path)")
+	for _, info := range GlobalCtx.PlayersManager.Debug() {
+		imgui.Text(info)
+	}
+	if GlobalCtx.PlayersManager.Active != nil {
+		imgui.Text(fmt.Sprintf("Active audio player: %s", GlobalCtx.PlayersManager.Active.Path))
+	}
 	imgui.SeparatorText("Memory")
 	imgui.PopTextWrapPos()
 }
