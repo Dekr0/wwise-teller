@@ -105,4 +105,3 @@ func renderStatusBar(asyncTasks []*async.Task) {
 		imgui.End()
 	}
 }
-
