@@ -334,22 +334,22 @@ func GetVGMStream() string {
 	}
 }
 
-func WEMToWAVEByte(ctx context.Context, wem []byte) (string, error) {
+func ExportWEMByte(ctx context.Context, wem []byte, wave bool) (string, error) {
 	if WEMCache == "" {
 		if err := InitWEMCache(); err != nil {
 			return "", err
 		}
 	}
-	tmpWEM := filepath.Join(WEMCache, uuid.NewString() + ".wem")
-	err := os.WriteFile(tmpWEM, wem, 0777)
+	wemFile := filepath.Join(WEMCache, uuid.NewString() + ".wem")
+	err := os.WriteFile(wemFile, wem, 0777)
 	if err != nil {
 		return "", err
 	}
-	defer os.Remove(tmpWEM)
-	return WEMToWAVEFile(tmpWEM, ctx)
+	defer os.Remove(wemFile)
+	return ExportWEMFile(wemFile, ctx, wave)
 }
 
-func WEMToWAVEFile(path string, ctx context.Context) (string, error) {
+func ExportWEMFile(path string, ctx context.Context, wave bool) (string, error) {
 	if WEMCache == "" {
 		if err := InitWEMCache(); err != nil {
 			return "", err
