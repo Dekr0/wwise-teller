@@ -36,6 +36,8 @@ const (
 	MusicHierarchyTag         DockWindowTag = 11
 	ObjectEditorActorMixerTag DockWindowTag = 12
 	ObjectEditorMusicTag      DockWindowTag = 13
+	NotificationTag           DockWindowTag = 14
+	TransportControlTag       DockWindowTag = 15
 )
 
 var DockWindowNames []string = []string{
@@ -53,6 +55,8 @@ var DockWindowNames []string = []string{
 	"Music Hierarchy",
 	"Object Editor (Actor Mixer)",
 	"Object Editor (Music)",
+	"Notifications",
+	"Transport Control",
 }
 
 type DockManager struct {
@@ -101,15 +105,23 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 
 		mainDock := dockSpaceID
 		explorerDock := imgui.ID(0)
+		notificationDock := imgui.ID(0)
 		hierarchyDock := imgui.ID(0)
 		editorDock := imgui.ID(0)
+		transportDock := imgui.ID(0)
 		eventDock := imgui.ID(0)
 
 		explorerDock = imgui.InternalDockBuilderSplitNode(
 			mainDock, imgui.DirLeft, 0.30, nil, &hierarchyDock,
 		)
+		explorerDock = imgui.InternalDockBuilderSplitNode(
+			explorerDock, imgui.DirUp, 0.85, nil, &notificationDock,
+		)
 		hierarchyDock = imgui.InternalDockBuilderSplitNode(
 			hierarchyDock, imgui.DirLeft, 0.50, nil, &editorDock,
+		)
+		hierarchyDock = imgui.InternalDockBuilderSplitNode(
+			hierarchyDock, imgui.DirUp, 0.65, nil, &transportDock,
 		)
 		editorDock = imgui.InternalDockBuilderSplitNode(
 			editorDock, imgui.DirDown, 0.50, nil, &eventDock,
@@ -123,6 +135,7 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 			ObjectEditorActorMixerTag,
 			EventsTag,
 			GameSyncTag,
+			TransportControlTag,
 		}
 		if d.Init {
 			opens = append(opens, FileExplorerTag)
@@ -134,10 +147,12 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 
 		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Notifications", notificationDock)
 		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", hierarchyDock)
 		imgui.InternalDockBuilderDockWindow("Music Hierarchy", hierarchyDock)
 		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", hierarchyDock)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", editorDock)
+		imgui.InternalDockBuilderDockWindow("Transport Control", transportDock)
 		imgui.InternalDockBuilderDockWindow("Events", eventDock)
 		imgui.InternalDockBuilderDockWindow("Game Sync", eventDock)
 
@@ -149,20 +164,29 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 
 		mainDock := dockSpaceID
 		explorerDock := imgui.ID(0)
+		notificationDock := imgui.ID(0)
+		transportDock := imgui.ID(0)
 		hierarchyDock := imgui.ID(0)
 		editorDock := imgui.ID(0)
 
 		explorerDock = imgui.InternalDockBuilderSplitNode(
 			mainDock, imgui.DirLeft, 0.30, nil, &hierarchyDock,
 		)
+		explorerDock = imgui.InternalDockBuilderSplitNode(
+			explorerDock, imgui.DirUp, 0.85, nil, &notificationDock,
+		)
 		hierarchyDock = imgui.InternalDockBuilderSplitNode(
 			hierarchyDock, imgui.DirLeft, 0.50, nil, &editorDock,
+		)
+		hierarchyDock = imgui.InternalDockBuilderSplitNode(
+			hierarchyDock, imgui.DirUp, 0.65, nil, &transportDock,
 		)
 
 		opens := []DockWindowTag{
 			BankExplorerTag,
 			ActorMixerHierarchyTag,
 			ObjectEditorActorMixerTag,
+			TransportControlTag,
 		}
 		if d.Init {
 			opens = append(opens, FileExplorerTag)
@@ -174,7 +198,9 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 
 		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Notifications", notificationDock)
 		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", hierarchyDock)
+		imgui.InternalDockBuilderDockWindow("Transport Control", transportDock)
 		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", editorDock)
 
 		imgui.InternalDockBuilderFinish(mainDock)
@@ -185,12 +211,16 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 
 		mainDock := dockSpaceID
 		explorerDock := imgui.ID(0)
+		notificationDock := imgui.ID(0)
 		hierarchyDock := imgui.ID(0)
 		busDock := imgui.ID(0)
 		fxDock := imgui.ID(0)
 
 		explorerDock = imgui.InternalDockBuilderSplitNode(
 			mainDock, imgui.DirLeft, 0.30, nil, &hierarchyDock,
+		)
+		explorerDock = imgui.InternalDockBuilderSplitNode(
+			explorerDock, imgui.DirUp, 0.85, nil, &notificationDock,
 		)
 		hierarchyDock = imgui.InternalDockBuilderSplitNode(
 			hierarchyDock, imgui.DirLeft, 0.50, nil, &busDock,
@@ -215,6 +245,7 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 
 		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
 		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
+		imgui.InternalDockBuilderDockWindow("Notifications", notificationDock)
 		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", hierarchyDock)
 		imgui.InternalDockBuilderDockWindow("Buses", busDock)
 		imgui.InternalDockBuilderDockWindow("FX", fxDock)
