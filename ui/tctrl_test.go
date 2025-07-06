@@ -42,7 +42,7 @@ func TestCreatePlayerNoCache(t *testing.T) {
 	task := createPlayerNoCacheTask(&tab, sid, wemData)
 	task(t.Context())
 
-	_, in = tab.WEMToWaveCache.Load(sid)
+	_, in = tab.WEMExportCache.Load(sid)
 	if !in {
 		t.Fatalf("Data of audio source %d is not transformed into WAVE and cached", sid)
 	}
