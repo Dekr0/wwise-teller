@@ -7,26 +7,13 @@ import (
 )
 
 func RenderNotify(nQ *NotifyQ) {
-	if len(nQ.Queue) <= 0 {
-		return
-	}
-	size := imgui.MainViewport().Size()
-	y := imgui.CalcTextSize(nQ.Queue[0].Msg).Y * float32(len(nQ.Queue))
-	x := float32(0.0)
-	for _, n := range nQ.Queue {
-		x = max(imgui.CalcTextSize(n.Msg).X, x)
-	}
-	size.X -= size.X * 0.01 + x + 32.0
-	size.Y -= size.Y * 0.03 + y + float32(len(nQ.Queue)) * size.Y * 0.01
-	imgui.SetNextWindowPos(size)
-	imgui.BeginV("Notify", 
+	imgui.BeginV("Notifications", 
 		nil,
-		imgui.WindowFlagsNoDecoration |
-		imgui.WindowFlagsNoTitleBar |
 		imgui.WindowFlagsNoMove |
 		imgui.WindowFlagsNoResize |
 		imgui.WindowFlagsAlwaysAutoResize,
 	)
+	defer imgui.End()
 	i := 0
 	for i < len(nQ.Queue) {
 		select {
@@ -45,6 +32,5 @@ func RenderNotify(nQ *NotifyQ) {
 		}
 		i += 1
 	}
-	imgui.End()
 }
 
