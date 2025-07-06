@@ -15,6 +15,7 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/imguizmo"
 	"github.com/AllenDang/cimgui-go/implot"
+	"github.com/Dekr0/wwise-teller/aio"
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/log"
 	"github.com/Dekr0/wwise-teller/ui/async"
@@ -24,6 +25,7 @@ import (
 	glog "github.com/Dekr0/wwise-teller/ui/log"
 	"github.com/Dekr0/wwise-teller/ui/notify"
 	"github.com/Dekr0/wwise-teller/utils"
+	"github.com/Dekr0/wwise-teller/waapi"
 	"golang.design/x/clipboard"
 )
 
@@ -42,13 +44,6 @@ const MainDockFlags imgui.WindowFlags =
 func Run() error {
 	runtime.LockOSThread()
 
-	err := clipboard.Init()
-	if err != nil {
-		slog.Error("Failed to initialized clipboard. Copying is disabled")
-		GlobalCtx.CopyEnable = false
-	}
-	GlobalCtx.CopyEnable = true
-
 	// Begin of app state
 	gLog := &glog.GuiLog{
 		Log: log.InMemoryLog{Logs: ring.New(log.DefaultSize)},
@@ -65,6 +60,23 @@ func Run() error {
 		io.MultiWriter(&gLog.Log, logF),
 		&slog.HandlerOptions{Level: slog.LevelInfo},
 	)))
+
+	utils.InitTmp()
+	waapi.InitWEMCache()
+	defer utils.CleanTmp()
+	defer waapi.CleanWEMCache()
+
+	err = clipboard.Init()
+	if err != nil {
+		slog.Error("Failed to initialized clipboard. Copying is disabled.")
+		GlobalCtx.CopyEnable = false
+	}
+	GlobalCtx.CopyEnable = true
+
+	err = aio.InitBeep()
+	if err != nil {
+		slog.Error("Failed to initialized audio player. WEM playback is disabled.")
+	}
 
 	err = utils.ScanMountPoint()
 	if err != nil {
@@ -215,7 +227,7 @@ func createLoop(
 		renderBusViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.BusesTag])
 		renderFXViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.FXTag])
 		renderEventsViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.EventsTag])
-		RenderTransportControl(bnkMngr.ActiveBank)
+		RenderTransportControl(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.TransportControlTag])
 		notify.RenderNotify(nQ)
 		imgui.End()
 	}
