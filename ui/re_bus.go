@@ -225,7 +225,7 @@ func renderBusViewer(t *be.BankTab, open *bool) {
 	if !*open {
 		return
 	}
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.SounBankLock.Load() {
 		return
 	}
 	if t.BusViewer.ActiveBus != nil {

@@ -23,7 +23,7 @@ func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTa
 	if !*open {
 		return
 	}
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.SounBankLock.Load() {
 		return
 	}
 
@@ -96,7 +96,7 @@ func renderObjEditorMusic(m *be.BankManager, t *be.BankTab, init *be.BankTab, op
 	if !*open {
 		return
 	}
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.WriteLock.Load() {
+	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.SounBankLock.Load() {
 		return
 	}
 
