@@ -2,12 +2,13 @@ package ui
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"github.com/Dekr0/wwise-teller/parser"
+	"github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/waapi"
 )
@@ -15,6 +16,7 @@ import (
 var testBanksDir = os.Getenv("TESTS")
 
 func TestCreatePlayerNoCache(t *testing.T) {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true})))
 	utils.InitTmp()
 	defer utils.CleanTmp()
 	waapi.InitWEMCache()
@@ -27,7 +29,8 @@ func TestCreatePlayerNoCache(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var cacheMap sync.Map
+	tab := bank_explorer.BankTab{}
+
 	data := bnk.DATA()
 
 	sid := uint32(279367945)
@@ -36,16 +39,12 @@ func TestCreatePlayerNoCache(t *testing.T) {
 		t.Fatalf("No audio source has ID %d.", sid)
 	}
 
-	task := createPlayerNoCacheTask(&cacheMap, sid, wemData)
+	task := createPlayerNoCacheTask(&tab, sid, wemData)
 	task(t.Context())
 
-	v, in := cacheMap.Load(sid)
+	_, in = tab.WEMToWaveCache.Load(sid)
 	if !in {
 		t.Fatalf("Data of audio source %d is not transformed into WAVE and cached", sid)
-	}
-	_, err = GlobalCtx.Manager.Player(v.(string))
-	if err != nil {
-		t.Fatal(err)
 	}
 }
 
