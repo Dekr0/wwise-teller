@@ -9,7 +9,6 @@ import (
 	"github.com/Dekr0/wwise-teller/automation"
 	"github.com/Dekr0/wwise-teller/ui"
 	"github.com/Dekr0/wwise-teller/utils"
-	"github.com/Dekr0/wwise-teller/waapi"
 )
 
 func main() {
@@ -31,10 +30,6 @@ func main() {
 		return
 	}
 
-	utils.InitTmp()
-	waapi.InitWEMCache()
-	defer utils.CleanTmp()
-	defer waapi.CleanWEMCache()
 	if err := ui.Run(); err != nil {
 		slog.Error("Failed to launch GUI", "error", err)
 	}
