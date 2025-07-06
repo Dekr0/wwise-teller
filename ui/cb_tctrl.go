@@ -4,40 +4,48 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"sync"
 
+	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/waapi"
 )
 
-func createPlayerNoCacheTask(cache *sync.Map, sid uint32, wemData []byte) func(context.Context) {
+func createPlayerNoCacheTask(bnkTab *be.BankTab, sid uint32, wemData []byte) func(context.Context) {
 	return func(ctx context.Context) {
-		tmpWAVPath, err := waapi.WEMToWAVEByte(ctx, wemData)
+		defer bnkTab.WEMExportLock.Store(false)
+		waveFile, err := waapi.ExportWEMByte(ctx, wemData, true)
 		if err != nil {
-			slog.Error(fmt.Sprintf("Failed to transform audio source %d data to WAV", sid), "error", err)
+			bnkTab.UpdateErrorAudioSource(sid)
+			slog.Error(fmt.Sprintf("Failed to export audio source %d", sid), "error", err)
+			return
 		}
-		cache.Store(sid, tmpWAVPath)
-		_, err = GlobalCtx.Manager.Player(tmpWAVPath)
+		bnkTab.WEMExportCache.Store(sid, waveFile)
+		err = GlobalCtx.PlayersManager.NewPlayer(waveFile)
 		if err != nil {
-			slog.Error(fmt.Sprintf("Failed to create audio player for audio source %d (No caching)", sid), "error", err)
+			bnkTab.UpdateErrorAudioSource(sid)
+			slog.Error(fmt.Sprintf("Failed to initialize audio player for audio source %d", sid), "error", err)
+			return
 		}
 	}
 }
 
-func createPlayerNoCache(cache *sync.Map, sid uint32, wemData []byte) {
+func createPlayerNoCache(bnkTab *be.BankTab, sid uint32, wemData []byte) {
 	ctx, cancel := context.WithCancel(context.Background())
-	callback := createPlayerNoCacheTask(cache, sid, wemData)
-	procMsg := fmt.Sprint("Creating audio player for audio source %d (No caching)", sid)
-	doneMsg := fmt.Sprint("Done creating audio player for audio source %d (No caching)", sid)
+	callback := createPlayerNoCacheTask(bnkTab, sid, wemData)
+	procMsg := fmt.Sprintf("Initializing audio player for audio source %d", sid)
+	doneMsg := fmt.Sprintf("Initialized audio player for audio source %d", sid)
 	if err := GlobalCtx.Loop.QTask(ctx, cancel, procMsg, doneMsg, callback); err != nil {
-		slog.Error(fmt.Sprintf("Failed to create background task to create audio player for audio source %d (No caching)", sid), "error", err)
+		slog.Error(fmt.Sprintf("Failed to create background task to initialize audio player for audio source %d", sid), "error", err)
+	} else {
+		bnkTab.WEMExportLock.Store(true)
 	}
 }
 
 func createPlayerCacheTask(tmpWAVPath string, sid uint32) func(context.Context) {
 	return func(ctx context.Context) {
-		_, err := GlobalCtx.Manager.Player(tmpWAVPath)
+		defer GlobalCtx.PlayersManager.CreateLock.Store(false)
+		err := GlobalCtx.PlayersManager.NewPlayer(tmpWAVPath)
 		if err != nil {
-			slog.Error(fmt.Sprintf("Failed to create audio player for audio source %d (Cached)", sid), "error", err)
+			slog.Error(fmt.Sprintf("Failed to initialize audio player for audio source %d", sid), "error", err)
 		}
 	}
 }
@@ -45,9 +53,11 @@ func createPlayerCacheTask(tmpWAVPath string, sid uint32) func(context.Context) 
 func createPlayerCache(tmpWAVPath string, sid uint32) {
 	ctx, cancel := context.WithCancel(context.Background())
 	callback := createPlayerCacheTask(tmpWAVPath, sid)
-	procMsg := fmt.Sprint("Creating audio player for audio source %d (Cached)", sid)
-	doneMsg := fmt.Sprint("Done creating audio player for audio source %d (Cached)", sid)
+	procMsg := fmt.Sprintf("Initializing a new audio player for audio source %d", sid)
+	doneMsg := fmt.Sprintf("Initialized a new audio player for audio source %d", sid)
 	if err := GlobalCtx.Loop.QTask(ctx, cancel, procMsg, doneMsg, callback); err != nil {
-		slog.Error(fmt.Sprintf("Failed to create background task to create audio player for audio source %d (Cached)", sid), "error", err)
+		slog.Error(fmt.Sprintf("Failed to create background task to initialize audio player for audio source %d", sid), "error", err)
+	} else {
+		GlobalCtx.PlayersManager.CreateLock.Store(true)
 	}
 }
