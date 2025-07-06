@@ -7,11 +7,11 @@ import (
 )
 
 type Context struct {
-	Loop       async.EventLoop
-	ModalQ     ModalQ
-	Config     config.Config
-	CopyEnable bool
-	Manager    aio.LRUWEMPlayersManger
+	Loop           async.EventLoop
+	ModalQ         ModalQ
+	Config         config.Config
+	CopyEnable     bool
+	PlayersManager aio.PlayersManager
 }
 
 var GlobalCtx Context = Context{
@@ -19,5 +19,8 @@ var GlobalCtx Context = Context{
 	NewModalQ(),
 	config.Config{},
 	false,
-	aio.LRUWEMPlayersManger{},
+	aio.PlayersManager{
+		Max: aio.DefaultMaxLRUWEMPlayerManagerSize,
+		Players: make([]*aio.Player, 0, 8),
+	},
 }
