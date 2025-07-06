@@ -14,6 +14,8 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
+const MaxExportRetrys = 8
+
 type BankManager struct {
 	Banks        sync.Map
 	ActiveBank  *BankTab
@@ -53,9 +55,17 @@ type BankTab struct {
 	MusicHircViewer    MusicHircViewer
 
 	// Sync
-	Focus              BankTabEnum 
-	WriteLock          atomic.Bool
-	WEMToWaveCache     sync.Map
+	Focus             BankTabEnum 
+	SounBankLock      atomic.Bool
+	WEMExportLock     atomic.Bool
+	WEMExportCache    sync.Map
+	ErrorAudioSources sync.Map
+}
+
+func (b *BankTab) UpdateErrorAudioSource(sid uint32) {
+	if actual, loaded := b.ErrorAudioSources.LoadOrStore(sid, 1); loaded {
+		b.ErrorAudioSources.Store(sid, actual.(int) + 1)
+	}
 }
 
 func (b *BankTab) ChangeRoot(hid, np, op uint32) {
@@ -214,8 +224,8 @@ func (b *BankTab) OpenBusHircNode(id uint32) {
 }
 
 func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
-	b.WriteLock.Store(true)
-	defer b.WriteLock.Store(false)
+	b.SounBankLock.Store(true)
+	defer b.SounBankLock.Store(false)
 	type result struct {
 		data []byte
 		err  error
@@ -333,7 +343,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	}
 
 	t := BankTab{
-		WriteLock: atomic.Bool{},
+		SounBankLock: atomic.Bool{},
 		Bank: bank,
 
 		MediaIndexFilter: MediaIndexFilter{
@@ -419,7 +429,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 		Focus: BankTabNone,
 	}
 
-	t.WriteLock.Store(false)
+	t.SounBankLock.Store(false)
 
 	b.Banks.Store(path, &t)
 
