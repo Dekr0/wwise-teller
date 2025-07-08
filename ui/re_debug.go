@@ -73,14 +73,14 @@ func renderDebug(bnkMngr *be.BankManager, open *bool) {
 	imgui.Text(fmt.Sprintf("# of async tasks: %d", stat.TotalNumAsyncTask))
 	imgui.Text(fmt.Sprintf("# of running async tasks: %d", stat.NumRunningAsyncTask))
 	imgui.Text(fmt.Sprintf("# of pending async tasks: %d", stat.NumRunningAsyncTask))
-	imgui.SeparatorText("Player Manager")
-	imgui.Text(fmt.Sprintf("# of audio players: %d", GlobalCtx.PlayersManager.NumPlayers()))
-	imgui.Text("Alive audio players (in file path)")
-	for _, info := range GlobalCtx.PlayersManager.Debug() {
-		imgui.Text(info)
-	}
-	if GlobalCtx.PlayersManager.Active != nil {
-		imgui.Text(fmt.Sprintf("Active audio player: %s", GlobalCtx.PlayersManager.Active.Path))
+	if bnkMngr.ActiveBank != nil {
+		imgui.SeparatorText("Active Sound Bank Session")
+		bnkMngr.ActiveBank.Session.Mutex.Lock()
+		imgui.Text(fmt.Sprintf("# of Streamers: %d", len(bnkMngr.ActiveBank.Session.Streamers)))
+		for _, streamer := range bnkMngr.ActiveBank.Session.Streamers {
+			imgui.Text(fmt.Sprintf("%d - Is Nil: %v", streamer.Id(), streamer.UWStreamer() == nil))
+		}
+		bnkMngr.ActiveBank.Session.Mutex.Unlock()
 	}
 	imgui.SeparatorText("Memory")
 	imgui.PopTextWrapPos()
