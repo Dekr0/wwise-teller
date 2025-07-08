@@ -63,8 +63,6 @@ func Run() error {
 
 	utils.InitTmp()
 	waapi.InitWEMCache()
-	defer utils.CleanTmp()
-	defer waapi.CleanWEMCache()
 
 	err = clipboard.Init()
 	if err != nil {
