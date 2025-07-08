@@ -17,6 +17,15 @@ import (
 	"github.com/google/uuid"
 )
 
+var ChannelLUT [][]string = [][]string{
+	{ "C" },
+	{ "FL", "FR" },
+	{ "FL", "FR", "C / LFE" },
+	{ "FL", "FR", "SL", "SR" },
+	{ "FL", "FR", "C", "SL", "SR", "LFE", },
+	{ "FL", "FR", "C", "SL", "SR", "BL", "BR", "LFE" },
+}
+
 type ConversionFormatType uint8
 
 const (
@@ -322,8 +331,10 @@ type WEMInfo struct {
 	SampleRate  int
 	NumChannels int
 	ChannelMask int
+	ChannelName []string
 	NumSamples  int
 	Encoding    string
+	Layout      string
 }
 
 func GetVGMStream() string {
@@ -378,9 +389,14 @@ func GetWEMInfoByte(wem []byte, ctx context.Context) (float32, float32, error) {
 func GetWEMInfoFile(wem string, ctx context.Context) (float32, float32, error) {
 	cmdName := GetVGMStream() 
 	cmd := exec.CommandContext(ctx, cmdName, "-m", wem)
-	_, err := cmd.CombinedOutput()
+	info, err := cmd.CombinedOutput()
 	if err != nil {
 		return 0.0, 0.0, err
+	}
+	for line := range strings.SplitSeq(string(info), "\n") {
+		if strings.HasPrefix(line, "sample rate") {
+			line = strings.TrimPrefix("sample rate: ", line)
+		}
 	}
 	return 0.0, 0.0, nil
 }
