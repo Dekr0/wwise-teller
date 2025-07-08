@@ -9,19 +9,19 @@ import (
 )
 
 type MusicHircViewer struct {
-	HircFilter        MusicHircFilter
-	HircRootFilter    MusicHircRootFilter
-	ActiveMusicHirc        wwise.HircObj             
+	HircFilter      MusicHircFilter
+	HircRootFilter  MusicHircRootFilter
+	ActiveMusicHirc wwise.HircObj             
 
 	// Storage
-	LinearStorage         *imgui.SelectionBasicStorage
-	CntrStorage           *imgui.SelectionBasicStorage
+	LinearStorage  *imgui.SelectionBasicStorage
+	CntrStorage    *imgui.SelectionBasicStorage
 }
 
 type MusicHircFilter struct {
-	Id                uint32
-	Type              wwise.HircType
-	MusicHircs      []wwise.HircObj
+	Id           uint32
+	Type         wwise.HircType
+	MusicHircs []wwise.HircObj
 }
 
 func (f *MusicHircFilter) Filter(objs []wwise.HircObj) {
@@ -57,9 +57,9 @@ func (f *MusicHircFilter) Filter(objs []wwise.HircObj) {
 }
 
 type MusicHircRootFilter struct {
-	Id                uint32
-	Type              wwise.HircType
-	MusicHircRoots  []wwise.HircObj
+	Id               uint32
+	Type             wwise.HircType
+	MusicHircRoots []wwise.HircObj
 }
 
 func (f *MusicHircRootFilter) Filter(objs []wwise.HircObj) {
