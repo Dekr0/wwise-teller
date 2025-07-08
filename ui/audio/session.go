@@ -22,12 +22,21 @@ const DefaultSampleRate beep.SampleRate = 48000
 
 const MaxNumStreamers = 8
 
+// Session is specifically designed in the context of Wwise hierarchy structure.
+// Each sound bank will have its own Session. 
+// Session operates on a set of streamer. 
+// Each streamer is typically target toward a hierarchy object in the 
+// hierarchy structure.
+// A streamer is an interface built on top of beep.Streamer.
+// Session will keep track of N most recently used Streamer to save some amount 
+// of time from exporting WEM data as WEM file, convert WEM file to WAVE file, 
+// and load WAVE file back into application for beep playback.
 type Session struct {
-	InitLock       atomic.Bool
-	ActiveID       uint32
-	Mutex          sync.Mutex
-	Ctrl          *beep.Ctrl
-	Streamers     []Streamer
+	InitLock   atomic.Bool
+	ActiveID   uint32
+	Mutex      sync.Mutex
+	Ctrl      *beep.Ctrl
+	Streamers []Streamer
 }
 
 func NewSession() Session {
@@ -264,4 +273,3 @@ func (s *SoundStreamer) UWFormat() *beep.Format {
 func (s *SoundStreamer) UWStreamer() beep.StreamSeekCloser {
 	return s.Streamer
 }
-
