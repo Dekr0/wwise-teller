@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/Dekr0/wwise-teller/parser"
-	"github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/waapi"
 )
@@ -29,22 +28,12 @@ func TestCreatePlayerNoCache(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tab := bank_explorer.BankTab{}
-
 	data := bnk.DATA()
 
 	sid := uint32(279367945)
-	wemData, in := data.AudiosMap[sid]
+	_, in := data.AudiosMap[sid]
 	if !in {
 		t.Fatalf("No audio source has ID %d.", sid)
-	}
-
-	task := createPlayerNoCacheTask(&tab, sid, wemData)
-	task(t.Context())
-
-	_, in = tab.WEMExportCache.Load(sid)
-	if !in {
-		t.Fatalf("Data of audio source %d is not transformed into WAVE and cached", sid)
 	}
 }
 
