@@ -1,6 +1,6 @@
 // TODO:
-// - Give the option of including META when saving sound bank 
-// 		- Save using integration must exclude META
+// - Give the option of including META when saving sound bank
+//   - Save using integration must exclude META
 package bank_explorer
 
 import (
@@ -11,10 +11,12 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/parser"
+	"github.com/Dekr0/wwise-teller/ui/audio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-const MaxExportRetrys = 8
+const MaxWEMExportRetrys  = 8
+const MaxInitStreamerRetrys = 8
 
 type BankManager struct {
 	Banks        sync.Map
@@ -39,20 +41,21 @@ const (
 	BankTabGameSync    BankTabEnum = 7
 )
 
+// TODO: Examine structure size
 type BankTab struct {
 	Bank              *wwise.Bank
 
 	// Filter
-	MediaIndexFilter   MediaIndexFilter
+	MediaIndexFilter  MediaIndexFilter
 
-	ActorMixerViewer   ActorMixerViewer
-	AttenuationViewer  AttenuationViewer
-	BusViewer          BusViewer
-	EventViewer        EventViewer
-	FxViewer           FxViewer
-	GameSyncViewer     GameSyncViewer
-	ModulatorViewer    ModulatorViewer
-	MusicHircViewer    MusicHircViewer
+	ActorMixerViewer  ActorMixerViewer
+	AttenuationViewer AttenuationViewer
+	BusViewer         BusViewer
+	EventViewer       EventViewer
+	FxViewer          FxViewer
+	GameSyncViewer    GameSyncViewer
+	ModulatorViewer   ModulatorViewer
+	MusicHircViewer   MusicHircViewer
 
 	// Sync
 	Focus             BankTabEnum 
@@ -60,11 +63,31 @@ type BankTab struct {
 	WEMExportLock     atomic.Bool
 	WEMExportCache    sync.Map
 	ErrorAudioSources sync.Map
+	ErrorStreamers    sync.Map
+	Session           audio.Session
+}
+
+func (b *BankTab) BusyWEMExport() bool {
+	return b.WEMExportLock.Load()
+}
+
+func (b *BankTab) LockWEMExport() {
+	b.WEMExportLock.Store(true)
+}
+
+func (b *BankTab) UnlockWEMExport() {
+	b.WEMExportLock.Store(false)
 }
 
 func (b *BankTab) UpdateErrorAudioSource(sid uint32) {
 	if actual, loaded := b.ErrorAudioSources.LoadOrStore(sid, 1); loaded {
 		b.ErrorAudioSources.Store(sid, actual.(int) + 1)
+	}
+}
+
+func (b *BankTab) UpdateErrorStreamers(id uint32) {
+	if actual, loaded := b.ErrorStreamers.LoadOrStore(id, 1); loaded {
+		b.ErrorStreamers.Store(id, actual.(int) + 1)
 	}
 }
 
@@ -343,7 +366,6 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	}
 
 	t := BankTab{
-		SounBankLock: atomic.Bool{},
 		Bank: bank,
 
 		MediaIndexFilter: MediaIndexFilter{
@@ -427,9 +449,13 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 			CntrStorage: imgui.NewSelectionBasicStorage(),
 		},
 		Focus: BankTabNone,
+		SounBankLock: atomic.Bool{},
+		WEMExportLock: atomic.Bool{},
+		Session: audio.NewSession(),
 	}
 
 	t.SounBankLock.Store(false)
+	t.WEMExportLock.Store(false)
 
 	b.Banks.Store(path, &t)
 
