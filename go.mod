@@ -5,6 +5,7 @@ go 1.24.1
 require (
 	github.com/AllenDang/cimgui-go v1.3.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/go-audio/wav v1.1.0
 	github.com/google/uuid v1.6.0
 	github.com/go-audio/wav v1.1.0
 	github.com/gopxl/beep/v2 v2.1.1
