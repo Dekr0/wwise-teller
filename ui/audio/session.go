@@ -43,6 +43,22 @@ func NewSession() Session {
 	return Session{Streamers: make([]Streamer, 0, MaxNumStreamers)}
 }
 
+func (s *Session) Shutdown() {
+	if s.Ctrl != nil {
+		speaker.Lock()
+		s.Ctrl.Paused = false
+		s.Ctrl = nil
+		speaker.Unlock()
+	}
+	s.Mutex.Lock()
+	for i, streamer := range s.Streamers {
+		streamer.Close()
+		s.Streamers[i] = nil
+	}
+	s.Streamers = nil
+	s.Mutex.Unlock()
+}
+
 func (s *Session) Busy() bool {
 	return s.InitLock.Load()
 }
@@ -162,9 +178,9 @@ func (s *Session) Play(id uint32) error {
 	if i == -1 {
 		return nil
 	}
+	streamer := s.Streamers[i]
 	defer s.Mutex.Unlock()
 
-	streamer := s.Streamers[i]
 	if s.Ctrl != nil {
 		speaker.Lock()
 		s.Ctrl.Paused = true
@@ -202,52 +218,76 @@ func (s *Session) Resume(id uint32) error {
 	i := slices.IndexFunc(s.Streamers, func(s Streamer) bool {
 		return s.Id() == id
 	})
-	if i == -1 {
-		s.Mutex.Unlock()
-		return nil
-	}
-	s.Mutex.Unlock()
-
 	streamer := s.Streamers[i]
-
-	if s.Ctrl != nil {
-		speaker.Lock()
-		s.Ctrl.Paused = true
-		s.Ctrl = nil
-		speaker.Unlock()
-	}
-	if streamer.UWStreamer().Position() == streamer.UWStreamer().Len() {
-		if err := streamer.RewindStart(); err != nil {
-			return err
+	s.Mutex.Unlock()
+	if id == s.ActiveID {
+		if s.Ctrl != nil {
+			speaker.Lock()
+			s.Ctrl.Paused = true
+			speaker.Unlock()
 		}
+		if streamer.Position() == streamer.Len() {
+			if err := streamer.RewindStart(); err != nil {
+				return err
+			}
+			s.Ctrl = &beep.Ctrl{
+				Streamer: beep.Resample(
+					DefaultResampleQuality,
+					streamer.UWFormat().SampleRate,
+					DefaultSampleRate,
+					streamer.UWStreamer(),
+					),
+				Paused: false,
+			}
+			speaker.Play(s.Ctrl)
+		} else {
+			speaker.Lock()
+			s.Ctrl.Paused = false
+			speaker.Unlock()
+		}
+	} else {
+		if s.Ctrl != nil {
+			speaker.Lock()
+			s.Ctrl.Paused = true
+			s.Ctrl = nil
+			speaker.Unlock()
+		}
+		if streamer.Position() == streamer.Len() {
+			if err := streamer.RewindStart(); err != nil {
+				return err
+			}
+		}
+		s.Ctrl = &beep.Ctrl{
+			Streamer: beep.Resample(
+				DefaultResampleQuality,
+				streamer.UWFormat().SampleRate,
+				DefaultSampleRate,
+				streamer.UWStreamer(),
+			),
+			Paused: false,
+		}
+		speaker.Play(s.Ctrl)
 	}
-	s.Ctrl = &beep.Ctrl{
-		Streamer: beep.Resample(
-			DefaultResampleQuality,
-			streamer.UWFormat().SampleRate,
-			DefaultSampleRate,
-			streamer.UWStreamer(),
-		),
-		Paused: false,
-	}
-	speaker.Play(s.Ctrl)
-	s.ActiveID = streamer.Id()
+	s.ActiveID = id
 	return nil
 }
 
 type Streamer interface {
 	Close() error
 	Id() uint32
+	Len() int
+	Position() int 
 	RewindStart() error
-	UWStreamer() beep.StreamSeekCloser
+	UWStreamer() beep.Streamer
 	UWFormat() *beep.Format
 }
 
 type SoundStreamer struct {
-	SoundId        uint32
-	Format   *beep.Format
-	Streamer  beep.StreamSeekCloser
-	PCMData   [][]int64
+	SoundId       uint32
+	Format       *beep.Format
+	LoopStreamer  beep.Streamer
+	Streamer      beep.StreamSeekCloser
+	PCMData       [][]int64
 }
 
 func (s *SoundStreamer) Close() error {
@@ -262,6 +302,14 @@ func (s *SoundStreamer) Id() uint32 {
 	return s.SoundId
 }
 
+func (s *SoundStreamer) Position() int {
+	return s.Streamer.Position()
+}
+
+func (s *SoundStreamer) Len() int {
+	return s.Streamer.Len()
+}
+
 func (s *SoundStreamer) RewindStart() error {
 	return s.Streamer.Seek(0)
 }
@@ -270,6 +318,25 @@ func (s *SoundStreamer) UWFormat() *beep.Format {
 	return s.Format
 }
 
-func (s *SoundStreamer) UWStreamer() beep.StreamSeekCloser {
-	return s.Streamer
+func (s *SoundStreamer) UWStreamer() beep.Streamer {
+	if s.LoopStreamer != nil {
+		return s.LoopStreamer
+	} else {
+		return s.Streamer
+	}
+}
+
+func (s *SoundStreamer) Loop() error {
+	if s.LoopStreamer != nil {
+		return nil
+	}
+	var err error
+	s.LoopStreamer, err = beep.Loop2(s.Streamer)
+	return err
+}
+
+type TXTPStreamer struct {
+	HierarchyID  uint32
+	LoopStreamer beep.Streamer
+	Streamer     beep.StreamSeekCloser
 }
