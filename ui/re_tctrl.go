@@ -150,7 +150,14 @@ func renderPlaySound(bnkTab *be.BankTab, data *wwise.DATA, sound *wwise.Sound) {
 		}
 		imgui.SameLine()
 		if imgui.Button("Loop") {
-
+			bnkTab.Session.Pause(soundId)
+			if err := soundStreamer.Loop(); err != nil {
+				slog.Error(fmt.Sprintf("Failed to loop sound streamer for sound %d", soundId), "error", err)
+			} else {
+				if err := bnkTab.Session.Resume(soundId); err != nil {
+					slog.Error(fmt.Sprintf("Failed to resume sound streamer for sound %d", soundId), "error", err)
+				}
+			}
 		}
 	})
 
@@ -167,7 +174,7 @@ func renderPlaySound(bnkTab *be.BankTab, data *wwise.DATA, sound *wwise.Sound) {
 				       imgui.TableFlagsBordersV
 	size := imgui.NewVec2(-1, 72)
 
-	pos := 2000 * float64(soundStreamer.UWStreamer().Position()) / float64(soundStreamer.Format.SampleRate)
+	pos := 2000 * float64(soundStreamer.Position()) / float64(soundStreamer.Format.SampleRate)
 
 	if imgui.BeginTableV("WaveformTable", 2, tableFlags, DefaultSize, 0) {
 		imgui.TableSetupColumnV("Channel", imgui.TableColumnFlagsWidthFixed, 48, 0)
