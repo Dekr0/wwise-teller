@@ -6,7 +6,9 @@ imgui.ini
 **/*.exe
 **/*.log
 **/*.patch_0
+**/*.txtp
 **/*.st_bnk
+**/*.wav
 **/*.xml
 **/config.json
 **/wwiser.ini
