@@ -463,5 +463,9 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 }
 
 func (b *BankManager) CloseBank(del string) {
+	if v, in := b.Banks.Load(del); in {
+		bnkTab := v.(*BankTab)
+		bnkTab.Session.Shutdown()
+	}
 	b.Banks.Delete(del)
 }
