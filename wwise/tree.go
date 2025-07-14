@@ -2,6 +2,7 @@ package wwise
 
 import (
 	"fmt"
+	"log/slog"
 	"slices"
 	"sort"
 )
@@ -166,7 +167,8 @@ func (h *HIRC) BuildTree() {
 func (h *HIRC) OpenActorMixerHircNode(id uint32) {
 	node, in := h.ActorMixerHircNodesMap[id]
 	if !in {
-		panic(fmt.Sprintf("No actor mixer hierarchy node has ID %d", id))
+		slog.Error(fmt.Sprintf("No actor mixer hierarchy node has ID %d", id))
+		return
 	}
 	node.Open = true
 	parent := node.Root
@@ -179,7 +181,8 @@ func (h *HIRC) OpenActorMixerHircNode(id uint32) {
 func (h *HIRC) OpenBusHircNode(id uint32) {
 	node, in := h.BusHircNodesMap[id]
 	if !in {
-		panic(fmt.Sprintf("No bus hierarchy node has ID %d", id))
+		slog.Error(fmt.Sprintf("No bus hierarchy node has ID %d", id))
+		return
 	}
 	node.Open = true
 	root := node.Root
