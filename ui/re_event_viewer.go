@@ -12,6 +12,7 @@ import (
 	"github.com/AllenDang/cimgui-go/utils"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	"github.com/Dekr0/wwise-teller/wwise"
+	"golang.design/x/clipboard"
 )
 
 func renderEventsViewer(t *be.BankTab, open *bool) {
@@ -73,6 +74,11 @@ func renderActionsTable(t *be.BankTab) {
 				t.EventViewer.ActiveAction = action
 			}
 
+			if imgui.BeginPopupContextItem() {
+				renderActionCtxMenu(t, action, actionID)
+				imgui.EndPopup()
+			}
+
 			imgui.TableSetColumnIndex(1)
 			imgui.SetNextItemWidth(-1)
 			if preview, in := wwise.ActionTypeName[action.Type()]; !in {
@@ -124,6 +130,32 @@ func renderAction(t *be.BankTab, a *wwise.Action) {
 	imgui.SameLine()
 }
 
+func renderActionCtxMenu(t *be.BankTab, action *wwise.Action, actionID uint32) {
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy ID") {
+			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(actionID), 10)))
+		}
+	})
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy Action Target ID") {
+			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(action.IdExt), 10)))
+		}
+	})
+}
+
+func renderEventCtxMenu(t *be.BankTab, event *wwise.Event) {
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy ID") {
+			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(event.Id), 10)))
+		}
+	})
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy Action IDs") {
+
+		}
+	})
+}
+
 func renderEventsTable(t *be.BankTab) {
 	imgui.SeparatorText("Filter")
 	imgui.SetNextItemWidth(96)
@@ -153,6 +185,11 @@ func renderEventsTable(t *be.BankTab) {
 				if imgui.SelectableBoolPtr(label, &selected) {
 					t.EventViewer.ActiveEvent = event
 					t.EventViewer.ActiveAction = nil
+				}
+
+				if imgui.BeginPopupContextItem() {
+					renderEventCtxMenu(t, event)
+					imgui.EndPopup()
 				}
 			}
 		}

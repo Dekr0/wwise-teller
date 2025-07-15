@@ -102,65 +102,62 @@ func renderActorMixerHircCtx(
 	o wwise.HircObj,
 	id uint32,
 ) {
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-	if imgui.SelectableBool("Copy ID") {
-		clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
-		imgui.EndDisabled()
-		return
-	}
-	imgui.EndDisabled()
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy ID") {
+			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
+		}
+	})
 
 	switch sound := node.Obj.(type) {
 	case *wwise.Sound:
-		imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-		if imgui.SelectableBool("Copy Source ID") {
-			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
-			imgui.EndDisabled()
-			return
-		}
-		imgui.EndDisabled()
+		Disabled(!GlobalCtx.CopyEnable, func() {
+			if imgui.SelectableBool("Copy Source ID") {
+				clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
+			}
+		})
 	}
 
 	if len(node.Leafs) <= 0 {
 		return
 	}
 
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-	if imgui.SelectableBool("Copy Leafs' IDs") {
-		l := len(node.Leafs)
-		var builder strings.Builder
-		for i := range node.Leafs {
-			id, err := node.Leafs[l - i - 1].Obj.HircID()
-			if err != nil {
-				panic(err)
-			}
-			if _, err := builder.WriteString(fmt.Sprintf("%d\n", id)); err != nil {
-				slog.Error(fmt.Sprintf("Failed to copy leafs IDs of actor mixer hierarchy object %d", id), "error", err)
-			}
-		}
-		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
-		imgui.EndDisabled()
-		return
-	}
-	imgui.EndDisabled()
-
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-	if imgui.SelectableBool("Copy Leafs' Source IDs") {
-		l := len(node.Leafs)
-		var builder strings.Builder
-		for i := range node.Leafs {
-			switch sound := node.Leafs[l - i - 1].Obj.(type) {
-			case *wwise.Sound:
-				if _, err := builder.WriteString(fmt.Sprintf("%d\n", sound.BankSourceData.SourceID)); err != nil {
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy Leafs' IDs") {
+			l := len(node.Leafs)
+			var builder strings.Builder
+			for i := range node.Leafs {
+				id, err := node.Leafs[l - i - 1].Obj.HircID()
+				if err != nil {
+					panic(err)
+				}
+				if _, err := builder.WriteString(fmt.Sprintf("%d\n", id)); err != nil {
 					slog.Error(fmt.Sprintf("Failed to copy leafs IDs of actor mixer hierarchy object %d", id), "error", err)
 				}
 			}
+			clipboard.Write(clipboard.FmtText, []byte(builder.String()))
 		}
-		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
-		imgui.EndDisabled()
-		return
-	}
-	imgui.EndDisabled()
+	})
+
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy Leafs' Source IDs") {
+			l := len(node.Leafs)
+			var builder strings.Builder
+			for i := range node.Leafs {
+				switch sound := node.Leafs[l - i - 1].Obj.(type) {
+				case *wwise.Sound:
+					if _, err := builder.WriteString(fmt.Sprintf("%d\n", sound.BankSourceData.SourceID)); err != nil {
+						slog.Error(fmt.Sprintf("Failed to copy leafs IDs of actor mixer hierarchy object %d", id), "error", err)
+					}
+				}
+			}
+			clipboard.Write(clipboard.FmtText, []byte(builder.String()))
+		}
+	})
+
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Search For A Event and An Action") {
+		}
+	})
 }
 
 func renderMusicHircTree(t *be.BankTab, open *bool) {
