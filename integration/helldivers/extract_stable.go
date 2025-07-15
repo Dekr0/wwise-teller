@@ -76,7 +76,7 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 
 			XOR := slices.Clone(a.Data[0x08:0x0C])
 
-			a.Data[0x08] = 0x8D
+			a.Data[0x08] = 0x9A
 			a.Data[0x09] = 0x00
 			a.Data[0x0A] = 0x00
 			a.Data[0x0B] = 0x00
@@ -110,7 +110,7 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 				path = bytes.ReplaceAll(path, []byte{'/'}, []byte{'_'})
 
 				if bytes.Compare(path, []byte{}) == 0 {
-					return fmt.Errorf("Sound bank %d does not have a path name", h.FileID)
+					path = []byte(fmt.Sprintf("%d", a.Header.FileID))
 				}
 
 				name := fmt.Sprintf("%s.st_bnk", path)
@@ -149,7 +149,7 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 				path = bytes.ReplaceAll(path, []byte{'/'}, []byte{'_'})
 
 				if bytes.Compare(path, []byte{}) == 0 {
-					return fmt.Errorf("Sound bank %d does not have a path name", h.FileID)
+					path = []byte(fmt.Sprintf("%d", a.Header.FileID))
 				}
 				name := fmt.Sprintf("%s.st_bnk", path)
 
@@ -185,6 +185,7 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 			}
 		}
 	}
+
 	return nil
 }
 
