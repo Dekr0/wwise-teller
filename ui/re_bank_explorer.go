@@ -344,23 +344,20 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 		return
 	}
 
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-	if imgui.SelectableBool("Copy ID") {
-		clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
-		imgui.EndDisabled()
-		return
-	}
-	imgui.EndDisabled()
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy ID") {
+			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
+		}
+	})
 
 	switch sound := o.(type) {
 	case *wwise.Sound:
 		imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-		if imgui.SelectableBool("Copy Source ID") {
-			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
-			imgui.EndDisabled()
-			return
-		}
-		imgui.EndDisabled()
+		Disabled(!GlobalCtx.CopyEnable, func() {
+			if imgui.SelectableBool("Copy Source ID") {
+				clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
+			}
+		})
 	}
 
 	leafs := o.Leafs()
@@ -368,44 +365,40 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 		return
 	}
 
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-	if imgui.SelectableBool("Copy Leafs' IDs") {
-		var builder strings.Builder
-		for _, l := range leafs {
-			if _, err := builder.WriteString(fmt.Sprintf("%d\n", l)); err != nil {
-				slog.Error(fmt.Sprintf("Failed to copy leafs' IDs of hierarchy object %d", id), "error", err)
-				return
-			}
-		}
-		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
-		imgui.EndDisabled()
-		return
-	}
-	imgui.EndDisabled()
-	
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
-	if imgui.SelectableBool("Copy Leafs' Source IDs") {
-		h := t.Bank.HIRC()
-		if h == nil {
-			panic("Context menu is shown in actor mixer hierarchy table but no HIRC chunk is found.")
-		}
-		var builder strings.Builder
-		for _, l := range leafs {
-			v, in := h.ActorMixerHirc.Load(l)
-			if !in {
-				panic(fmt.Sprintf("No actor mixer hierarchy object has ID %d", l))
-			}
-			switch sound := v.(wwise.HircObj).(type) {
-			case *wwise.Sound:
-				if _, err := builder.WriteString(fmt.Sprintf("%d\n", sound.BankSourceData.SourceID)); err != nil {
-					slog.Error(fmt.Sprintf("Failed to copy leafs' Source IDs of hierarchy object %d", id), "error", err)
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy Leafs' IDs") {
+			var builder strings.Builder
+			for _, l := range leafs {
+				if _, err := builder.WriteString(fmt.Sprintf("%d\n", l)); err != nil {
+					slog.Error(fmt.Sprintf("Failed to copy leafs' IDs of hierarchy object %d", id), "error", err)
 					return
 				}
 			}
+			clipboard.Write(clipboard.FmtText, []byte(builder.String()))
 		}
-		clipboard.Write(clipboard.FmtText, []byte(builder.String()))
-		imgui.EndDisabled()
-		return
-	}
-	imgui.EndDisabled()
+	})
+	
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy Leafs' Source IDs") {
+			h := t.Bank.HIRC()
+			if h == nil {
+				panic("Context menu is shown in actor mixer hierarchy table but no HIRC chunk is found.")
+			}
+			var builder strings.Builder
+			for _, l := range leafs {
+				v, in := h.ActorMixerHirc.Load(l)
+				if !in {
+					panic(fmt.Sprintf("No actor mixer hierarchy object has ID %d", l))
+				}
+				switch sound := v.(wwise.HircObj).(type) {
+				case *wwise.Sound:
+					if _, err := builder.WriteString(fmt.Sprintf("%d\n", sound.BankSourceData.SourceID)); err != nil {
+						slog.Error(fmt.Sprintf("Failed to copy leafs' Source IDs of hierarchy object %d", id), "error", err)
+						return
+					}
+				}
+			}
+			clipboard.Write(clipboard.FmtText, []byte(builder.String()))
+		}
+	})
 }
