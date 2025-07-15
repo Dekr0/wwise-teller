@@ -6,6 +6,7 @@ package bank_explorer
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -236,6 +237,47 @@ func (b *BankTab) OpenActorMixerHircNode(id uint32) {
 		panic("An actor mixer hierarchy node attempts to expand but no HIRC chunk is found")
 	}
 	h.OpenActorMixerHircNode(id)
+}
+
+func (b *BankTab) SearchNearestEventAction(id uint32) (hasAction, hasEvent bool) {
+	hasAction, hasEvent = false, false
+	h := b.Bank.HIRC()
+	actionId := uint32(0)
+	h.Actions.Range(func(key, value any) bool {
+		action := value.(*wwise.Action)
+		if action.IdExt == id {
+			actionId = key.(uint32)
+			return false
+		}
+		return true
+	})
+	if actionId == 0 {
+		return hasAction, hasEvent 
+	}
+
+	eventId := uint32(0)
+	h.Events.Range(func(key, value any) bool {
+		event := value.(*wwise.Event)
+		idx := slices.Index(event.ActionIDs, actionId)
+		if idx == -1 {
+			return true
+		}
+		eventId = key.(uint32)
+		return false 
+	})
+
+	v, ok := h.Actions.Load(actionId)
+	if ok {
+		b.EventViewer.ActiveAction = v.(*wwise.Action)
+		hasAction = true
+	}
+	v, ok = h.Events.Load(eventId)
+	if ok {
+		b.EventViewer.ActiveEvent = v.(*wwise.Event)
+		hasEvent = true
+	}
+
+	return hasAction, hasEvent
 }
 
 func (b *BankTab) OpenBusHircNode(id uint32) {
