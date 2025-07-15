@@ -154,7 +154,7 @@ func TestParseMusicBank(t *testing.T) {
 
 func TestFaulty(t *testing.T) {
 	banks := []string{
-		"../tests/default_st_bnks/content_audio_Helldiver_Standard_VO.st_bnk",
+		"../tests/content_audio_music_mission_illuminate.st_bnk",
 	}
 	
 	excludes := []*malformedSoundbank{}
