@@ -7,7 +7,7 @@ import (
 )
 
 func TestExtractHD2(t *testing.T) {
-	if err := ExtractHD2(context.Background(), os.Getenv("HD2DATA"), "./output"); err != nil {
+	if err := ExtractHD2(context.Background(), os.Getenv("DATA"), "./output"); err != nil {
 		t.Fatal(err)
 	}
 }
