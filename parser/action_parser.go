@@ -15,7 +15,7 @@ type ActionSpecificParser func(*wio.Reader) wwise.ActionSpecificParam
 
 type ActionParamParser func(*wio.Reader, ActionSpecificParser) wwise.ActionParam
 
-var ActionDispatchMux []uint16 = []uint16{
+var ActionDispatchMux_L150 []uint16 = []uint16{
 	27,
 	0,  // 0x0100: CAkActionStop,
 	1,  // 0x0200: CAkActionPause,
@@ -74,6 +74,87 @@ var ActionDispatchMux []uint16 = []uint16{
 	19, // 0x3700: CAkActionBypassFX,
 }
 
+var ActionDispatchMux_GE150 []uint16 = []uint16{
+	27,
+	0,  // 0x0100: CAkActionStop,
+	1,  // 0x0200: CAkActionPause,
+	2,  // 0x0300: CAkActionResume,
+	4,  // 0x0400: CAkActionPlay,
+	4,  // 0x0500: CAkActionPlayAndContinue, #early (removed in later versions)
+	5,  // 0x0600: CAkActionMute,
+	5,  // 0x0700: CAkActionMute,
+	10, // 0x0800: CAkActionSetAkProp, #AkPropID_Pitch
+	10, // 0x0900: CAkActionSetAkProp, #AkPropID_Pitch
+	10, // 0x0A00: CAkActionSetAkProp, #(none) / AkPropID_Volume (~v145) / AkPropID_FirstRtpc (v150) 
+	10, // 0x0B00: CAkActionSetAkProp, #(none) / AkPropID_Volume (~v145) / AkPropID_FirstRtpc (v150)
+	10, // 0x0C00: CAkActionSetAkProp, #AkPropID_BusVolume
+	10, // 0x0D00: CAkActionSetAkProp, #AkPropID_BusVolume
+	10, // 0x0E00: CAkActionSetAkProp, #AkPropID_LPF
+	10, // 0x0F00: CAkActionSetAkProp, #AkPropID_LPF
+	11, // 0x1000: CAkActionUseState,
+	11, // 0x1100: CAkActionUseState,
+	12, // 0x1200: CAkActionSetState,
+	13, // 0x1300: CAkActionSetGameParameter,
+	13, // 0x1400: CAkActionSetGameParameter,
+	14, // 0x1500: CAkActionEvent, #not in v150
+	14, // 0x1600: CAkActionEvent, #not in v150
+	14, // 0x1700: CAkActionEvent, #not in v150
+	27, // 0x1800
+	16, // 0x1900: CAkActionSetSwitch,
+	20, // 0x1A00: CAkActionBreak,
+	21, // 0x1B00: CAkActionTrigger,
+	20, // 0x1C00: CAkActionBreak,
+	21, // 0x1D00: CAkActionTrigger,
+	22, // 0x1E00: CAkActionSeek,
+	23, // 0x1F00: CAkActionRelease,
+	10, // 0x2000: CAkActionSetAkProp, #AkPropID_HPF
+	24, // 0x2100: CAkActionPlayEvent,
+	25, // 0x2200: CAkActionResetPlaylist,
+	26, // 0x2300: CAkActionPlayEventUnknown, #normally not defined
+	27, // 0x2400
+	27, // 0x2500
+	27, // 0x2600
+	27, // 0x2700
+	27, // 0x2800
+	27, // 0x2900
+	27, // 0x2A00
+	27, // 0x2B00
+	27, // 0x2C00
+	27, // 0x2D00
+	27, // 0x2E00
+	27, // 0x2F00
+	10, // 0x3000: CAkActionSetAkProp, #AkPropID_HPF
+	18, // 0x3100: CAkActionSetFX,
+	18, // 0x3200: CAkActionSetFX,
+	19, // 0x3300: CAkActionBypassFX,
+	19, // 0x3400: CAkActionBypassFX,
+	19, // 0x3500: CAkActionBypassFX,
+	19, // 0x3600: CAkActionBypassFX,
+	19, // 0x3700: CAkActionBypassFX,
+}
+
+// No change for SetExceptParams for version bumping from 141 to latest
+
+// Done migrating
+// ParseActionActiveParam
+// ParseActionPlayParam
+// ParseActionSetValueParam
+// ParseActionSetSwitchParam
+// ParseActionSetRTPCParam  
+// ParseActionSetFXParam    
+// ParseActionByPassFXParam 
+// ParseActionSeekParam
+// ParseActionReleaseParam
+// ParseActionPlayEventParam
+
+// Done migrating
+// ParseActionNoSpecificParam
+// ParseActionStopSpecificParam
+// ParseActionPauseSpecificParam
+// ParseActionResumeSpecificParam
+// ParseActionSetPropSpecificParam
+// ParseActionSetGameParameterSpecificParam
+
 var ActionDispatchLUT []ActionDispatch = []ActionDispatch{
 	{ParseActionActiveParam,    ParseActionStopSpecificParam            }, // 0 Stop
 	{ParseActionActiveParam,    ParseActionPauseSpecificParam           }, // 1 Pause
@@ -126,7 +207,12 @@ func ParseAction(size uint32, r *wio.Reader) *wwise.Action {
 	ParsePropBundle(r, &a.PropBundle)
 	ParseRangePropBundle(r, &a.RangePropBundle)
 
-	lutIdx := ActionDispatchMux[(a.ActionType & 0xFF00) >> 8]
+	var lutIdx uint16 = 0
+	if wwise.BankVersion >= 150 {
+		lutIdx = ActionDispatchMux_GE150[(a.ActionType & 0xFF00) >> 8]
+	} else {
+		lutIdx = ActionDispatchMux_L150[(a.ActionType & 0xFF00) >> 8]
+	}
 	dispatch := ActionDispatchLUT[lutIdx]
 	a.ActionParam = dispatch.ParamParser(r, dispatch.SpecificParamParser)
 
@@ -195,25 +281,31 @@ func ParseActionActiveParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionP
 	param := wwise.ActionActiveParam{
 		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
 		AkSpecificParam: p(r),
-		ExceptParams: make([]wwise.ExceptParam, r.U8Unsafe()),
+		ExceptionListSize: r.VarUnsafe(),
 	}
+	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
 	ParseActionExceptParams(r, param.ExceptParams)
 	return &param
 }
 
 func ParseActionPlayParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
-	return &wwise.ActionPlayParam{
+	actionPlayParam := &wwise.ActionPlayParam{
 		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
 		BankID: r.U32Unsafe(),
 	}
+	if wwise.BankVersion >= 144 {
+		actionPlayParam.BankType = r.U32Unsafe()
+	}
+	return actionPlayParam
 }
 
 func ParseActionSetValueParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
 	param := &wwise.ActionSetValueParam{
 		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
 		AkSpecificParam: p(r),
-		ExceptParams: make([]wwise.ExceptParam, r.U8Unsafe()),
+		ExceptionListSize: r.VarUnsafe(),
 	}
+	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
 	ParseActionExceptParams(r, param.ExceptParams)
 	return param
 }
@@ -245,8 +337,9 @@ func ParseActionSetFXParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionPa
 		SlotIndex: r.U8Unsafe(),
 		FXID: r.U32Unsafe(),
 		IsShared: r.U8Unsafe(),
-		ExceptParams: make([]wwise.ExceptParam, r.U8Unsafe()),
+		ExceptionListSize: r.VarUnsafe(),
 	}
+	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
 	ParseActionExceptParams(r, param.ExceptParams)
 	return &param
 }
@@ -255,8 +348,9 @@ func ParseActionByPassFXParam(r *wio.Reader, p ActionSpecificParser) wwise.Actio
 	param := wwise.ActionByPassFXParam{
 		IsByPass: r.U8Unsafe(),
 		ByFxSolt: r.U8Unsafe(),
-		ExceptParams: make([]wwise.ExceptParam, r.U8Unsafe()),
+		ExceptionListSize: r.VarUnsafe(),
 	}
+	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
 	ParseActionExceptParams(r, param.ExceptParams)
 	return &param
 }
@@ -268,8 +362,9 @@ func ParseActionSeekParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionPar
 		SeekValueMin: r.F32Unsafe(),
 		SeekValueMax: r.F32Unsafe(),
 		SnapToNearestMark: r.U8Unsafe(),
-		ExceptParams: make([]wwise.ExceptParam, r.U8Unsafe()),
+		ExceptionListSize: r.VarUnsafe(),
 	}
+	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
 	ParseActionExceptParams(r, param.ExceptParams)
 	return &param
 }
