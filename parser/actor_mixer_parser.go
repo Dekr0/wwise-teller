@@ -144,15 +144,17 @@ func ParseSwitchCntr(size uint32, r *wio.Reader) *wwise.SwitchCntr {
 		}
 	}
 	NumSwitchParam := r.U32Unsafe()
-	s.SwitchParams = make([]*wwise.SwitchParam, NumSwitchParam)
+	s.SwitchParams = make([]wwise.SwitchParam, NumSwitchParam)
 	for i := range s.SwitchParams {
-		s.SwitchParams[i] = &wwise.SwitchParam{
-			NodeId:            r.U32Unsafe(),
-			PlayBackBitVector: r.U8Unsafe(),
-			ModeBitVector:     r.U8Unsafe(),
-			FadeOutTime:       r.I32Unsafe(),
-			FadeInTime:        r.I32Unsafe(),
+		s.SwitchParams[i].NodeId = r.U32Unsafe()
+		if wwise.BankVersion <= 150 {
+			s.SwitchParams[i].PlayBackBitVector = r.U8Unsafe()
+			s.SwitchParams[i].ModeBitVector = r.U8Unsafe()
+		} else {
+			s.SwitchParams[i].PlayBackBitVector = r.U8Unsafe()
 		}
+		s.SwitchParams[i].FadeOutTime = r.I32Unsafe()
+		s.SwitchParams[i].FadeInTime = r.I32Unsafe()
 	}
 	end := r.Pos()
 	if begin >= end {
@@ -180,7 +182,11 @@ func ParseAttenuation(size uint32, r *wio.Reader) *wwise.Attenuation {
 		Id: r.U32Unsafe(),
 		IsHeightSpreadEnabled: r.U8Unsafe(),
 		IsConeEnabled: r.U8Unsafe(),
-		Curves: [7]int8(make([]int8, 7)),
+	}
+	if wwise.BankVersion <= 141 {
+		a.Curves = make([]int8, 7, 7)
+	} else {
+		a.Curves = make([]int8, 19, 19)
 	}
 
 	if a.ConeEnabled() {
