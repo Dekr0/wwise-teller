@@ -24,6 +24,10 @@ type METAStable struct {
 	WwiseDep []byte
 }
 
+func GenHelldiversPatchStableMulti(bnks [][]byte, metas [][]byte, path string) error {
+	return nil
+}
+
 func GenHelldiversPatchStable(bnk []byte, meta []byte, path string) error {
 	m := METAStable{}
 	err := ParseMETAStable(&m, wio.NewInPlaceReader(meta, wio.ByteOrder))
