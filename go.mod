@@ -6,6 +6,7 @@ require (
 	github.com/AllenDang/cimgui-go v1.3.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/google/uuid v1.6.0
+	github.com/go-audio/wav v1.1.0
 	github.com/gopxl/beep/v2 v2.1.1
 	github.com/ncruces/go-sqlite3 v0.26.2
 	github.com/shirou/gopsutil/v4 v4.25.4
@@ -17,7 +18,6 @@ require (
 	github.com/ebitengine/purego v0.8.2 // indirect
 	github.com/go-audio/audio v1.0.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
-	github.com/go-audio/wav v1.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
