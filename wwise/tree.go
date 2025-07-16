@@ -60,6 +60,7 @@ func (h *HIRC) BuildTree() {
 				h.ActorMixerRoots = append(h.ActorMixerRoots, node)
 			}
 		} else if MusicHircType(o) {
+			/*
 			b := o.BaseParameter()
 			if b == nil {
 				panic(fmt.Sprintf("%d should have base parameter", o.HircType()))
@@ -69,6 +70,7 @@ func (h *HIRC) BuildTree() {
 				h.WalkMusicHirciRoot(&node)
 				h.MusicHircRoots = append(h.MusicHircRoots, node)
 			}
+			*/
 		}
 	}
 
