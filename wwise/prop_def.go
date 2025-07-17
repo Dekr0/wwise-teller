@@ -1,183 +1,158 @@
 package wwise
 
-var PropLabel_140 = []string{
-  "Volume",
-  "LFE",
-  "Pitch",
-  "LPF",
-  "HPF",
-  "Bus Volume",
-  "Make Up Gain",
-  "Priority",
-  "Priority Distance Offset",
-  "Feedback Volume (Unused)",
-  "Feedback LPF (Unused)",
-  "Mute Ratio",
-  "PAN LR",
-  "PAN FR",
-  "Center PCT",
-  "Delay Time",
-  "Transition Time",
-  "Probability",
-  "Dialogue Mode",
-  "User AuxSend Volume 0",
-  "User AuxSend Volume 1",
-  "User AuxSend Volume 2",
-  "User AuxSend Volume 3",
-  "Game Aux Send Volume",
-  "Output Bus Volume",
-  "Output Bus HPF",
-  "Output Bus LPF",
-  "HDR Bus Threshold",
-  "HDR Bus Ratio",
-  "HDR Bus Release Time",
-  "HDR Bus Game Param",
-  "HDR Bus Game Param Min",
-  "HDR Bus Game Param Max",
-  "HDR Active Range",
-  "Loop Start",
-  "Loop End",
-  "Trim In Time",
-  "Trim Out Time",
-  "Fade In Time",
-  "Fade Out Time",
-  "Fade In Curve",
-  "Fade Out Curve",
-  "Loop Crossfade Duration",
-  "Crossfade Up Curve",
-  "Crossfade Down Curve",
-  "Midi Tracking Root Note",
-  "Midi Play On Note Type",
-  "Midi Transposition",
-  "Midi Velocity Offset",
-  "Midi Key Range Min",
-  "Midi Key Range Max",
-  "Midi Velocity Range Min",
-  "Midi Velocity Range Max",
-  "Midi Channel Mask",
-  "Playback Speed",
-  "Midi Tempo Source",
-  "Midi Target Node",
-  "Attached Plugin FX ID",
-  "Loop",
-  "Initial Delay",
-  "User Aux Send LPF 0",
-  "User Aux Send LPF 1",
-  "User Aux Send LPF 2",
-  "User Aux Send LPF 3",
-  "User Aux Send HPF 0",
-  "User Aux Send HPF 1",
-  "User Aux Send HPF 2",
-  "User Aux Send HPF 3",
-  "Game Aux Send LPF",
-  "Game Aux Send HPF",
-  "Attenuation ID",
-  "Positioning Type Blend",
-  "Reflection Bus Volume",
-  "PAN_UD",
+var PropLabel_128 = map[uint8]string{
+    0x00: "Volume",
+    0x01: "LFE",
+    0x02: "Pitch",
+    0x03: "LPF",
+    0x04: "HPF",
+    0x05: "Bus Volume",
+    0x06: "Make Up Gain",
+    0x07: "Priority",
+    0x08: "Priority Distance Offset",
+    0x09: "Feedback Volume (Unused)", // removed
+    0x0A: "Feedback LPF (Unused)", // removed
+    0x0B: "Mute Ratio",
+    0x0C: "PAN LR",
+    0x0D: "PAN FR",
+    0x0E: "Center PCT",
+    0x0F: "Delay Time",
+    0x10: "Transition Time",
+    0x11: "Probability",
+    0x12: "Dialogue Mode",
+    0x13: "User Aux Send Volume 0",
+    0x14: "User Aux Send Volume 1",
+    0x15: "User Aux Send Volume 2",
+    0x16: "User Aux Send Volume 3",
+    0x17: "Game Aux Send Volume",
+    0x18: "Output Bus Volume",
+    0x19: "Output Bus HPF",
+    0x1A: "Output Bus LPF",
+    0x1B: "HDR Bus Threshold",
+    0x1C: "HDR Bus Ratio",
+    0x1D: "HDR Bus Release Time",
+    0x1E: "HDR Bus Game Param",
+    0x1F: "HDR Bus Game Param Min",
+    0x20: "HDR Bus Game Param Max",
+    0x21: "HDR Active Range",
+    0x22: "Loop Start",
+    0x23: "Loop End",
+    0x24: "Trim In Time",
+    0x25: "Trim Out Time",
+    0x26: "Fade In Time",
+    0x27: "Fade Out Time",
+    0x28: "Fade In Curve",
+    0x29: "Fade Out Curve",
+    0x2A: "Loop Crossfade Duration",
+    0x2B: "Crossfade Up Curve",
+    0x2C: "Crossfade Down Curve",
+    0x2D: "Midi Tracking Root Note",
+    0x2E: "Midi Play On Note Type",
+    0x2F: "Midi Transposition",
+    0x30: "Midi Velocity Offset",
+    0x31: "Midi Key Range Min",
+    0x32: "Midi Key Range Max",
+    0x33: "Midi Velocity Range Min",
+    0x34: "Midi Velocity Range Max",
+    0x35: "Midi Channel Mask",
+    0x36: "Playback Speed",
+    0x37: "Midi Tempo Source",
+    0x38: "Midi Target Node",
+    0x39: "Attached Plugin FX ID",
+    0x3A: "Loop",
+    0x3B: "Initial Delay",
+    0x3C: "User Aux Send LPF 0",
+    0x3D: "User Aux Send LPF 1",
+    0x3E: "User Aux Send LPF 2",
+    0x3F: "User Aux Send LPF 3",
+    0x40: "User Aux Send HPF 0",
+    0x41: "User Aux Send HPF 1",
+    0x42: "User Aux Send HPF 2",
+    0x43: "User Aux Send HPF 3",
+    0x44: "Game Aux Send LPF",
+    0x45: "Game Aux Send HPF",
+    0x46: "Attenuation ID", // #132>=
+    0x47: "Positioning Type Blend", // #132>=
+    0x48: "Reflection Bus Volume", // #135>=
+    0x49: "PAN UD",
 }
 
-type PropType uint8
-
-const (
-	PropTypeVolume PropType = 0 
-	PropTypeLFE PropType = 1 
-	PropTypePitch PropType = 2 
-	PropTypeLPF PropType = 3 
-	PropTypeHPF PropType = 4 
-	PropTypeBusVolume PropType = 5 
-	PropTypeMakeUpGain PropType = 6 
-	PropTypePriority PropType = 7 
-	PropTypePriorityDistanceOffset PropType = 8 
-	PropTypeFeedbackVolumeUnused PropType = 9 
-	PropTypeFeedbackLPFUnused PropType = 10 
-	PropTypeMuteRatio PropType = 11 
-	PropTypePANLR PropType = 12 
-	PropTypePANFR PropType = 13 
-	PropTypeCenterPCT PropType = 14 
-	PropTypeDelayTime PropType = 15 
-	PropTypeTransitionTime PropType = 16 
-	PropTypeProbability PropType = 17 
-	PropTypeDialogueMode PropType = 18 
-	PropTypeUserAuxSendVolume0 PropType = 19 
-	PropTypeUserAuxSendVolume1 PropType = 20 
-	PropTypeUserAuxSendVolume2 PropType = 21 
-	PropTypeUserAuxSendVolume3 PropType = 22 
-	PropTypeGameAuxSendVolume PropType = 23 
-	PropTypeOutputBusVolume PropType = 24 
-	PropTypeOutputBusHPF PropType = 25 
-	PropTypeOutputBusLPF PropType = 26 
-	PropTypeHDRBusThreshold PropType = 27 
-	PropTypeHDRBusRatio PropType = 28 
-	PropTypeHDRBusReleaseTime PropType = 29 
-	PropTypeHDRBusGameParam PropType = 30 
-	PropTypeHDRBusGameParamMin PropType = 31 
-	PropTypeHDRBusGameParamMax PropType = 32 
-	PropTypeHDRActiveRange PropType = 33 
-	PropTypeLoopStart PropType = 34 
-	PropTypeLoopEnd PropType = 35 
-	PropTypeTrimInTime PropType = 36 
-	PropTypeTrimOutTime PropType = 37 
-	PropTypeFadeInTime PropType = 38 
-	PropTypeFadeOutTime PropType = 39 
-	PropTypeFadeInCurve PropType = 40 
-	PropTypeFadeOutCurve PropType = 41 
-	PropTypeLoopCrossfadeDuration PropType = 42 
-	PropTypeCrossfadeUpCurve PropType = 43 
-	PropTypeCrossfadeDownCurve PropType = 44 
-	PropTypeMidiTrackingRootNote PropType = 45 
-	PropTypeMidiPlayOnNoteType PropType = 46 
-	PropTypeMidiTransposition PropType = 47 
-	PropTypeMidiVelocityOffset PropType = 48 
-	PropTypeMidiKeyRangeMin PropType = 49 
-	PropTypeMidiKeyRangeMax PropType = 50 
-	PropTypeMidiVelocityRangeMin PropType = 51 
-	PropTypeMidiVelocityRangeMax PropType = 52 
-	PropTypeMidiChannelMask PropType = 53 
-	PropTypePlaybackSpeed PropType = 54 
-	PropTypeMidiTempoSource PropType = 55 
-	PropTypeMidiTargetNode PropType = 56 
-	PropTypeAttachedPluginFXID PropType = 57 
-	PropTypeLoop PropType = 58 
-	PropTypeInitialDelay PropType = 59 
-	PropTypeUserAuxSendLPF0 PropType = 60 
-	PropTypeUserAuxSendLPF1 PropType = 61 
-	PropTypeUserAuxSendLPF2 PropType = 62 
-	PropTypeUserAuxSendLPF3 PropType = 63 
-	PropTypeUserAuxSendHPF0 PropType = 64 
-	PropTypeUserAuxSendHPF1 PropType = 65 
-	PropTypeUserAuxSendHPF2 PropType = 66 
-	PropTypeUserAuxSendHPF3 PropType = 67 
-	PropTypeGameAuxSendLPF PropType = 68 
-	PropTypeGameAuxSendHPF PropType = 69 
-	PropTypeAttenuationID PropType = 70 
-	PropTypePositioningTypeBlend PropType = 71 
-	PropTypeReflectionBusVolume PropType = 72 
-	PropTypePAN_UD PropType = 73 
-)
-
-var BasePropType []PropType = []PropType{
-	PropTypeVolume,
-	PropTypePitch,
-	PropTypeLPF,
-	PropTypeHPF,
-	PropTypeMakeUpGain,
-	PropTypeGameAuxSendVolume,
-	PropTypeInitialDelay,
+var PropLabel_154 = map[uint8]string{
+    0x00: "Volume",
+    0x01: "Pitch",
+    0x02: "LPF",
+    0x03: "HPF",
+    0x04: "Bus Volume",
+    0x05: "Make Up Gain",
+    0x06: "Priority",
+    0x07: "Mute Ratio",
+    0x08: "User Aux Send Volume 0",
+    0x09: "User Aux Send Volume 1",
+    0x0A: "User Aux Send Volume 2",
+    0x0B: "User Aux Send Volume 3",
+    0x0C: "Game Aux Send Volume",
+    0x0D: "Output Bus Volume",
+    0x0E: "Output Bus HPF",
+    0x0F: "Output Bus LPF",
+    0x10: "User Aux Send LPF 0",
+    0x11: "User Aux Send LPF 1",
+    0x12: "User Aux Send LPF 2",
+    0x13: "User Aux Send LPF 3",
+    0x14: "User Aux Send HPF 0",
+    0x15: "User Aux Send HPF 1",
+    0x16: "User Aux Send HPF 2",
+    0x17: "User Aux Send HPF 3",
+    0x18: "Game Aux Send LPF",
+    0x19: "Game Aux Send HPF",
+    0x1A: "Reflection Bus Volume",
+    0x1B: "HDR Bus Threshold",
+    0x1C: "HDR Bus Ratio",
+    0x1D: "HDR Bus Release Time",
+    0x1E: "HDR Active Range",
+    0x1F: "Midi Transposition",
+    0x20: "Midi Velocity Offset",
+    0x21: "Playback Speed",
+    0x22: "Initial Delay",
+    0x23: "Positioning Pan X 2D",
+    0x24: "Positioning Pan Y 2D",
+    0x25: "Positioning Pan Z 2D",
+    0x26: "Positioning Pan X 3D",
+    0x27: "Positioning Pan Y 3D",
+    0x28: "Positioning Pan Z 3D",
+    0x29: "Positioning Center Percent",
+    0x2A: "Positioning Type Blend",
+    0x2B: "Positioning Enable Attenuation",
+    0x2C: "Positioning Cone Attenuation On Off",
+    0x2D: "Positioning Cone Attenuation",
+    0x2E: "Positioning Cone LPF",
+    0x2F: "Positioning Cone HPF",
+    0x30: "Bypass FX",
+    0x31: "Bypass All FX",
+    0x32: "Available 0",
+    0x33: "Available 1",
+    0x34: "Available 2",
+    0x35: "Max Num Instances",
+    0x36: "Bypass All Metadata",
+    0x37: "Play Mechanism Special Transitions Value",
+    0x38: "Attenuation Distance Scaling",
+    0x39: "Priority Distance Offset",
+    0x3A: "Delay Time",
+    0x3B: "Transition Time",
+    0x3C: "Probability",
+    0x3D: "Dialogue Mode",
+    0x3E: "HDR Bus Game Param",
+    0x3F: "HDR Bus Game Param Min",
+    0x40: "HDR Bus Game Param Max",
+    0x41: "Midi Tracking Root Note",
+    0x42: "Midi Play On Note Type",
+    0x43: "Midi Key Range Min",
+    0x44: "Midi Key Range Max",
+    0x45: "Midi Velocity Range Min",
+    0x46: "Midi Velocity Range Max",
+    0x47: "Midi Channel Mask",
+    0x48: "Midi Tempo Source",
+    0x49: "Midi Target Node",
+    0x4A: "Loop",
+    0x4B: "Attenuation ID",
 }
 
-var BaseRangePropType []PropType = []PropType {
-	PropTypeVolume,
-	PropTypePitch,
-	PropTypeLPF,
-	PropTypeHPF,
-	PropTypeMakeUpGain,
-	PropTypeInitialDelay,
-}
-
-var UserAuxSendVolumePropType []PropType = []PropType {
-	PropTypeUserAuxSendVolume0,
-	PropTypeUserAuxSendVolume1,
-	PropTypeUserAuxSendVolume2,
-	PropTypeUserAuxSendVolume3,
-}
