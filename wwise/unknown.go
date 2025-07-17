@@ -20,7 +20,7 @@ func NewUnknown(t HircType, s uint32, b []byte) *Unknown {
 	}
 }
 
-func (u *Unknown) Encode() []byte {
+func (u *Unknown) Encode(int) []byte {
 	assert.Equal(
 		u.Header.Size,
 		uint32(len(u.Data)),
