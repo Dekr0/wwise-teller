@@ -6,8 +6,8 @@ import (
 )
 
 func TestFxChunkEncode(t *testing.T) {
-	f := FxChunkItem{1, 12345, 0, 0}
-	b := make([]byte, SizeOfFxChunk, SizeOfFxChunk)
+	f := FxChunkItem{1, 12345, 0, 0, 0}
+	b := make([]byte, SizeOfFxChunk_LE145, SizeOfFxChunk_LE145)
 	_, err := binary.Encode(b, binary.LittleEndian, f)
 	if err != nil {
 		t.Fatal(err)
