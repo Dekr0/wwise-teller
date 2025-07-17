@@ -6,7 +6,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseFxCustom(size uint32, r *wio.Reader) *wwise.FxCustom {
+func ParseFxCustom(size uint32, r *wio.Reader, v int) *wwise.FxCustom {
 	assert.Equal(0, r.Pos(), "Fx Custom parser position doesn't start at 0.")
 	begin := r.Pos()
 	f := wwise.FxCustom{
@@ -15,19 +15,19 @@ func ParseFxCustom(size uint32, r *wio.Reader) *wwise.FxCustom {
 	}
 	if f.HasParam() {
 		f.PluginParam = &wwise.PluginParam{}
-		ParsePluginParam(r, f.PluginParam, f.PluginTypeId)
+		ParsePluginParam(r, f.PluginParam, f.PluginTypeId, v)
 	}
 	f.MediaMap = make([]wwise.MediaMapItem, r.U8Unsafe())
 	for i := range f.MediaMap {
 		f.MediaMap[i].Index = r.U8Unsafe()
 		f.MediaMap[i].SourceId = r.U32Unsafe()
 	}
-	ParseRTPC(r, &f.RTPC)
-	ParseStateProp(r, &f.StateProp)
-	ParseStateGroup(r, &f.StateGroup)
+	ParseRTPC(r, &f.RTPC, v)
+	ParseStateProp(r, &f.StateProp, v)
+	ParseStateGroup(r, &f.StateGroup, v)
 	f.PluginProps = make([]wwise.PluginProp, r.U16Unsafe())
 	for i := range f.PluginProps {
-		f.PluginProps[i].PropertyID = wwise.RTPCParameterType(r.U8Unsafe())
+		f.PluginProps[i].PropertyID = r.VarUnsafe()
 		f.PluginProps[i].RTPCAccum = wwise.RTPCAccumType(r.U8Unsafe())
 		f.PluginProps[i].Value = r.F32Unsafe()
 	}
@@ -41,7 +41,7 @@ func ParseFxCustom(size uint32, r *wio.Reader) *wwise.FxCustom {
 	return &f
 }
 
-func ParseFxShareSet(size uint32, r *wio.Reader) *wwise.FxShareSet {
+func ParseFxShareSet(size uint32, r *wio.Reader, v int) *wwise.FxShareSet {
 	assert.Equal(0, r.Pos(), "Fx Share Set parser position doesn't start at 0.")
 	begin := r.Pos()
 	f := wwise.FxShareSet{
@@ -50,19 +50,19 @@ func ParseFxShareSet(size uint32, r *wio.Reader) *wwise.FxShareSet {
 	}
 	if f.HasParam() {
 		f.PluginParam = &wwise.PluginParam{}
-		ParsePluginParam(r, f.PluginParam, f.PluginTypeId)
+		ParsePluginParam(r, f.PluginParam, f.PluginTypeId, v)
 	}
 	f.MediaMap = make([]wwise.MediaMapItem, r.U8Unsafe())
 	for i := range f.MediaMap {
 		f.MediaMap[i].Index = r.U8Unsafe()
 		f.MediaMap[i].SourceId = r.U32Unsafe()
 	}
-	ParseRTPC(r, &f.RTPC)
-	ParseStateProp(r, &f.StateProp)
-	ParseStateGroup(r, &f.StateGroup)
+	ParseRTPC(r, &f.RTPC, v)
+	ParseStateProp(r, &f.StateProp, v)
+	ParseStateGroup(r, &f.StateGroup, v)
 	f.PluginProps = make([]wwise.PluginProp, r.U16Unsafe())
 	for i := range f.PluginProps {
-		f.PluginProps[i].PropertyID = wwise.RTPCParameterType(r.U8Unsafe())
+		f.PluginProps[i].PropertyID = r.VarUnsafe()
 		f.PluginProps[i].RTPCAccum = wwise.RTPCAccumType(r.U8Unsafe())
 		f.PluginProps[i].Value = r.F32Unsafe()
 	}
@@ -76,7 +76,7 @@ func ParseFxShareSet(size uint32, r *wio.Reader) *wwise.FxShareSet {
 	return &f
 }
 
-func ParseFxChunk(r *wio.Reader, f *wwise.FxChunk) {
+func ParseFxChunk(r *wio.Reader, f *wwise.FxChunk, v int) {
 	UniqueNumFx := r.U8Unsafe()
 	if UniqueNumFx <= 0 {
 		f.BitsFxByPass = 0
@@ -88,12 +88,16 @@ func ParseFxChunk(r *wio.Reader, f *wwise.FxChunk) {
 	for i := range f.FxChunkItems {
 		f.FxChunkItems[i].UniqueFxIndex = r.U8Unsafe()
 		f.FxChunkItems[i].FxId = r.U32Unsafe()
-		f.FxChunkItems[i].BitIsShareSet = r.U8Unsafe()
-		f.FxChunkItems[i].BitIsRendered = r.U8Unsafe()
+		if v <= 145 {
+			f.FxChunkItems[i].BitIsShareSet = r.U8Unsafe()
+			f.FxChunkItems[i].BitIsRendered = r.U8Unsafe()
+		} else {
+			f.FxChunkItems[i].BitVector = r.U8Unsafe()
+		}
 	}
 }
 
-func ParseFxChunkMetadata(r *wio.Reader, f *wwise.FxChunkMetadata)  {
+func ParseFxChunkMetadata(r *wio.Reader, f *wwise.FxChunkMetadata, v int)  {
 	f.BitIsOverrideParentMetadata = r.U8Unsafe()
 	UniqueNumFxMetadata := r.U8Unsafe()
 	f.FxMetaDataChunkItems = make([]wwise.FxChunkMetadataItem, UniqueNumFxMetadata)
