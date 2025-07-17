@@ -24,8 +24,8 @@ type State struct {
 	}
 }
 
-func (s *State) Encode() []byte {
-	dataSize := s.DataSize()
+func (s *State) Encode(v int) []byte {
+	dataSize := s.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeState))
@@ -38,7 +38,7 @@ func (s *State) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (s *State) DataSize() uint32 {
+func (s *State) DataSize(v int) uint32 {
 	return 4 + 2 + uint32(len(s.StateProps)) * SizeOfStateProp
 }
 
