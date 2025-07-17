@@ -92,6 +92,10 @@ func (b *BankTab) UpdateErrorStreamers(id uint32) {
 	}
 }
 
+func (b *BankTab) Version() int {
+	return int(b.Bank.BKHD().BankGenerationVersion)
+}
+
 func (b *BankTab) ChangeRoot(hid, np, op uint32) {
 	b.Bank.HIRC().ChangeRoot(hid, np, op, true)
 	b.FilterActorMixerHircs()
