@@ -48,7 +48,6 @@ var RTPCTypeName []string = []string{
 	// "Max Number",
 }
 
-
 type RTPCParameterType uint8 // var (at least 1 byte / 8 bits)
 
 const (
@@ -245,20 +244,20 @@ func (r *RTPC) RemoveRTPCItem(i int) {
 	r.RTPCItems = slices.Delete(r.RTPCItems, i, i + 1)
 }
 
-func (r *RTPC) Encode() []byte {
-	size := r.Size()
+func (r *RTPC) Encode(v int) []byte {
+	size := r.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(uint16(len(r.RTPCItems)))
 	for _, i := range r.RTPCItems {
-		w.AppendBytes(i.Encode())
+		w.AppendBytes(i.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (r *RTPC) Size() uint32 {
+func (r *RTPC) Size(v int) uint32 {
 	size := uint32(2)
 	for _, i := range r.RTPCItems {
-		size += i.Size()
+		size += i.Size(v)
 	}
 	return size
 }
@@ -267,7 +266,7 @@ type RTPCItem struct {
 	RTPCID      uint32 // tid
 	RTPCType    uint8 // U8x
 	RTPCAccum   RTPCAccumType // U8x
-	ParamID     RTPCParameterType
+	ParamID     wio.Var
 	RTPCCurveID uint32 // sid
 	Scaling     CurveScalingType // U8x
 	// NumRTPCGraphPoints / ulSize uint16 // u16
@@ -287,27 +286,27 @@ func (r *RTPCItem) Clone() RTPCItem {
 }
 
 func NewRTPCItem() RTPCItem {
-	return RTPCItem{0, 0, 0, 0, 0, 0, []RTPCGraphPoint{}}
+	return RTPCItem{0, 0, 0, wio.Var{}, 0, 0, []RTPCGraphPoint{}}
 }
 
-func (r *RTPCItem) Encode() []byte {
-	size := r.Size()
+func (r *RTPCItem) Encode(v int) []byte {
+	size := r.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(r.RTPCID)
 	w.AppendByte(r.RTPCType)
 	w.Append(r.RTPCAccum)
-	w.Append(r.ParamID)
+	w.AppendBytes(r.ParamID.Bytes)
 	w.Append(r.RTPCCurveID)
 	w.Append(r.Scaling)
 	w.Append(uint16(len(r.RTPCGraphPoints)))
 	for _, i := range r.RTPCGraphPoints {
-		w.AppendBytes(i.Encode())
+		w.AppendBytes(i.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (r *RTPCItem) Size() uint32 {
-	return uint32(4 + 1 + 1 + 1 + 4 + 1 + 2 + len(r.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
+func (r *RTPCItem) Size(int) uint32 {
+	return uint32(4 + 1 + 1 + len(r.ParamID.Bytes) + 4 + 1 + 2 + len(r.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
 }
 
 const RTPCInterpSampleRate = 128
@@ -323,7 +322,7 @@ type RTPCGraphPoint struct {
 
 func (r *RTPCGraphPoint) Sample() {}
 
-func (r *RTPCGraphPoint) Encode() []byte {
+func (r *RTPCGraphPoint) Encode(v int) []byte {
 	w := wio.NewWriter(SizeOfRTPCGraphPoint)
 	w.Append(r.From)
 	w.Append(r.To)
