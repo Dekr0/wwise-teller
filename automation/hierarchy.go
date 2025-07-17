@@ -80,14 +80,14 @@ func ParseImportAsRanSeqCntrScript(s *ImportAsRanSeqCntrScript, script string) (
 		if s.PlaybackLimit > 1000 {
 			return nil, fmt.Errorf("Invalid playback limit value %d is not in between 0 and 1000", s.PlaybackLimit)
 		}
-		c, in := wwise.BasePropChecker[wwise.PropTypeMakeUpGain]
+		c, in := wwise.BasePropChecker[wwise.TMakeUpGain]
 		if !in {
 			panic("Panic Trap")
 		}
 		if err := c(s.MakeUpGain); err != nil {
 			return nil, err
 		}
-		c, in = wwise.BasePropChecker[wwise.PropTypeInitialDelay]
+		c, in = wwise.BasePropChecker[wwise.TInitialDelay]
 		if !in {
 			panic("Panic Trap")
 		}
@@ -306,22 +306,24 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	b.AdvanceSetting.MaxNumInstance = s.PlaybackLimit
 	p := &b.PropBundle
 	buf := make([]byte, 4) 
-	if idx, in := p.HasPid(wwise.PropTypeMakeUpGain); !in {
+
+	ver := int(bnk.BKHD().BankGenerationVersion)
+	if idx, in := p.HasPid(wwise.TMakeUpGain, ver); !in {
 		binary.Encode(buf, wio.ByteOrder, s.MakeUpGain)
-		p.AddWithVal(wwise.PropTypeMakeUpGain, [4]byte(buf))
+		p.AddWithVal(wwise.TMakeUpGain, [4]byte(buf), ver)
 	} else {
 		p.SetPropByIdxF32(idx, s.MakeUpGain)
 	}
-	if idx, in := p.HasPid(wwise.PropTypeInitialDelay); !in {
+	if idx, in := p.HasPid(wwise.TInitialDelay, ver); !in {
 		binary.Encode(buf, wio.ByteOrder, s.InitialDelay)
-		p.AddWithVal(wwise.PropTypeInitialDelay, [4]byte(buf))
+		p.AddWithVal(wwise.TInitialDelay, [4]byte(buf), ver)
 	} else {
 		p.SetPropByIdxF32(idx, s.InitialDelay)
 	}
 	if s.HDRActiveRange >= 0.0 {
 		// Enable HDR Envelope and set HDR Active range
-		b.SetEnableEnvelope(true)
-		i, _ := p.HDRActiveRange()
+		b.SetEnableEnvelope(true, ver)
+		i, _ := p.HDRActiveRange(ver)
 		if i != -1 {
 			p.SetPropByIdxF32(i, s.HDRActiveRange)
 		}

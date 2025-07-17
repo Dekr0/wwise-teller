@@ -64,6 +64,8 @@ var (
 		145, // 0x91 Wwise 2022.1
 		150, // 0x96 Wwise 2023.1
 		152, // 0x98 Wwise 2024.1-B
+		153,
+		154,
 	}
 )
 
@@ -85,9 +87,10 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 	if err != nil {
 		return nil, err
 	}
+	wwise.BankVersion = version
 
-	if version != 141 {
-		return nil, errors.New("Wwise teller currently only targets version 141.")
+	if wwise.BankVersion < 141 {
+		return nil, errors.New("Wwise teller currently only targets version 141, or version above 141")
 	}
 
 	c := make(chan *DecodeResult)
@@ -159,7 +162,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				}); err != nil {
 					return nil, err
 				}
-				slog.Debug("Read DATA section", "size", size)
+				slog.Info("Read DATA section", "size", size)
 			} else {
 				dataPos = bankReader.Pos()
 				if err := bankReader.SeekCurrent(int64(size)); err != nil {
@@ -197,7 +200,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				return nil, err
 			}
 			I += 1
-			slog.Debug("Read ENVS section", "size", size)
+			slog.Info("Read ENVS section", "size", size)
 		} else if bytes.Compare(tag, []byte{'F', 'X', 'P', 'R'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
@@ -212,7 +215,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				return nil, err
 			}
 			I += 1
-			slog.Debug("Read FXPR section", "size", size)
+			slog.Info("Read FXPR section", "size", size)
 		} else if bytes.Compare(tag, []byte{'H', 'I', 'R', 'C'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
@@ -223,7 +226,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 			if err != nil {
 				return nil, err
 			}
-			slog.Debug("Start parsing HIRC section...", "chunkSize", size)
+			slog.Info("Start parsing HIRC section...", "chunkSize", size)
 			go HIRCRoutine(ctx, reader, c, I, tag, size)
 			I += 1
 			pending += 1
@@ -242,7 +245,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				return nil, err
 			}
 			I += 1
-			slog.Debug("Read INIT section", "size", size)
+			slog.Info("Read INIT section", "size", size)
 		} else if bytes.Compare(tag, []byte{'P', 'L', 'A', 'T'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
@@ -257,7 +260,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				return nil, err
 			}
 			I += 1
-			slog.Debug("Read PLAT section", "size", size)
+			slog.Info("Read PLAT section", "size", size)
 		} else if bytes.Compare(tag, []byte{'S', 'T', 'I', 'D'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
@@ -272,7 +275,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				return nil, err
 			}
 			I += 1
-			slog.Debug("Read STID section", "size", size)
+			slog.Info("Read STID section", "size", size)
 		} else if bytes.Compare(tag, []byte{'S', 'T', 'M', 'G'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
@@ -287,7 +290,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				return nil, err
 			}
 			I += 1
-			slog.Debug("Read STMG section", "size", size)
+			slog.Info("Read STMG section", "size", size)
 		} else if bytes.Compare(tag, []byte{'M', 'E', 'T', 'A'}) == 0 {
 			size, err = bankReader.U32()
 			if err != nil {
@@ -302,7 +305,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				return nil, err
 			}
 			I += 1
-			slog.Debug("Read META section", "size", size)
+			slog.Info("Read META section", "size", size)
 		} else {
 			tagHex := uint32(0)
 			binary.Decode(tag, wio.ByteOrder, tagHex)
@@ -386,7 +389,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 			offset += didx.MediaIndexs[i].Size
 		}
 		bnk.Chunks = append(bnk.Chunks, &DATA)
-		slog.Debug("Read DATA section", "size", offset)
+		slog.Info("Read DATA section", "size", offset)
 	}
 
 	return &bnk, nil
