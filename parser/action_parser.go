@@ -11,9 +11,9 @@ type ActionDispatch struct {
 	SpecificParamParser ActionSpecificParser
 }
 
-type ActionSpecificParser func(*wio.Reader) wwise.ActionSpecificParam
+type ActionSpecificParser func(*wio.Reader, int) wwise.ActionSpecificParam
 
-type ActionParamParser func(*wio.Reader, ActionSpecificParser) wwise.ActionParam
+type ActionParamParser func(*wio.Reader, ActionSpecificParser, int) wwise.ActionParam
 
 var ActionDispatchMux_L150 []uint16 = []uint16{
 	27,
@@ -186,15 +186,15 @@ var ActionDispatchLUT []ActionDispatch = []ActionDispatch{
 	{ParseActionParamPanic    , ParseActionSpecificParamPanic           }, // 27 Invalid
 }
 
-func ParseActionParamPanic(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionParamPanic(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	panic("Unknown action parameter. Please use Hex editor investigate this")
 }
 
-func ParseActionSpecificParamPanic(r *wio.Reader) wwise.ActionSpecificParam {
+func ParseActionSpecificParamPanic(r *wio.Reader, v int) wwise.ActionSpecificParam {
 	panic("Unknonw action specific parameter. Please use Hex editor investigate this")
 }
 
-func ParseAction(size uint32, r *wio.Reader) *wwise.Action {
+func ParseAction(size uint32, r *wio.Reader, v int) *wwise.Action {
 	assert.Equal(0, r.Pos(), "Switch container parser position doesn't start at 0.")
 	begin := r.Pos()
 
@@ -204,17 +204,17 @@ func ParseAction(size uint32, r *wio.Reader) *wwise.Action {
 		IdExt: r.U32Unsafe(),
 		IdExt4: r.U8Unsafe(),
 	}
-	ParsePropBundle(r, &a.PropBundle)
-	ParseRangePropBundle(r, &a.RangePropBundle)
+	ParsePropBundle(r, &a.PropBundle, v)
+	ParseRangePropBundle(r, &a.RangePropBundle, v)
 
 	var lutIdx uint16 = 0
-	if wwise.BankVersion >= 150 {
+	if v >= 150 {
 		lutIdx = ActionDispatchMux_GE150[(a.ActionType & 0xFF00) >> 8]
 	} else {
 		lutIdx = ActionDispatchMux_L150[(a.ActionType & 0xFF00) >> 8]
 	}
 	dispatch := ActionDispatchLUT[lutIdx]
-	a.ActionParam = dispatch.ParamParser(r, dispatch.SpecificParamParser)
+	a.ActionParam = dispatch.ParamParser(r, dispatch.SpecificParamParser, v)
 
 	end := r.Pos()
 	if begin >= end {
@@ -227,23 +227,23 @@ func ParseAction(size uint32, r *wio.Reader) *wwise.Action {
 	return &a
 }
 
-func ParseActionNoSpecificParam(r *wio.Reader) wwise.ActionSpecificParam {
+func ParseActionNoSpecificParam(r *wio.Reader, v int) wwise.ActionSpecificParam {
 	return &wwise.ActionNoSpecificParam{} 
 }
 
-func ParseActionStopSpecificParam(r *wio.Reader) wwise.ActionSpecificParam {
+func ParseActionStopSpecificParam(r *wio.Reader, v int) wwise.ActionSpecificParam {
 	return &wwise.ActionStopSpecificParam{BitVector: r.U8Unsafe()}
 }
 
-func ParseActionPauseSpecificParam(r *wio.Reader) wwise.ActionSpecificParam {
+func ParseActionPauseSpecificParam(r *wio.Reader, v int) wwise.ActionSpecificParam {
 	return &wwise.ActionPauseSpecificParam{BitVector: r.U8Unsafe()}
 }
 
-func ParseActionResumeSpecificParam(r *wio.Reader) wwise.ActionSpecificParam {
+func ParseActionResumeSpecificParam(r *wio.Reader, v int) wwise.ActionSpecificParam {
 	return &wwise.ActionResumeSpecificParam{BitVector: r.U8Unsafe()}
 }
 
-func ParseActionSetPropSpecificParam(r *wio.Reader) wwise.ActionSpecificParam {
+func ParseActionSetPropSpecificParam(r *wio.Reader, v int) wwise.ActionSpecificParam {
 	return &wwise.ActionSetPropSpecificParam{
 		Prop: r.U8Unsafe(),
 		Base: r.F32Unsafe(),
@@ -252,7 +252,7 @@ func ParseActionSetPropSpecificParam(r *wio.Reader) wwise.ActionSpecificParam {
 	}
 }
 
-func ParseActionSetGameParameterSpecificParam(r *wio.Reader) wwise.ActionSpecificParam {
+func ParseActionSetGameParameterSpecificParam(r *wio.Reader, v int) wwise.ActionSpecificParam {
 	return &wwise.ActionSetGameParameterSpecificParam{
 		ByPassTransition: r.U8Unsafe(),
 		EnumValueMeaning: r.U8Unsafe(),
@@ -262,76 +262,76 @@ func ParseActionSetGameParameterSpecificParam(r *wio.Reader) wwise.ActionSpecifi
 	}
 }
 
-func ParseActionResetPlayListSpecificParam(r *wio.Reader) wwise.ActionSpecificParam {
+func ParseActionResetPlayListSpecificParam(r *wio.Reader, v int) wwise.ActionSpecificParam {
 	return &wwise.ActionResetPlayListSpecificParam{}
 }
 
-func ParseActionExceptParams(r *wio.Reader, e []wwise.ExceptParam) {
+func ParseActionExceptParams(r *wio.Reader, e []wwise.ExceptParam, v int) {
 	for i := range e {
 		e[i].ID = r.U32Unsafe()
 		e[i].IsBus = r.U8Unsafe()
 	}
 }
 
-func ParseActionNoParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionNoParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	return &wwise.ActionNoParam{}
 }
 
-func ParseActionActiveParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionActiveParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	param := wwise.ActionActiveParam{
 		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
-		AkSpecificParam: p(r),
+		AkSpecificParam: p(r, v),
 		ExceptionListSize: r.VarUnsafe(),
 	}
 	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
-	ParseActionExceptParams(r, param.ExceptParams)
+	ParseActionExceptParams(r, param.ExceptParams, v)
 	return &param
 }
 
-func ParseActionPlayParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionPlayParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	actionPlayParam := &wwise.ActionPlayParam{
 		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
 		BankID: r.U32Unsafe(),
 	}
-	if wwise.BankVersion >= 144 {
+	if v >= 144 {
 		actionPlayParam.BankType = r.U32Unsafe()
 	}
 	return actionPlayParam
 }
 
-func ParseActionSetValueParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionSetValueParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	param := &wwise.ActionSetValueParam{
 		EnumFadeCurve: wwise.InterpCurveType(r.U8Unsafe()),
-		AkSpecificParam: p(r),
+		AkSpecificParam: p(r, v),
 		ExceptionListSize: r.VarUnsafe(),
 	}
 	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
-	ParseActionExceptParams(r, param.ExceptParams)
+	ParseActionExceptParams(r, param.ExceptParams, v)
 	return param
 }
 
-func ParseActionSetStateParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionSetStateParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	return &wwise.ActionSetStateParam{
 		StateGroupID: r.U32Unsafe(),
 		TargetStateID: r.U32Unsafe(),
 	}
 }
 
-func ParseActionSetSwitchParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionSetSwitchParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	return &wwise.ActionSetSwitchParam{
 		SwitchGroupID: r.U32Unsafe(),
 		SwitchStateID: r.U32Unsafe(),
 	}
 }
 
-func ParseActionSetRTPCParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionSetRTPCParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	return &wwise.ActionSetRTPCParam{
 		RTPCID: r.U32Unsafe(),
 		RTPCValue: r.F32Unsafe(),
 	}
 }
 
-func ParseActionSetFXParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionSetFXParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	param := wwise.ActionSetFXParam{
 		IsAudioDeviceElement: r.U8Unsafe(),
 		SlotIndex: r.U8Unsafe(),
@@ -340,22 +340,22 @@ func ParseActionSetFXParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionPa
 		ExceptionListSize: r.VarUnsafe(),
 	}
 	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
-	ParseActionExceptParams(r, param.ExceptParams)
+	ParseActionExceptParams(r, param.ExceptParams, v)
 	return &param
 }
 
-func ParseActionByPassFXParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionByPassFXParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	param := wwise.ActionByPassFXParam{
 		IsByPass: r.U8Unsafe(),
 		ByFxSolt: r.U8Unsafe(),
 		ExceptionListSize: r.VarUnsafe(),
 	}
 	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
-	ParseActionExceptParams(r, param.ExceptParams)
+	ParseActionExceptParams(r, param.ExceptParams, v)
 	return &param
 }
 
-func ParseActionSeekParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionSeekParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	param := wwise.ActionSeekParam{
 		IsSeekRelativeDuration: r.U8Unsafe(),
 		SeekValue: r.F32Unsafe(),
@@ -365,14 +365,14 @@ func ParseActionSeekParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionPar
 		ExceptionListSize: r.VarUnsafe(),
 	}
 	param.ExceptParams = make([]wwise.ExceptParam, param.ExceptionListSize.Value, param.ExceptionListSize.Value)
-	ParseActionExceptParams(r, param.ExceptParams)
+	ParseActionExceptParams(r, param.ExceptParams, v)
 	return &param
 }
 
-func ParseActionReleaseParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionReleaseParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	return &wwise.ActionReleaseParam{}
 }
 
-func ParseActionPlayEventParam(r *wio.Reader, p ActionSpecificParser) wwise.ActionParam {
+func ParseActionPlayEventParam(r *wio.Reader, p ActionSpecificParser, v int) wwise.ActionParam {
 	return &wwise.ActionPlayEventParam{}
 }
