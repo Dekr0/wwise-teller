@@ -60,6 +60,7 @@ func TestAppendAudioAndSound(t *testing.T) {
 		cancel()
 		t.Fatal(err)
 	}
+	v := int(bnk.BKHD().BankGenerationVersion)
 	hirc := bnk.HIRC()
 
 	audioDataDesert, err := os.ReadFile("../tests/wems/reflection_close_desert_00.wem")
@@ -81,8 +82,8 @@ func TestAppendAudioAndSound(t *testing.T) {
 			}
 			if s.Id == 435636362 {
 				fmt.Println("435636362")
-				s.BaseParam.PropBundle.AddBaseProp()	
-				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.PropTypeMakeUpGain)
+				s.BaseParam.PropBundle.AddBaseProp(v)	
+				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.TMakeUpGain, v)
 			}
 			if s.Id == 98920475 {
 				fmt.Println("98920475")

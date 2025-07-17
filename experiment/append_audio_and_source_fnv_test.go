@@ -32,6 +32,9 @@ func TestAppendAudioUsingFNV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	ver := bnk.BKHD().BankGenerationVersion
+
 	bnk.AppendAudio(audioDataDesert, desertSid)
 	for i := range hirc.HircObjs {
 		switch s := hirc.HircObjs[i].(type) {
@@ -47,8 +50,8 @@ func TestAppendAudioUsingFNV(t *testing.T) {
 			}
 			if s.Id == 435636362 {
 				fmt.Println("435636362")
-				s.BaseParam.PropBundle.AddBaseProp()	
-				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.PropTypeMakeUpGain)
+				s.BaseParam.PropBundle.AddBaseProp(int(ver))	
+				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.TMakeUpGain, int(ver))
 			}
 			if s.Id == 98920475 {
 				fmt.Println("98920475")
@@ -83,6 +86,7 @@ func TestAppendAudioAndSoundUsingFNV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	ver := int(bnk.BKHD().BankGenerationVersion)
 	bnk.AppendAudio(audioDataDesert, desertSid)
 	for i := range hirc.HircObjs {
 		switch s := hirc.HircObjs[i].(type) {
@@ -96,8 +100,8 @@ func TestAppendAudioAndSoundUsingFNV(t *testing.T) {
 			if s.Id == 274049716 {
 			}
 			if s.Id == 435636362 {
-				s.BaseParam.PropBundle.AddBaseProp()	
-				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.PropTypeMakeUpGain)
+				s.BaseParam.PropBundle.AddBaseProp(ver)
+				s.BaseParam.PropBundle.ChangeBaseProp(0, wwise.TMakeUpGain, ver)
 			}
 			if s.Id == 98920475 {
 			}
