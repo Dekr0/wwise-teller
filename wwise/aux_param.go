@@ -70,7 +70,7 @@ func (a *AuxParam) SetOverrideReflectionAuxBus(set bool) {
 	}
 }
 
-func (a *AuxParam) Encode() []byte {
+func (a *AuxParam) Encode(v int) []byte {
 	n := 0
 	for _, a := range a.AuxIds {
 		if a == 0 {
@@ -84,14 +84,14 @@ func (a *AuxParam) Encode() []byte {
 	a.assert()
 
 	if !a.HasAux() {
-		size := a.Size()
+		size := a.Size(v)
 		w := wio.NewWriter(uint64(size))
 		w.AppendByte(a.AuxBitVector)
 		w.Append(a.ReflectionAuxBus)
 		return w.BytesAssert(int(size))
 	}
 
-	size := a.Size()
+	size := a.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(a.AuxBitVector)
 	for _, id := range a.AuxIds { w.Append(id) }
@@ -100,7 +100,7 @@ func (a *AuxParam) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (a *AuxParam) Size() uint32 {
+func (a *AuxParam) Size(v int) uint32 {
 	if !a.HasAux() {
 		return 5
 	}
