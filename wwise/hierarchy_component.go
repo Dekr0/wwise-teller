@@ -3,6 +3,7 @@
 package wwise
 
 import (
+	"encoding/binary"
 	"slices"
 
 	"github.com/Dekr0/wwise-teller/wio"
@@ -12,7 +13,7 @@ type BaseParameter struct {
 	BitIsOverrideParentFx uint8
 	FxChunk FxChunk
 	FxChunkMetadata FxChunkMetadata
-	BitOverrideAttachmentParams uint8
+	BitOverrideAttachmentParams uint8 // <= 145
 	OverrideBusId uint32
 	DirectParentId uint32
 	ByBitVectorA uint8
@@ -50,47 +51,53 @@ func (b *BaseParameter) Clone(withParent bool) *BaseParameter {
 	return &cb
 }
 
-func (b *BaseParameter) Encode() []byte {
-	size := b.Size()
+func (b *BaseParameter) Encode(v int) []byte {
+	size := b.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(b.BitIsOverrideParentFx)
-	w.AppendBytes(b.FxChunk.Encode())
-	w.AppendBytes(b.FxChunkMetadata.Encode())
-	w.AppendByte(b.BitOverrideAttachmentParams)
+	w.AppendBytes(b.FxChunk.Encode(v))
+	w.AppendBytes(b.FxChunkMetadata.Encode(v))
+	if v <= 145 {
+		w.AppendByte(b.BitOverrideAttachmentParams)
+	}
 	w.Append(b.OverrideBusId)
 	w.Append(b.DirectParentId)
 	w.AppendByte(b.ByBitVectorA)
-	w.AppendBytes(b.PropBundle.Encode())
-	w.AppendBytes(b.RangePropBundle.Encode())
-	w.AppendBytes(b.PositioningParam.Encode())
-	w.AppendBytes(b.AuxParam.Encode())
+	w.AppendBytes(b.PropBundle.Encode(v))
+	w.AppendBytes(b.RangePropBundle.Encode(v))
+	w.AppendBytes(b.PositioningParam.Encode(v))
+	w.AppendBytes(b.AuxParam.Encode(v))
 	w.Append(b.AdvanceSetting)
-	w.AppendBytes(b.StateProp.Encode())
-	w.AppendBytes(b.StateGroup.Encode())
-	w.AppendBytes(b.RTPC.Encode())
+	w.AppendBytes(b.StateProp.Encode(v))
+	w.AppendBytes(b.StateGroup.Encode(v))
+	w.AppendBytes(b.RTPC.Encode(v))
 	return w.BytesAssert(int(size))
 }
 
-func (b *BaseParameter) Size() uint32 {
-	return 1 + b.FxChunk.Size() + b.FxChunkMetadata.Size() + 1 + 4 + 4 + 1 + b.PropBundle.Size() + b.RangePropBundle.Size() + b.PositioningParam.Size() + b.AuxParam.Size() + SizeOfAdvanceSetting + b.StateProp.Size() + b.StateGroup.Size() + b.RTPC.Size()
+func (b *BaseParameter) Size(v int) uint32 {
+	size := 1 + b.FxChunk.Size(v) + b.FxChunkMetadata.Size(v) + 1 + 4 + 4 + 1 + b.PropBundle.Size(v) + b.RangePropBundle.Size(v) + b.PositioningParam.Size(v) + b.AuxParam.Size(v) + SizeOfAdvanceSetting + b.StateProp.Size(v) + b.StateGroup.Size(v) + b.RTPC.Size(v)
+	if v <= 145 {
+		return size
+	}
+	return size - 1
 }
 
 func (b *BaseParameter) PriorityOverrideParent() bool {
 	return wio.GetBit(b.ByBitVectorA, 0)
 }
 
-func (b *BaseParameter) SetPriorityOverrideParent(set bool) {
+func (b *BaseParameter) SetPriorityOverrideParent(set bool, v int) {
 	b.ByBitVectorA = wio.SetBit(b.ByBitVectorA, 0, set) 
-	b.PropBundle.Add(PropTypePriority)
+	b.PropBundle.Add(TPriority, v)
 }
 
 func (b *BaseParameter) PriorityApplyDistFactor() bool {
 	return wio.GetBit(b.ByBitVectorA, 1)
 }
 
-func (b *BaseParameter) SetPriorityApplyDistFactor(set bool) {
+func (b *BaseParameter) SetPriorityApplyDistFactor(set bool, v int) {
 	b.ByBitVectorA = wio.SetBit(b.ByBitVectorA, 1, set) 
-	b.PropBundle.Add(PropTypePriorityDistanceOffset)
+	b.PropBundle.Add(TPriorityDistanceOffset, v)
 }
 
 func (b *BaseParameter) OverrideMidiEventsBehavior() bool {
@@ -125,64 +132,87 @@ func (b *BaseParameter) SetMidiBreakLoopOnNoteOff(set bool) {
 	b.ByBitVectorA = wio.SetBit(b.ByBitVectorA, 5, set) 
 }
 
-func (b *BaseParameter) SetOverrideAuxSends(set bool) {
+func (b *BaseParameter) SetOverrideAuxSends(set bool, v int) {
 	b.AuxParam.SetOverrideAuxSends(set)
 	if !b.AuxParam.OverrideAuxSends() {
-		b.PropBundle.RemoveAllUserAuxSendVolumeProp()
+		b.PropBundle.RemoveAllUserAuxSendVolumeProp(v)
 	}
 }
 
-func (b *BaseParameter) SetOverrideReflectionAuxBus(set bool) {
+func (b *BaseParameter) SetOverrideReflectionAuxBus(set bool, v int) {
 	b.AuxParam.SetOverrideReflectionAuxBus(set)
 	if !b.AuxParam.OverrideReflectionAuxBus() {
-		b.PropBundle.Remove(PropTypeReflectionBusVolume)
+		b.PropBundle.Remove(TReflectionBusVolume, v)
 	}
 }
 
-func (b *BaseParameter) SetEnableEnvelope(set bool) {
+func (b *BaseParameter) SetEnableEnvelope(set bool, v int) {
 	b.AdvanceSetting.SetEnableEnvelope(set)
 	if b.AdvanceSetting.EnableEnvelope() {
-		b.PropBundle.AddHDRActiveRange()
+		b.PropBundle.AddHDRActiveRange(v)
 	}
 }
 
 type StateProp struct {
-	// NumStateProps uint8
+	NumStateProps    wio.Var
 	StatePropItems []StatePropItem
 }
 
 func (s *StateProp) Clone() StateProp {
-	return StateProp{slices.Clone(s.StatePropItems)}
+	return StateProp{
+		NumStateProps: wio.Var{Bytes: slices.Clone(s.NumStateProps.Bytes), Value: s.NumStateProps.Value}, 
+		StatePropItems: slices.Clone(s.StatePropItems),
+	}
 }
 
-func (s *StateProp) Encode() []byte {
-	size := s.Size()
+func (s *StateProp) Encode(v int) []byte {
+	size := s.Size(v)
 	w := wio.NewWriter(uint64(size))
-	w.AppendByte(uint8(len(s.StatePropItems)))
+	w.AppendBytes(s.NumStateProps.Bytes)
 	for _, si := range s.StatePropItems {
-		w.Append(si)
+		w.AppendBytes(si.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (s *StateProp) Size() uint32 {
-	return uint32(1 + len(s.StatePropItems) * SizeOfStatePropItem)
+func (s *StateProp) Size(v int) uint32 {
+	size := uint32(len(s.NumStateProps.Bytes))
+	for _, i := range s.StatePropItems {
+		size += i.Size(v)
+	}
+	return size
 }
 
-const SizeOfStatePropItem = 3
 type StatePropItem struct {
-	PropertyId RTPCParameterType // var (at least 1 byte / 8 bits)
+	PropertyId wio.Var // var (at least 1 byte / 8 bits)
 	AccumType  RTPCAccumType // U8x
 	InDb       uint8 // U8x
 }
 
+func (s *StatePropItem) Encode(v int) []byte {
+	b := slices.Clone(s.PropertyId.Bytes)
+	b, _ = binary.Append(b, wio.ByteOrder, s.AccumType)
+	b, _ = binary.Append(b, wio.ByteOrder, s.InDb)
+	return b
+}
+
+func (s *StatePropItem) Size(v int) uint32 {
+	return uint32(len(s.PropertyId.Bytes)) + 2
+}
+
 type StateGroup struct {
-	// NumStateGroups uint8
+	NumStateGroups    wio.Var
 	StateGroupItems []StateGroupItem
 }
 
 func (s *StateGroup) Clone() StateGroup {
-	cs := StateGroup{make([]StateGroupItem, len(s.StateGroupItems))}
+	cs := StateGroup{
+		NumStateGroups: wio.Var{
+			Bytes: slices.Clone(s.NumStateGroups.Bytes),
+			Value: s.NumStateGroups.Value,
+		}, 
+		StateGroupItems: make([]StateGroupItem, len(s.StateGroupItems)),
+	}
 	for i := range s.StateGroupItems {
 		cs.StateGroupItems[i].StateGroupID = s.StateGroupItems[i].StateGroupID
 		cs.StateGroupItems[i].StateSyncType = s.StateGroupItems[i].StateSyncType
@@ -191,24 +221,20 @@ func (s *StateGroup) Clone() StateGroup {
 	return cs
 }
 
-func NewStateGroup() *StateGroup {
-	return &StateGroup{[]StateGroupItem{}}
-}
-
-func (s *StateGroup) Encode() []byte {
-	size := s.Size()
+func (s *StateGroup) Encode(v int) []byte {
+	size := s.Size(v)
 	w := wio.NewWriter(uint64(size))
-	w.AppendByte(uint8(len(s.StateGroupItems)))
+	w.AppendBytes(s.NumStateGroups.Bytes)
 	for _, i := range s.StateGroupItems {
-		w.AppendBytes(i.Encode())
+		w.AppendBytes(i.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (s *StateGroup) Size() uint32 {
-	size := uint32(1)
+func (s *StateGroup) Size(v int) uint32 {
+	size := uint32(len(s.NumStateGroups.Bytes))
 	for _, i := range s.StateGroupItems {
-		size += i.Size()
+		size += i.Size(v)
 	}
 	return size
 }
@@ -216,34 +242,57 @@ func (s *StateGroup) Size() uint32 {
 type StateGroupItem struct {
 	StateGroupID uint32 // tid
 	StateSyncType uint8 // U8x
-	// NumStates uint8 // var (assume at least 1 byte / 8 bits, can be more)
-	States []StateGroupItemState // NumStates * sizeof(StateGroupItemState)
+	NumStates wio.Var
+	States []StateGroupItemState
 }
 
-func NewStateGroupItem() *StateGroupItem {
-	return &StateGroupItem{0, 0, []StateGroupItemState{}}
-}
-
-func (s * StateGroupItem) Encode() []byte {
-	size := s.Size()
+func (s * StateGroupItem) Encode(v int) []byte {
+	size := s.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(s.StateGroupID)
 	w.AppendByte(s.StateSyncType)
-	w.AppendByte(uint8(len(s.States)))
+	w.AppendBytes(s.NumStates.Bytes)
 	for _, state := range s.States {
-		w.Append(state)
+		w.Append(state.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (s *StateGroupItem) Size() uint32 {
-	return uint32(4 + 1 + 1 + SizeOfStateGroupItem * len(s.States))
+func (s *StateGroupItem) Size(v int) uint32 {
+	size := 4 + 1 + uint32(len(s.NumStates.Bytes))
+	for _, s := range s.States {
+		size += s.Size(v)
+	}
+	return size
 }
 
-const SizeOfStateGroupItem = 8
 type StateGroupItemState struct {
 	StateID uint32 // tid
+	// The following section is exclusive
+	// <= 145
 	StateInstanceID uint32 // tid
+	// > 145
+	StatePropBundle StatePropBundle
+}
+
+func (s *StateGroupItemState) Size(v int) uint32 {
+	if v <= 145 {
+		return 8
+	} else {
+		return 4 + s.StatePropBundle.Size(v)
+	}
+}
+
+func (s *StateGroupItemState) Encode(v int) []byte {
+	size := s.Size(v)
+	w := wio.NewWriter(uint64(size))
+	w.Append(s.StateID)
+	if v <= 145 {
+		w.Append(s.StateInstanceID)
+	} else {
+		w.AppendBytes(s.StatePropBundle.Encode(v))
+	}
+	return w.BytesAssert(int(size))
 }
 
 type Container struct {
@@ -255,7 +304,7 @@ func NewCntrChildren() *Container {
 	return &Container{[]uint32{}}
 }
 
-func (c *Container) Encode() []byte {
+func (c *Container) Encode(v int) []byte {
 	size := 4 + 4 * len(c.Children)
 	w := wio.NewWriter(uint64(size))
 	w.Append(uint32(len(c.Children)))
@@ -263,38 +312,6 @@ func (c *Container) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (c *Container) Size() uint32 {
+func (c *Container) Size(v int) uint32 {
 	return uint32(4 + 4 * len(c.Children))
-}
-
-type SwitchGroupItem struct {
-	SwitchID uint32 // sid
-
-	// ulNumItems uint32 // u32
-
-	NodeList []uint32 // tid
-}
-
-func (s *SwitchGroupItem) Size() uint32 {
-	return uint32(4 + 4 + len(s.NodeList) * 4)
-}
-
-func (s *SwitchGroupItem) Encode() []byte { 
-	size := uint64(4 + 4 + len(s.NodeList) * 4)
-	w := wio.NewWriter(size)
-	w.Append(s.SwitchID)
-	w.Append(uint32(len(s.NodeList)))
-	for _, i := range s.NodeList {
-		w.Append(i)
-	}
-	return w.BytesAssert(int(size))
-}
-
-const SizeOfSwitchParam = 14
-type SwitchParam struct {
-	NodeId uint32 // tid
-	PlayBackBitVector uint8 // U8x
-	ModeBitVector uint8 // U8x
-	FadeOutTime int32 // s32
-	FadeInTime int32 // s32
 }
