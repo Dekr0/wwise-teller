@@ -34,6 +34,7 @@ type BankSourceData struct {
 	PluginID          uint32 // U32
 	StreamType        SourceType // U8x
 	SourceID          uint32 // tid
+	CacheID           uint32 // > 150
 	InMemoryMediaSize uint32 // U32
 	SourceBits        uint8 // U8x
 	PluginParam      *PluginParam
@@ -72,25 +73,31 @@ func (b *BankSourceData) ChangeSource(sid uint32, inMemoryMediaSize uint32) {
 	b.InMemoryMediaSize = inMemoryMediaSize
 }
 
-func (b *BankSourceData) Encode() []byte {
+func (b *BankSourceData) Encode(v int) []byte {
 	b.assert()
-	size := b.Size()
+	size := b.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(b.PluginID)
 	w.Append(b.StreamType)
 	w.Append(b.SourceID)
+	if v > 150 {
+		w.Append(b.CacheID)
+	}
 	w.Append(b.InMemoryMediaSize)
 	w.Append(b.SourceBits)
 	if b.PluginParam != nil {
-		w.AppendBytes(b.PluginParam.Encode())
+		w.AppendBytes(b.PluginParam.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (b *BankSourceData) Size() uint32 {
+func (b *BankSourceData) Size(v int) uint32 {
 	size := uint32(4 + 1 + 4 + 4 + 1)
+	if v > 150 {
+		size += 4
+	}
 	if b.PluginParam != nil {
-		size += b.PluginParam.Size()
+		size += b.PluginParam.Size(v)
 	}
 	return size
 }
