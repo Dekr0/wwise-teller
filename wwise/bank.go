@@ -11,8 +11,6 @@ import (
 	"slices"
 )
 
-var BankVersion = -1
-
 var NoHIRC = errors.New("This sound bank does not have HIRC chunk.")
 var NoDIDX = errors.New("This sound bank does not have DIDX chunk.")
 var NoDATA = errors.New("This sound bank does not have DATA chunk.")
@@ -20,7 +18,7 @@ var NoDATA = errors.New("This sound bank does not have DATA chunk.")
 const SizeOfChunkHeader = 4 + 4
 
 type Chunk interface {
-	Encode(ctx context.Context) ([]byte, error)
+	Encode(ctx context.Context, v int) ([]byte, error)
 	Tag() []byte
 	Idx() uint8 // for maintaining the order of each chunk section
 }
@@ -112,17 +110,17 @@ type EncodedChunk struct {
 }
 
 func CreateEncodeClosure(
-	ctx context.Context, c chan *EncodedChunk, cu Chunk,
+	ctx context.Context, c chan *EncodedChunk, cu Chunk, v int,
 ) func() {
 	return func() {
 		slog.Debug(fmt.Sprintf("Start encoding %s section", cu.Tag()))
-		data, err := cu.Encode(ctx)
+		data, err := cu.Encode(ctx, v)
 		c <- &EncodedChunk{cu.Idx(), data, err}
 	}
 }
 
 func (bnk *Bank) Encode(ctx context.Context, diffTest bool) ([]byte, error) {
-	if diffTest {
+	if !diffTest {
 		bnk.ComputeDIDXOffset()
 		if bnk.DIDX() != nil && bnk.DATA() != nil {
 			if err := bnk.CheckDIDXDATA(); err != nil {
@@ -141,7 +139,7 @@ func (bnk *Bank) Encode(ctx context.Context, diffTest bool) ([]byte, error) {
 		if bytes.Compare(cu.Tag(), []byte{'M', 'E', 'T', 'A'}) == 0 {
 			continue
 		}
-		go CreateEncodeClosure(ctx, c, cu)()
+		go CreateEncodeClosure(ctx, c, cu, int(bnk.BKHD().BankGenerationVersion))()
 		i += 1
 	}
 
@@ -154,7 +152,7 @@ func (bnk *Bank) Encode(ctx context.Context, diffTest bool) ([]byte, error) {
 				return nil, res.e
 			}
 			chunks[res.i] = res.b
-			slog.Info(
+			slog.Debug(
 				fmt.Sprintf("Encoded %s section.", res.b[0:4]),
 				"size", len(res.b[8:]),
 			)
@@ -163,6 +161,30 @@ func (bnk *Bank) Encode(ctx context.Context, diffTest bool) ([]byte, error) {
 	}
 
 	return bytes.Join(chunks, []byte{}), nil
+}
+
+func (b *Bank) Audio(sid uint32) (audioData []byte, in bool) {
+	data := b.DATA()
+	if data == nil {
+		return nil, false
+	}
+	wemData, in := data.AudiosMap[sid]
+	if in {
+		return wemData, in
+	}
+	hirc := b.HIRC()
+	if hirc == nil {
+		return nil, false 
+	}
+	for _, h := range hirc.HircObjs {
+		id, err := h.HircID()
+		if err != nil {
+			continue
+		}
+		if id == sid {
+		}
+	}
+	return nil, false
 }
 
 func (b *Bank) AppendAudio(audioData []byte, sid uint32) error {
