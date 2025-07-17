@@ -12,17 +12,17 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBaseProp(p *wwise.PropBundle) {
+func renderBaseProp(p *wwise.PropBundle, v int) {
 	if imgui.TreeNodeExStr("Property") {
 		if imgui.Button("Add Base Property") {
-			p.AddBaseProp()
+			p.AddBaseProp(v)
 		}
-		renderBasePropTable(p)
+		renderBasePropTable(p, v)
 		imgui.TreePop()
 	}
 }
 
-func renderBasePropTable(p *wwise.PropBundle) {
+func renderBasePropTable(p *wwise.PropBundle, v int) {
 	const flags = DefaultTableFlags
 	if imgui.BeginTableV("PropTable", 4, flags, DefaultSize, 0) {
 		var removeBaseProp func() = nil
@@ -36,7 +36,7 @@ func renderBasePropTable(p *wwise.PropBundle) {
 		imgui.TableHeadersRow()
 
 		for i := range p.PropValues {
-			pid := p.PropValues[i].P
+			pid := wwise.InverseTranslateProp(p.PropValues[i].P, v)
 			if !slices.Contains(wwise.BasePropType, pid) {
 				continue
 			}
@@ -45,20 +45,20 @@ func renderBasePropTable(p *wwise.PropBundle) {
 			imgui.TableSetColumnIndex(0)
 			imgui.PushIDStr(fmt.Sprintf("RmBaseProp%d", i))
 			if imgui.Button("X") {
-				removeBaseProp = bindRemoveProp(p, pid)
+				removeBaseProp = bindRemoveProp(p, pid, v)
 			}
 			imgui.PopID()
 
 			imgui.TableSetColumnIndex(1)
 			imgui.SetNextItemWidth(-1)
-			preview := wwise.PropLabel_140[pid]
+			preview := wwise.PropLabel(pid)
 			if imgui.BeginCombo(fmt.Sprintf("##ChangeBaseProp%d", i), preview) {
 				for _, t := range wwise.BasePropType {
 					selected := pid == t
 
-					label := wwise.PropLabel_140[t]
+					label := wwise.PropLabel(t)
 					if imgui.SelectableBoolPtr(label, &selected) {
-						changeBaseProp = bindChangeBaseProp(p, i, t)
+						changeBaseProp = bindChangeBaseProp(p, i, t, v)
 					}
 					if selected {
 						imgui.SetItemDefaultFocus()
@@ -70,7 +70,7 @@ func renderBasePropTable(p *wwise.PropBundle) {
 			var val float32
 			binary.Decode(p.PropValues[i].V, wio.ByteOrder, &val)
 			switch pid {
-			case wwise.PropTypeVolume:
+			case wwise.TVolume:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##VolumeSlider", &val, -96.0, 12.0) {
@@ -83,7 +83,7 @@ func renderBasePropTable(p *wwise.PropBundle) {
 						p.SetPropByIdxF32(i, val)
 					}
 				}
-			case wwise.PropTypePitch:
+			case wwise.TPitch:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				intFloat := int32(val)
@@ -97,7 +97,7 @@ func renderBasePropTable(p *wwise.PropBundle) {
 						p.SetPropByIdxF32(i, float32(intFloat))
 					}
 				}
-			case wwise.PropTypeLPF:
+			case wwise.TLPF:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				intFloat := int32(val)
@@ -111,7 +111,7 @@ func renderBasePropTable(p *wwise.PropBundle) {
 						p.SetPropByIdxF32(i, float32(intFloat))
 					}
 				}
-			case wwise.PropTypeHPF:
+			case wwise.THPF:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				intFloat := int32(val)
@@ -125,7 +125,7 @@ func renderBasePropTable(p *wwise.PropBundle) {
 						p.SetPropByIdxF32(i, float32(intFloat))
 					}
 				}
-			case wwise.PropTypeMakeUpGain:
+			case wwise.TMakeUpGain:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##MakeUpGainSlider", &val, -96.0, 96.0) {
@@ -138,7 +138,7 @@ func renderBasePropTable(p *wwise.PropBundle) {
 						p.SetPropByIdxF32(i, val)
 					}
 				}
-			case wwise.PropTypeGameAuxSendVolume:
+			case wwise.TGameAuxSendVolume:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##GameAuxSendVolumeSlider", &val, -96.0, 12.0) {
@@ -151,7 +151,7 @@ func renderBasePropTable(p *wwise.PropBundle) {
 						p.SetPropByIdxF32(i, val)
 					}
 				}
-			case wwise.PropTypeInitialDelay:
+			case wwise.TInitialDelay:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##InitialDelaySlider", &val, 0, 60.0) {
@@ -180,27 +180,27 @@ func renderBasePropTable(p *wwise.PropBundle) {
 	}
 }
 
-func bindChangeBaseProp(p *wwise.PropBundle, idx int, nextPid wwise.PropType) func() {
-	return func() { p.ChangeBaseProp(idx, nextPid) }
+func bindChangeBaseProp(p *wwise.PropBundle, idx int, nextPid wwise.PropType, v int) func() {
+	return func() { p.ChangeBaseProp(idx, nextPid, v) }
 }
 
-func bindRemoveProp(p *wwise.PropBundle, pid wwise.PropType) func() {
+func bindRemoveProp(p *wwise.PropBundle, pid wwise.PropType, v int) func() {
 	return func() {
-		p.Remove(pid)
+		p.Remove(pid, v)
 	}
 }
 
-func renderBaseRangeProp(r *wwise.RangePropBundle) {
+func renderBaseRangeProp(r *wwise.RangePropBundle, v int) {
 	if imgui.TreeNodeExStr("Base Range Property (Randomizer)") {
 		if imgui.Button("Add Base Range Property") {
-			r.AddBaseProp()
+			r.AddBaseProp(v)
 		}
-		renderBaseRangePropTable(r)
+		renderBaseRangePropTable(r, v)
 		imgui.TreePop()
 	}
 }
 
-func renderBaseRangePropTable(r *wwise.RangePropBundle) {
+func renderBaseRangePropTable(r *wwise.RangePropBundle, v int) {
 	const flags = DefaultTableFlags
 	outerSize := imgui.NewVec2(0, 0)
 	if imgui.BeginTableV("RangePropTableSlider", 6, flags, outerSize, 0) {
@@ -217,7 +217,7 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 		var changeBaseRangeProp func() = nil
 
 		for i := range r.RangeValues {
-			pid := r.RangeValues[i].P
+			pid := wwise.InverseTranslateProp(r.RangeValues[i].P, v)
 			if !slices.Contains(wwise.BaseRangePropType, pid) {
 				continue
 			}
@@ -226,19 +226,19 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 			imgui.TableSetColumnIndex(0)
 			imgui.PushIDStr(fmt.Sprintf("RmBaseRangeProp%d", i))
 			if imgui.Button("X") {
-				removeBaseRangeProp = bindRemoveBaseRangeProp(r, pid)
+				removeBaseRangeProp = bindRemoveBaseRangeProp(r, pid, v)
 			}
 			imgui.PopID()
 
 			imgui.TableSetColumnIndex(1)
 			imgui.SetNextItemWidth(-1)
-			preview := wwise.PropLabel_140[pid]
+			preview := wwise.PropLabel(pid)
 			if imgui.BeginCombo(fmt.Sprintf("##ChangeBaseRangeProp%d", i), preview) {
 				for _, t := range wwise.BaseRangePropType {
 					selected := pid == t
-					label := wwise.PropLabel_140[t]
+					label := wwise.PropLabel(t)
 					if imgui.SelectableBoolPtr(label, &selected) {
-						changeBaseRangeProp = bindChangeBaseRangeProp(r, i, t)
+						changeBaseRangeProp = bindChangeBaseRangeProp(r, i, t, v)
 					}
 					if selected {
 						imgui.SetItemDefaultFocus()
@@ -252,7 +252,7 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 			binary.Decode(r.RangeValues[i].Min, wio.ByteOrder, &valMin)
 			binary.Decode(r.RangeValues[i].Max, wio.ByteOrder, &valMax)
 			switch pid {
-			case wwise.PropTypeVolume:
+			case wwise.TVolume:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##VolumeMinSlider", &valMin, -108.0, 0) {
@@ -277,7 +277,7 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 						r.SetPropMaxByIdxF32(i, valMax)
 					}
 				}
-			case wwise.PropTypePitch:
+			case wwise.TPitch:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##PitchMinSlider", &valMin, -4800, 0) {
@@ -302,7 +302,7 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 						r.SetPropMaxByIdxF32(i, valMax)
 					}
 				}
-			case wwise.PropTypeLPF:
+			case wwise.TLPF:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##LPFMinSlider", &valMin, -100.0, 0) {
@@ -327,7 +327,7 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 						r.SetPropMaxByIdxF32(i, valMax)
 					}
 				}
-			case wwise.PropTypeHPF:
+			case wwise.THPF:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##HPFMinSlider", &valMin, -100.0, 0) {
@@ -352,7 +352,7 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 						r.SetPropMaxByIdxF32(i, valMax)
 					}
 				}
-			case wwise.PropTypeMakeUpGain:
+			case wwise.TMakeUpGain:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##MakeUpGainMinSlider", &valMin, -192.0, 0) {
@@ -377,7 +377,7 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 						r.SetPropMaxByIdxF32(i, valMax)
 					}
 				}
-			case wwise.PropTypeInitialDelay:
+			case wwise.TInitialDelay:
 				imgui.TableSetColumnIndex(2)
 				imgui.SetNextItemWidth(-1)
 				if imgui.SliderFloat("##InitialDelayMinSlider", &valMin, -60.0, 0) {
@@ -415,19 +415,19 @@ func renderBaseRangePropTable(r *wwise.RangePropBundle) {
 	}
 }
 
-func bindRemoveBaseRangeProp(r *wwise.RangePropBundle, p wwise.PropType) func() {
+func bindRemoveBaseRangeProp(r *wwise.RangePropBundle, p wwise.PropType, v int) func() {
 	return func() {
-		r.Remove(p)
+		r.Remove(p, v)
 	}
 }
 
-func bindChangeBaseRangeProp(r *wwise.RangePropBundle, idx int, nextPid wwise.PropType) func() {
+func bindChangeBaseRangeProp(r *wwise.RangePropBundle, idx int, nextPid wwise.PropType, v int) func() {
 	return func() {
-		r.ChangeBaseProp(idx, nextPid)
+		r.ChangeBaseProp(idx, nextPid, v)
 	}
 }
 
-func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
+func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle, v int) {
 	if p != nil && imgui.TreeNodeExStr("All Property (Read-Only)") {
 		if imgui.BeginTableV("AllPropReadOnly", 2, DefaultTableFlags, DefaultSize, 0) {
 			imgui.TableSetupColumn("Property")
@@ -439,9 +439,10 @@ func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
 			for _, p := range p.PropValues {
 				imgui.TableNextRow()
 				imgui.TableSetColumnIndex(0)
-				imgui.Text(wwise.PropLabel_140[p.P])
+				pid := wwise.InverseTranslateProp(p.P, v)
+				imgui.Text(wwise.PropLabel(pid))
 				imgui.TableSetColumnIndex(1)
-				if p.P == wwise.PropType(wwise.PropTypeAttenuationID) {
+				if pid == wwise.TAttenuationID {
 					binary.Decode(p.V, wio.ByteOrder, &attenuationID)
 					imgui.Text(strconv.FormatUint(uint64(attenuationID), 10))
 				} else {
@@ -463,11 +464,12 @@ func renderAllProp(p *wwise.PropBundle, r *wwise.RangePropBundle) {
 			var min float32
 			var max float32
 			for _, r := range r.RangeValues {
+				pid := wwise.InverseTranslateProp(r.P, v)
 				imgui.TableNextRow()
 				binary.Decode(r.Min, wio.ByteOrder, &min)
 				binary.Decode(r.Max, wio.ByteOrder, &max)
 				imgui.TableSetColumnIndex(0)
-				imgui.Text(wwise.PropLabel_140[r.P])
+				imgui.Text(wwise.PropLabel(pid))
 				imgui.TableSetColumnIndex(1)
 				imgui.Text(strconv.FormatFloat(float64(min), 'f', 4, 32))
 				imgui.TableSetColumnIndex(2)

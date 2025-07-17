@@ -18,6 +18,7 @@ import (
 func renderBaseParam(m *be.BankManager, t *be.BankTab, init *be.BankTab, o wwise.HircObj) {
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyB))
 	if imgui.TreeNodeExStr("Base Parameter") {
+		v := t.Version()
 		hid, err := o.HircID()
 		if err != nil {
 			panic(err)
@@ -26,13 +27,13 @@ func renderBaseParam(m *be.BankManager, t *be.BankTab, init *be.BankTab, o wwise
 		renderChangeParentQuery(t, b, hid, wwise.ActorMixerHircType(o), o.HircType() != wwise.HircTypeSound)
 		imgui.SameLine()
 		renderChangeParentListing(t, wwise.ActorMixerHircType(o))
-		renderByBitVec(b)
-		renderAuxParam(m, init, o)
-		renderEarlyReflection(m, init, o)
-		renderBaseProp(&b.PropBundle)
-		renderBaseRangeProp(&b.RangePropBundle)
-		renderAllProp(&b.PropBundle, &b.RangePropBundle)
-		renderAdvSetting(b, &b.AdvanceSetting)
+		renderByBitVec(b, t.Version())
+		renderAuxParam(m, init, o, v)
+		renderEarlyReflection(m, init, o, v)
+		renderBaseProp(&b.PropBundle, v)
+		renderBaseRangeProp(&b.RangePropBundle, v)
+		renderAllProp(&b.PropBundle, &b.RangePropBundle, v)
+		renderAdvSetting(b, &b.AdvanceSetting, t.Version())
 		renderRTPC(hid, &b.RTPC)
 		imgui.TreePop()
 	}
@@ -226,7 +227,7 @@ func renderChangeParentListing(t *be.BankTab, actorMixer bool) {
 	imgui.EndChild()
 }
 
-func renderByBitVec(o *wwise.BaseParameter) {
+func renderByBitVec(o *wwise.BaseParameter, v int) {
 	if imgui.TreeNodeExStr("Override (Category 1)") {
 		size := imgui.NewVec2(0, 136)
 		imgui.BeginChildStrV("Playback Priority", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
@@ -234,18 +235,18 @@ func renderByBitVec(o *wwise.BaseParameter) {
 		imgui.BeginDisabledV(o.DirectParentId == 0)
 		priorityOverrideParent := o.PriorityOverrideParent()
 		if imgui.Checkbox("Priority Override Parent", &priorityOverrideParent) {
-			o.SetPriorityOverrideParent(priorityOverrideParent)
+			o.SetPriorityOverrideParent(priorityOverrideParent, v)
 		}
 		imgui.EndDisabled()
 
 		if o.DirectParentId == 0 {
 			if imgui.Button("Add Playback Priorty Property") {
-				o.PropBundle.Add(wwise.PropTypePriority)
+				o.PropBundle.Add(wwise.TPriority, v) 
 			}
 		}
 
 		if o.PriorityOverrideParent() || o.DirectParentId == 0 {
-			i, p := o.PropBundle.Prop(wwise.PropTypePriority)
+			i, p := o.PropBundle.Prop(wwise.TPriority, v)
 			if i != -1 {
 				var val float32
 				binary.Decode(p.V, wio.ByteOrder, &val)
@@ -261,12 +262,12 @@ func renderByBitVec(o *wwise.BaseParameter) {
 		imgui.BeginDisabledV(o.DirectParentId != 0 && !o.PriorityOverrideParent())
 		priorityApplyDistFactor := o.PriorityApplyDistFactor()
 		if imgui.Checkbox("Priority Apply Dist Factor", &priorityApplyDistFactor) {
-			o.SetPriorityApplyDistFactor(priorityApplyDistFactor)
+			o.SetPriorityApplyDistFactor(priorityApplyDistFactor, v)
 		}
 		imgui.EndDisabled()
 
 		if o.PriorityApplyDistFactor() {
-			i, p := o.PropBundle.Prop(wwise.PropTypePriorityDistanceOffset)
+			i, p := o.PropBundle.Prop(wwise.TPriorityDistanceOffset, v)
 			if i != -1 {
 				var val float32
 				binary.Decode(p.V, wio.ByteOrder, &val)
@@ -314,7 +315,7 @@ func renderByBitVec(o *wwise.BaseParameter) {
 	}
 }
 
-func renderAdvSetting(b *wwise.BaseParameter, a *wwise.AdvanceSetting) {
+func renderAdvSetting(b *wwise.BaseParameter, a *wwise.AdvanceSetting, v int) {
 	if imgui.TreeNodeExStr("Advance Setting") {
 		size := imgui.NewVec2(0, 128)
 		imgui.BeginChildStrV("PlaybackLimit", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
@@ -450,10 +451,10 @@ func renderAdvSetting(b *wwise.BaseParameter, a *wwise.AdvanceSetting) {
 		imgui.BeginDisabledV(b.DirectParentId != 0 && !a.OverrideHDREnvelope())
 		enabledEnvelope := a.EnableEnvelope()
 		if imgui.Checkbox("Enable Envelope", &enabledEnvelope) {
-			b.SetEnableEnvelope(enabledEnvelope)
+			b.SetEnableEnvelope(enabledEnvelope, v)
 		}
 		imgui.BeginDisabledV(!a.EnableEnvelope())
-		i, prop := b.PropBundle.HDRActiveRange()
+		i, prop := b.PropBundle.HDRActiveRange(v)
 		if i != -1 {
 			var val float32
 			binary.Decode(prop.V, wio.ByteOrder, &val)

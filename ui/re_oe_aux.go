@@ -12,7 +12,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderAuxParam(m *be.BankManager, init *be.BankTab, o wwise.HircObj) {
+func renderAuxParam(m *be.BankManager, init *be.BankTab, o wwise.HircObj, v int) {
 	if imgui.TreeNodeExStr("User-Defined Auxiliary Send") {
 		b := o.BaseParameter()
 		a := &o.BaseParameter().AuxParam
@@ -26,10 +26,10 @@ func renderAuxParam(m *be.BankManager, init *be.BankTab, o wwise.HircObj) {
 		imgui.BeginDisabledV(root)
 		overrideAuxSend := a.OverrideAuxSends()
 		if imgui.Checkbox("Override User-Defined Auxiliary Send", &overrideAuxSend) {
-			b.SetOverrideAuxSends(overrideAuxSend)
+			b.SetOverrideAuxSends(overrideAuxSend, v)
 		}
 		imgui.EndDisabled()
-		renderUserAuxSendTable(m, init, root, p, a)
+		renderUserAuxSendTable(m, init, root, p, a, v)
 
 		imgui.TreePop()
 	}
@@ -41,6 +41,7 @@ func renderUserAuxSendTable(
 	root bool,
 	p *wwise.PropBundle,
 	a *wwise.AuxParam,
+	v int,
 ) {
 	DefaultSize.X = 440
 	if imgui.BeginTableV("UserAuxSendTable", 7, DefaultTableFlags, DefaultSize, 0) {
@@ -54,7 +55,7 @@ func renderUserAuxSendTable(
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
-		i := wwise.PropTypeUserAuxSendVolume0
+		i := wwise.TUserAuxSendVolume0
 		for j, aid := range a.AuxIds {
 			imgui.TableNextRow()
 
@@ -143,7 +144,7 @@ func renderUserAuxSendTable(
 			}
 
 			val := float32(0.0)
-			idx, pv := p.Prop(i)
+			idx, pv := p.Prop(i, v)
 			in := idx != -1
 			if in {
 				binary.Decode(pv.V, wio.ByteOrder, &val)
@@ -175,7 +176,7 @@ func renderUserAuxSendTable(
 					imgui.SetNextItemWidth(16)
 					imgui.PushIDStr(fmt.Sprintf("AddUserAuxSend%d", j))
 					if imgui.Button("+") {
-						p.Add(i)
+						p.Add(i, v)
 					}
 					imgui.PopID()
 					imgui.EndDisabled()
@@ -187,7 +188,7 @@ func renderUserAuxSendTable(
 					imgui.SetNextItemWidth(16)
 					imgui.PushIDStr(fmt.Sprintf("RmUserAuxSend%d", j))
 					if imgui.Button("X") {
-						p.Remove(i)
+						p.Remove(i, v)
 					}
 					imgui.PopID()
 					imgui.EndDisabled()
@@ -202,7 +203,7 @@ func renderUserAuxSendTable(
 	DefaultSize.X = 0
 }
 
-func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj) {
+func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj, v int) {
 	if imgui.TreeNodeExStr("Early Reflections") {
 		b := o.BaseParameter()
 		a := &o.BaseParameter().AuxParam
@@ -216,7 +217,7 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj)
 		// override early reflection bus
 		imgui.BeginDisabledV(root)
 		if imgui.Checkbox("Override early reflection bus", &overrideReflectionAuxBus) {
-			b.SetOverrideReflectionAuxBus(overrideReflectionAuxBus)
+			b.SetOverrideReflectionAuxBus(overrideReflectionAuxBus, v)
 		}
 		imgui.EndDisabled()
 
@@ -301,7 +302,7 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj)
 		}
 
 		val := float32(0)
-		idx, pv := p.Prop(wwise.PropTypeReflectionBusVolume)
+		idx, pv := p.Prop(wwise.TReflectionBusVolume, v)
 		in := idx != -1
 		if in {
 			binary.Decode(pv.V, wio.ByteOrder, &val)
@@ -332,7 +333,7 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj)
 				imgui.PushIDStr("AddReflectionAuxBusSend")
 				imgui.SameLine()
 				if imgui.Button("+") {
-					p.Add(wwise.PropTypeReflectionBusVolume)
+					p.Add(wwise.TReflectionBusVolume, v)
 				}
 				imgui.PopID()
 				imgui.EndDisabled()
@@ -344,7 +345,7 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj)
 				imgui.PushIDStr("RmReflectionAuxBusSend")
 				imgui.SameLine()
 				if imgui.Button("X") {
-					p.Remove(wwise.PropTypeReflectionBusVolume)
+					p.Remove(wwise.TReflectionBusVolume, v)
 				}
 				imgui.PopID()
 				imgui.EndDisabled()
