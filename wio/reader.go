@@ -127,6 +127,49 @@ func (r *Reader) U8() (uint8, error) {
 	return v, err
 }
 
+type Var struct {
+	Bytes []byte
+	Value uint64
+}
+
+func (r *Reader) VarUnsafe() Var {
+	v, err := r.Var()
+	if err != nil {
+		slog.Error("Error log before panicking", "error", err)
+		panic(err)
+	}
+	return v
+}
+
+func (r *Reader) Var() (Var, error) {
+	var cur uint8 
+	err := binary.Read(r.r, r.o, &cur)
+	if err != nil {
+		return Var{}, err
+	}
+	r.p += 1
+
+	v := Var{[]uint8{}, uint64(cur) & 0x7F}
+	v.Bytes = append(v.Bytes, cur)
+
+	m := 0
+	for cur & 0x80 > 0 && m < 10 {
+		err := binary.Read(r.r, r.o, &cur)
+		if err != nil {
+			return Var{}, err
+		}
+		v.Bytes = append(v.Bytes, cur)
+		v.Value = (v.Value << 7) | (uint64(cur) & 0x7F)
+		m += 1
+		r.p += 1
+	}
+
+	if m >= 10 {
+		return Var{}, fmt.Errorf("Unexpected variable loop count")
+	}
+
+	return v, nil
+}
 
 func (r *Reader) I8Unsafe() int8 {
 	v, err := r.I8()
