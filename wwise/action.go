@@ -1,6 +1,7 @@
 package wwise
 
 import (
+	"bytes"
 	"encoding/binary"
 	"slices"
 
@@ -85,15 +86,15 @@ const (
 type ActionParam interface {
 	Type()             ActionParamType
 	SpecificParam()    ActionSpecificParam
-	Size()             uint32
-	Encode()         []byte
+	Size(int)             uint32
+	Encode(int)         []byte
 	Clone()            ActionParam
 }
 
 type ActionSpecificParam interface {
 	Type()     ActionSpecificParamType
-	Size()     uint32
-	Encode() []byte
+	Size(int)     uint32
+	Encode(int) []byte
 	Clone()    ActionSpecificParam
 }
 
@@ -129,8 +130,8 @@ func (a *Action) SetType(t uint16) {
 	a.ActionType = ActionType((uint16(a.ActionType) & 0x00FF) | (t << 8))
 }
 
-func (a *Action) Encode() []byte {
-	dataSize := a.DataSize()
+func (a *Action) Encode(v int) []byte {
+	dataSize := a.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeAction))
@@ -139,14 +140,14 @@ func (a *Action) Encode() []byte {
 	w.Append(a.ActionType)
 	w.Append(a.IdExt)
 	w.Append(a.IdExt4)
-	w.AppendBytes(a.PropBundle.Encode())
-	w.AppendBytes(a.RangePropBundle.Encode())
-	w.AppendBytes(a.ActionParam.Encode())
+	w.AppendBytes(a.PropBundle.Encode(v))
+	w.AppendBytes(a.RangePropBundle.Encode(v))
+	w.AppendBytes(a.ActionParam.Encode(v))
 	return w.BytesAssert(int(size))
 }
 
-func (a *Action) DataSize() uint32 {
-	return 4 + 2 + 4 + 1 + a.PropBundle.Size() + a.RangePropBundle.Size() + a.ActionParam.Size()
+func (a *Action) DataSize(v int) uint32 {
+	return 4 + 2 + 4 + 1 + a.PropBundle.Size(v) + a.RangePropBundle.Size(v) + a.ActionParam.Size(v)
 }
 
 func (a *Action) BaseParameter() *BaseParameter { return nil }
@@ -179,9 +180,9 @@ func (p *ActionNoSpecificParam) Type() ActionSpecificParamType {
 	return TypeActionNoSpecificParam
 }
 
-func (p *ActionNoSpecificParam) Encode() []byte { return []byte{} }
+func (p *ActionNoSpecificParam) Encode(int) []byte { return []byte{} }
 
-func (p *ActionNoSpecificParam) Size() uint32 { return 0 }
+func (p *ActionNoSpecificParam) Size(int) uint32 { return 0 }
 
 func (p *ActionNoSpecificParam) Clone() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
@@ -189,13 +190,13 @@ type ActionStopSpecificParam struct {
 	BitVector uint8
 }
 
-func (p *ActionStopSpecificParam) Size() uint32 { return 1 }
+func (p *ActionStopSpecificParam) Size(int) uint32 { return 1 }
 
 func (p *ActionStopSpecificParam) Type() ActionSpecificParamType {
 	return TypeActionStopSpecificParam
 }
 
-func (p *ActionStopSpecificParam) Encode() []byte { return []byte{p.BitVector} }
+func (p *ActionStopSpecificParam) Encode(int) []byte { return []byte{p.BitVector} }
 
 func (p *ActionStopSpecificParam) Clone() ActionSpecificParam {
 	return &ActionStopSpecificParam{p.BitVector}
@@ -217,9 +218,9 @@ func (p *ActionPauseSpecificParam) Type() ActionSpecificParamType {
 	return TypeActionPauseSpecificParam
 }
 
-func (p *ActionPauseSpecificParam) Size() uint32 { return 1 }
+func (p *ActionPauseSpecificParam) Size(int) uint32 { return 1 }
 
-func (p *ActionPauseSpecificParam) Encode() []byte { return []byte{p.BitVector} }
+func (p *ActionPauseSpecificParam) Encode(int) []byte { return []byte{p.BitVector} }
 
 func (p *ActionPauseSpecificParam) Clone() ActionSpecificParam {
 	return &ActionPauseSpecificParam{p.BitVector}
@@ -245,9 +246,9 @@ func (p *ActionResumeSpecificParam) Type() ActionSpecificParamType {
 	return TypeActionResumeSpecificParam
 }
 
-func (p *ActionResumeSpecificParam) Size() uint32 { return 1 }
+func (p *ActionResumeSpecificParam) Size(int) uint32 { return 1 }
 
-func (p *ActionResumeSpecificParam) Encode() []byte { return []byte{p.BitVector} }
+func (p *ActionResumeSpecificParam) Encode(int) []byte { return []byte{p.BitVector} }
 
 func (p *ActionResumeSpecificParam) Clone() ActionSpecificParam {
 	return &ActionResumeSpecificParam{p.BitVector}
@@ -276,7 +277,7 @@ func (p *ActionSetPropSpecificParam) Type() ActionSpecificParamType {
 	return TypeActionSetPropSpecificParam
 }
 
-func (p *ActionSetPropSpecificParam) Encode() []byte {
+func (p *ActionSetPropSpecificParam) Encode(int) []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
 	return b
 }
@@ -287,7 +288,7 @@ func (p *ActionSetPropSpecificParam) Clone() ActionSpecificParam {
 	}
 }
 
-func (p *ActionSetPropSpecificParam) Size() uint32 { return 13 }
+func (p *ActionSetPropSpecificParam) Size(int) uint32 { return 13 }
 
 type ActionSetGameParameterSpecificParam struct {
 	ByPassTransition uint8
@@ -301,12 +302,12 @@ func (p *ActionSetGameParameterSpecificParam) Type() ActionSpecificParamType {
 	return TypeActionSetGameParameterSpecificParam
 }
 
-func (p *ActionSetGameParameterSpecificParam) Encode() []byte {
+func (p *ActionSetGameParameterSpecificParam) Encode(int) []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
 	return b
 }
 
-func (p *ActionSetGameParameterSpecificParam) Size() uint32 { return 14 }
+func (p *ActionSetGameParameterSpecificParam) Size(int) uint32 { return 14 }
 
 func (p *ActionSetGameParameterSpecificParam) Clone() ActionSpecificParam {
 	return &ActionSetGameParameterSpecificParam{
@@ -320,9 +321,9 @@ func (p *ActionResetPlayListSpecificParam) Type() ActionSpecificParamType {
 	return TypeActionResetPlayListSpecificParam
 }
 
-func (p *ActionResetPlayListSpecificParam) Encode() []byte { return []byte{} }
+func (p *ActionResetPlayListSpecificParam) Encode(int) []byte { return []byte{} }
 
-func (p *ActionResetPlayListSpecificParam) Size() uint32 { return 0 }
+func (p *ActionResetPlayListSpecificParam) Size(int) uint32 { return 0 }
 
 func (p *ActionResetPlayListSpecificParam) Clone() ActionSpecificParam {
 	return &ActionResetPlayListSpecificParam{}
@@ -334,22 +335,23 @@ func (p *ActionResetPlayListSpecificParam) Clone() ActionSpecificParam {
 
 type ActionNoParam struct {}
 
-func (p *ActionNoParam) Size() uint32 { return 0 }
+func (p *ActionNoParam) Size(int) uint32 { return 0 }
 
 func (p *ActionNoParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
 func (p *ActionNoParam) Type() ActionParamType { return TypeActionNoParam }
 
-func (p *ActionNoParam) Encode() []byte { return  []byte{} }
+func (p *ActionNoParam) Encode(int) []byte { return  []byte{} }
 
 func (p *ActionNoParam) Clone() ActionParam {
 	return &ActionNoParam{}
 }
 
 type ActionActiveParam struct {
-	EnumFadeCurve    InterpCurveType
-	AkSpecificParam  ActionSpecificParam
-	ExceptParams   []ExceptParam
+	EnumFadeCurve     InterpCurveType
+	AkSpecificParam   ActionSpecificParam
+	ExceptionListSize wio.Var
+	ExceptParams    []ExceptParam
 }
 
 const SizeOfExceptParam = 5
@@ -360,8 +362,8 @@ type ExceptParam struct {
 
 func (p *ActionActiveParam) Type() ActionParamType { return TypeActionActiveParam }
 
-func (p *ActionActiveParam) Size() uint32 {
-	return 1 + p.AkSpecificParam.Size() + 1 + 5 * uint32(len(p.ExceptParams))
+func (p *ActionActiveParam) Size(v int) uint32 {
+	return 1 + p.AkSpecificParam.Size(v) + uint32(len(p.ExceptionListSize.Bytes)) + 5 * uint32(len(p.ExceptParams))
 }
 
 func (p *ActionActiveParam) SpecificParam() ActionSpecificParam { 
@@ -372,16 +374,17 @@ func (p *ActionActiveParam) Clone() ActionParam {
 	return &ActionActiveParam{
 		p.EnumFadeCurve,
 		p.AkSpecificParam.Clone(),
+		wio.Var{Bytes: bytes.Clone(p.ExceptionListSize.Bytes), Value: p.ExceptionListSize.Value},
 		slices.Clone(p.ExceptParams),
 	}
 }
 
-func (p *ActionActiveParam) Encode() []byte {
-	size := p.Size()
+func (p *ActionActiveParam) Encode(v int) []byte {
+	size := p.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(p.EnumFadeCurve)
-	w.AppendBytes(p.AkSpecificParam.Encode())
-	w.Append(uint8(len(p.ExceptParams)))
+	w.AppendBytes(p.AkSpecificParam.Encode(v))
+	w.AppendBytes(p.ExceptionListSize.Bytes)
 	for _, e := range p.ExceptParams {
 		w.Append(e)
 	}
@@ -391,14 +394,19 @@ func (p *ActionActiveParam) Encode() []byte {
 type ActionPlayParam struct {
 	EnumFadeCurve InterpCurveType
 	BankID        uint32
+	BankType      uint32
 }
 
 func (p *ActionPlayParam) SpecificParam() ActionSpecificParam {
 	return &ActionNoSpecificParam{}
 }
 
-func (p *ActionPlayParam) Size() uint32 {
-	return 5
+func (p *ActionPlayParam) Size(v int) uint32 {
+	if v >= 144 {
+		return 9
+	} else {
+		return 5
+	}
 }
 
 func (p *ActionPlayParam) Type() ActionParamType {
@@ -406,22 +414,27 @@ func (p *ActionPlayParam) Type() ActionParamType {
 }
 
 func (p *ActionPlayParam) Clone() ActionParam {
-	return &ActionPlayParam{p.EnumFadeCurve, p.BankID}
+	return &ActionPlayParam{p.EnumFadeCurve, p.BankID, p.BankType}
 }
 
-func (p *ActionPlayParam) Encode() []byte {
-	b, _ := binary.Append(nil, wio.ByteOrder, p)
+func (p *ActionPlayParam) Encode(v int) []byte {
+	b, _ := binary.Append(nil, wio.ByteOrder, p.EnumFadeCurve)
+	b, _ = binary.Append(b, wio.ByteOrder, p.BankID)
+	if v >= 144 {
+		b, _ = binary.Append(b, wio.ByteOrder, p.BankType)
+	}
 	return b
 }
 
 type ActionSetValueParam struct {
 	EnumFadeCurve InterpCurveType
 	AkSpecificParam ActionSpecificParam
+	ExceptionListSize wio.Var
 	ExceptParams  []ExceptParam
 }
 
-func (p *ActionSetValueParam) Size() uint32 {
-	return 1 + p.AkSpecificParam.Size() + 1 + uint32(len(p.ExceptParams)) * SizeOfExceptParam
+func (p *ActionSetValueParam) Size(v int) uint32 {
+	return 1 + p.AkSpecificParam.Size(v) + uint32(len(p.ExceptionListSize.Bytes)) + uint32(len(p.ExceptParams)) * SizeOfExceptParam
 }
 
 func (p *ActionSetValueParam) SpecificParam() ActionSpecificParam { return p.AkSpecificParam }
@@ -432,16 +445,17 @@ func (p *ActionSetValueParam) Clone() ActionParam {
 	return &ActionSetValueParam{
 		p.EnumFadeCurve,
 		p.AkSpecificParam.Clone(),
+		wio.Var{Bytes: bytes.Clone(p.ExceptionListSize.Bytes), Value: p.ExceptionListSize.Value},
 		slices.Clone(p.ExceptParams),
 	}
 }
 
-func (p *ActionSetValueParam) Encode() []byte {
-	size := p.Size()
+func (p *ActionSetValueParam) Encode(v int) []byte {
+	size := p.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(p.EnumFadeCurve)
-	w.AppendBytes(p.AkSpecificParam.Encode())
-	w.Append(uint8(len(p.ExceptParams)))
+	w.AppendBytes(p.AkSpecificParam.Encode(v))
+	w.AppendBytes(p.ExceptionListSize.Bytes)
 	for _, e := range p.ExceptParams {
 		w.Append(e)
 	}
@@ -455,13 +469,13 @@ type ActionSetStateParam struct {
 
 func (p *ActionSetStateParam) Type() ActionParamType { return TypeActionSetStateParam }
 
-func (p *ActionSetStateParam) Size() uint32 { return 8 }
+func (p *ActionSetStateParam) Size(int) uint32 { return 8 }
 
 func (p *ActionSetStateParam) Clone() ActionParam {
 	return &ActionSetStateParam{p.StateGroupID, p.TargetStateID}
 }
 
-func (p *ActionSetStateParam) Encode() []byte {
+func (p *ActionSetStateParam) Encode(int) []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
 	return b
 }
@@ -475,7 +489,7 @@ type ActionSetSwitchParam struct {
 
 func (p *ActionSetSwitchParam) Type() ActionParamType { return TypeActionSetSwitchParam }
 
-func (p *ActionSetSwitchParam) Size() uint32 { return 8 }
+func (p *ActionSetSwitchParam) Size(int) uint32 { return 8 }
 
 func (p *ActionSetSwitchParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
@@ -483,7 +497,7 @@ func (p *ActionSetSwitchParam) Clone() ActionParam {
 	return &ActionSetSwitchParam{p.SwitchGroupID, p.SwitchStateID}
 }
 
-func (p *ActionSetSwitchParam) Encode() []byte {
+func (p *ActionSetSwitchParam) Encode(int) []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
 	return b
 }
@@ -495,13 +509,13 @@ type ActionSetRTPCParam struct {
 
 func (p *ActionSetRTPCParam) Type() ActionParamType { return TypeActionSetRTPCParam }
 
-func (p *ActionSetRTPCParam) Size() uint32 { return 8 }
+func (p *ActionSetRTPCParam) Size(int) uint32 { return 8 }
 
 func (p *ActionSetRTPCParam) Clone() ActionParam {
 	return &ActionSetRTPCParam{p.RTPCID, p.RTPCValue}
 }
 
-func (p *ActionSetRTPCParam) Encode() []byte {
+func (p *ActionSetRTPCParam) Encode(int) []byte {
 	b, _ := binary.Append(nil, wio.ByteOrder, p)
 	return b
 }
@@ -513,13 +527,14 @@ type ActionSetFXParam struct {
 	SlotIndex            uint8
 	FXID                 uint32
 	IsShared             uint8
+	ExceptionListSize    wio.Var
 	ExceptParams         []ExceptParam
 }
 
 func (p *ActionSetFXParam) Type() ActionParamType { return TypeActionSetFXParam }
 
-func (p *ActionSetFXParam) Size() uint32 {
-	return 1 + 1 + 4 + 1 + 1 + uint32(len(p.ExceptParams)) * SizeOfExceptParam
+func (p *ActionSetFXParam) Size(int) uint32 {
+	return 1 + 1 + 4 + 1 + uint32(len(p.ExceptionListSize.Bytes)) + uint32(len(p.ExceptParams)) * SizeOfExceptParam
 }
 
 func (p *ActionSetFXParam) AudioDeviceElement() bool {
@@ -536,20 +551,21 @@ func (p *ActionSetFXParam) Clone() ActionParam {
 		p.SlotIndex,
 		p.FXID,
 		p.IsShared,
+		wio.Var{Bytes: bytes.Clone(p.ExceptionListSize.Bytes), Value: p.ExceptionListSize.Value},
 		slices.Clone(p.ExceptParams),
 	}
 }
 
 func (p *ActionSetFXParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
-func (p *ActionSetFXParam) Encode() []byte {
-	size := p.Size()
+func (p *ActionSetFXParam) Encode(v int) []byte {
+	size := p.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(p.IsAudioDeviceElement)
 	w.Append(p.SlotIndex)
 	w.Append(p.FXID)
 	w.Append(p.IsShared)
-	w.Append(uint8(len(p.ExceptParams)))
+	w.AppendBytes(p.ExceptionListSize.Bytes)
 	for _, e := range p.ExceptParams {
 		w.Append(e)
 	}
@@ -557,13 +573,14 @@ func (p *ActionSetFXParam) Encode() []byte {
 }
 
 type ActionByPassFXParam struct {
-	IsByPass       uint8
-	ByFxSolt       uint8
-	ExceptParams []ExceptParam
+	IsByPass          uint8
+	ByFxSolt          uint8 // > 145 is byFXSlot
+	ExceptionListSize wio.Var
+	ExceptParams    []ExceptParam
 }
 
-func (p *ActionByPassFXParam) Size() uint32 {
-	return 1 + 1 + 1 + uint32(len(p.ExceptParams)) * SizeOfExceptParam
+func (p *ActionByPassFXParam) Size(int) uint32 {
+	return 1 + 1 + uint32(len(p.ExceptionListSize.Bytes)) + uint32(len(p.ExceptParams)) * SizeOfExceptParam
 }
 
 func (p *ActionByPassFXParam) ByPass() bool {
@@ -575,15 +592,20 @@ func (p *ActionByPassFXParam) SpecificParam() ActionSpecificParam { return &Acti
 func (p *ActionByPassFXParam) Type() ActionParamType { return TypeActionBypassFXParam }
 
 func (p *ActionByPassFXParam) Clone() ActionParam {
-	return &ActionByPassFXParam{p.IsByPass, p.ByFxSolt, slices.Clone(p.ExceptParams)}
+	return &ActionByPassFXParam{
+		p.IsByPass,
+		p.ByFxSolt,
+		wio.Var{Bytes: bytes.Clone(p.ExceptionListSize.Bytes), Value: p.ExceptionListSize.Value},
+		slices.Clone(p.ExceptParams),
+	}
 }
 
-func (p *ActionByPassFXParam) Encode() []byte {
-	size := p.Size()
+func (p *ActionByPassFXParam) Encode(v int) []byte {
+	size := p.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(p.IsByPass)
 	w.Append(p.ByFxSolt)
-	w.Append(uint8(len(p.ExceptParams)))
+	w.AppendBytes(p.ExceptionListSize.Bytes)
 	for _, e := range p.ExceptParams {
 		w.Append(e)
 	}
@@ -596,11 +618,12 @@ type ActionSeekParam struct {
 	SeekValueMin           float32
 	SeekValueMax           float32
 	SnapToNearestMark      uint8
+	ExceptionListSize      wio.Var
 	ExceptParams           []ExceptParam
 }
 
-func (p *ActionSeekParam) Size() uint32 {
-	return 1 + 4 * 3 + 1 + 1 + uint32(len(p.ExceptParams))
+func (p *ActionSeekParam) Size(int) uint32 {
+	return 1 + 4 * 3 + 1 + uint32(len(p.ExceptionListSize.Bytes)) + uint32(len(p.ExceptParams))
 }
 
 func (p *ActionSeekParam) SeekRelativeDuration() bool {
@@ -644,19 +667,20 @@ func (p *ActionSeekParam) Clone() ActionParam {
 		p.SeekValueMin,
 		p.SeekValueMax,
 		p.SnapToNearestMark,
+		wio.Var{Bytes: bytes.Clone(p.ExceptionListSize.Bytes), Value: p.ExceptionListSize.Value},
 		slices.Clone(p.ExceptParams),
 	}
 }
 
-func (p *ActionSeekParam) Encode() []byte {
-	size := p.Size()
+func (p *ActionSeekParam) Encode(v int) []byte {
+	size := p.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(p.IsSeekRelativeDuration)
 	w.Append(p.SeekValue)
 	w.Append(p.SeekValueMin)
 	w.Append(p.SeekValueMax)
 	w.Append(p.SnapToNearestMark)
-	w.Append(uint8(len(p.ExceptParams)))
+	w.AppendBytes(p.ExceptionListSize.Bytes)
 	for _, e := range p.ExceptParams {
 		w.Append(e)
 	}
@@ -665,7 +689,7 @@ func (p *ActionSeekParam) Encode() []byte {
 
 type ActionReleaseParam struct {}
 
-func (p *ActionReleaseParam) Size() uint32 { return 0 }
+func (p *ActionReleaseParam) Size(int) uint32 { return 0 }
 
 func (p *ActionReleaseParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
@@ -675,11 +699,11 @@ func (p *ActionReleaseParam) Clone() ActionParam {
 	return &ActionReleaseParam{}
 }
 
-func (p *ActionReleaseParam) Encode() []byte { return  []byte{} }
+func (p *ActionReleaseParam) Encode(int) []byte { return  []byte{} }
 
 type ActionPlayEventParam struct {}
 
-func (p *ActionPlayEventParam) Size() uint32 { return 0 }
+func (p *ActionPlayEventParam) Size(int) uint32 { return 0 }
 
 func (p *ActionPlayEventParam) SpecificParam() ActionSpecificParam { return &ActionNoSpecificParam{} }
 
@@ -689,4 +713,4 @@ func (p *ActionPlayEventParam) Clone() ActionParam {
 	return &ActionPlayEventParam{}
 }
 
-func (p *ActionPlayEventParam) Encode() []byte { return  []byte{} }
+func (p *ActionPlayEventParam) Encode(int) []byte { return  []byte{} }
