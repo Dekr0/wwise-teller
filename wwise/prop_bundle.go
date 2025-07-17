@@ -17,7 +17,7 @@ import (
 const SizeOfPropValue = 4
 
 type PropValue struct {
-	P   PropType
+	P   uint8
 	V []byte
 }
 type PropBundle struct {
@@ -38,8 +38,8 @@ func (p *PropBundle) Clone() PropBundle {
 	return np
 }
 
-func (p *PropBundle) Encode() []byte {
-	size := p.Size()
+func (p *PropBundle) Encode(v int) []byte {
+	size := p.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(len(p.PropValues)))
 	for _, i := range p.PropValues {
@@ -51,15 +51,15 @@ func (p *PropBundle) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (p *PropBundle) Size() uint32 {
+func (p *PropBundle) Size(v int) uint32 {
 	return uint32(1 + len(p.PropValues) + SizeOfPropValue * len(p.PropValues))
 }
 
-func (p *PropBundle) HasPid(pId PropType) (int, bool) {
+func (p *PropBundle) HasPidRaw(pid uint8) (int, bool) {
 	return sort.Find(len(p.PropValues), func(i int) int {
-		if pId < p.PropValues[i].P {
+		if pid < p.PropValues[i].P {
 			return -1
-		} else if pId == p.PropValues[i].P {
+		} else if pid == p.PropValues[i].P {
 			return 0
 		} else {
 			return 1
@@ -67,23 +67,30 @@ func (p *PropBundle) HasPid(pId PropType) (int, bool) {
 	})
 }
 
-func (p *PropBundle) Prop(pId PropType) (int, *PropValue) {
-	if idx, in := p.HasPid(pId); !in {
+func (p *PropBundle) HasPid(pid PropType, v int) (int, bool) {
+	return p.HasPidRaw(ForwardTranslateProp(pid, v))
+}
+
+func (p *PropBundle) Prop(pid PropType, v int) (int, *PropValue) {
+	tp := ForwardTranslateProp(pid, v)
+	if idx, in := p.HasPidRaw(tp); !in {
 		return -1, nil
 	} else {
 		return idx, &p.PropValues[idx]
 	}
 }
 
-func (p *PropBundle) Add(pId PropType) {
-	if idx, in := p.HasPid(pId); !in {
-		p.PropValues = slices.Insert(p.PropValues, idx, PropValue{pId, []byte{0, 0, 0, 0}})
+func (p *PropBundle) Add(pid PropType, v int) {
+	tp := ForwardTranslateProp(pid, v)
+	if idx, in := p.HasPidRaw(tp); !in {
+		p.PropValues = slices.Insert(p.PropValues, idx, PropValue{tp, []byte{0, 0, 0, 0}})
 	}
 }
 
-func (p *PropBundle) AddWithVal(pId PropType, val [4]byte) {
-	if idx, in := p.HasPid(pId); !in {
-		p.PropValues = slices.Insert(p.PropValues, idx, PropValue{pId, bytes.Clone(val[:])})
+func (p *PropBundle) AddWithVal(pid PropType, val [4]byte, v int) {
+	tp := ForwardTranslateProp(pid, v)
+	if idx, in := p.HasPidRaw(tp); !in {
+		p.PropValues = slices.Insert(p.PropValues, idx, PropValue{tp, bytes.Clone(val[:])})
 	}
 }
 
@@ -108,25 +115,27 @@ func (p *PropBundle) Sort() {
 	)
 }
 
-func (p *PropBundle) AddBaseProp() {
+func (p *PropBundle) AddBaseProp(v int) {
 	for _, t := range BasePropType {
-		if i, in := p.HasPid(t); !in {
-			p.PropValues = slices.Insert(p.PropValues, i, PropValue{t, []byte{0, 0, 0, 0}})
+		tp := ForwardTranslateProp(t, v)
+		if i, in := p.HasPidRaw(tp); !in {
+			p.PropValues = slices.Insert(p.PropValues, i, PropValue{tp, []byte{0, 0, 0, 0}})
 			return
 		}
 	}
 }
 
-func (p *PropBundle) ChangeBaseProp(idx int, nextPid PropType) {
+func (p *PropBundle) ChangeBaseProp(idx int, nextPid PropType, v int) {
+	tp := ForwardTranslateProp(nextPid, v)
 	if !slices.Contains(BasePropType, nextPid) {
 		return
 	}
 	if slices.ContainsFunc(p.PropValues, func(p PropValue) bool {
-		return p.P == nextPid
+		return p.P == tp
 	}) {
 		return
 	}
-	p.PropValues[idx].P = nextPid
+	p.PropValues[idx].P = tp
 	for i := range 4 {
 		p.PropValues[idx].V[i] = 0
 	}
@@ -134,22 +143,22 @@ func (p *PropBundle) ChangeBaseProp(idx int, nextPid PropType) {
 }
 
 var BasePropChecker map[PropType]func(float32) error = map[PropType]func(float32) error {
-	PropTypeVolume: utils.FloatInBound(-96.0, 12.0, PropLabel_140[PropTypeVolume]),
-	PropTypePitch: utils.FloatInBound(-2400, 2400, PropLabel_140[PropTypePitch]),
-	PropTypeLPF: utils.FloatInBound(0, 100, PropLabel_140[PropTypeLPF]),
-	PropTypeHPF: utils.FloatInBound(0, 100, PropLabel_140[PropTypeHPF]),
-	PropTypeMakeUpGain: utils.FloatInBound(-96.0, 96.0, PropLabel_140[PropTypeMakeUpGain]),
-	PropTypeGameAuxSendVolume: utils.FloatInBound(-96.0, 12.0, PropLabel_140[PropTypeGameAuxSendVolume]),
-	PropTypeInitialDelay: utils.FloatInBound(0.0, 60.0, PropLabel_140[PropTypeInitialDelay]),
+	TVolume: utils.FloatInBound(-96.0, 12.0, PropLabel(TVolume)),
+	TPitch: utils.FloatInBound(-2400, 2400, PropLabel(TPitch)),
+	TLPF: utils.FloatInBound(0, 100, PropLabel(TLPF)),
+	THPF: utils.FloatInBound(0, 100, PropLabel(THPF)),
+	TMakeUpGain: utils.FloatInBound(-96.0, 96.0, PropLabel(TMakeUpGain)),
+	TGameAuxSendVolume: utils.FloatInBound(-96.0, 12.0, PropLabel(TGameAuxSendVolume)),
+	TInitialDelay: utils.FloatInBound(0.0, 60.0, PropLabel(TInitialDelay)),
 }
 
 var BaseRangePropChecker map[PropType]func(float32, bool) error = map[PropType]func(float32, bool) error {
-	PropTypeVolume: utils.FloatRangeInBound(-108, 0, 108, PropLabel_140[PropTypeVolume]),
-	PropTypePitch: utils.FloatRangeInBound(-4800, 0, 4800, PropLabel_140[PropTypePitch]),
-	PropTypeLPF: utils.FloatRangeInBound(-100, 0, 100, PropLabel_140[PropTypeLPF]),
-	PropTypeHPF: utils.FloatRangeInBound(-100, 0, 100, PropLabel_140[PropTypeHPF]),
-	PropTypeMakeUpGain: utils.FloatRangeInBound(-192, 0, 192, PropLabel_140[PropTypeMakeUpGain]),
-	PropTypeInitialDelay: utils.FloatRangeInBound(-60, 0, 60, PropLabel_140[PropTypeInitialDelay]),
+	TVolume: utils.FloatRangeInBound(-108, 0, 108, PropLabel(TVolume)),
+	TPitch: utils.FloatRangeInBound(-4800, 0, 4800, PropLabel(TPitch)),
+	TLPF: utils.FloatRangeInBound(-100, 0, 100, PropLabel(TLPF)),
+	THPF: utils.FloatRangeInBound(-100, 0, 100, PropLabel(THPF)),
+	TMakeUpGain: utils.FloatRangeInBound(-192, 0, 192, PropLabel(TMakeUpGain)),
+	TInitialDelay: utils.FloatRangeInBound(-60, 0, 60, PropLabel(TInitialDelay)),
 }
 
 func CheckBasePropVal(p PropType, v float32) error {
@@ -176,42 +185,51 @@ func CheckBaseRangeProp(p PropType, minV float32, maxV float32) error {
 	return nil
 }
 
-func (p *PropBundle) RemoveAllUserAuxSendVolumeProp() {
+func (p *PropBundle) RemoveAllUserAuxSendVolumeProp(v int) {
+	tps := make([]uint8, len(UserAuxSendVolumePropType), len(UserAuxSendVolumePropType))
+	for i, at := range UserAuxSendVolumePropType {
+		tps[i] = ForwardTranslateProp(at, v)
+	}
 	p.PropValues = slices.DeleteFunc(p.PropValues, func(p PropValue) bool {
-		return slices.Contains(UserAuxSendVolumePropType, p.P)
+		return slices.Contains(tps, p.P)
 	})
 }
 
-func (p *PropBundle) AddReflectionBusVolume() {
-	if i, in := p.HasPid(PropTypeReflectionBusVolume); !in {
-		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypeReflectionBusVolume, []byte{0, 0, 0, 0}})
+func (p *PropBundle) AddReflectionBusVolume(v int) {
+	tp := ForwardTranslateProp(TReflectionBusVolume, v)
+	if i, in := p.HasPidRaw(tp); !in {
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{tp, []byte{0, 0, 0, 0}})
 	}
 }
 
-func (p *PropBundle) ReflectionBusVolume() (int, *PropValue) {
-	if i, in := p.HasPid(PropTypeReflectionBusVolume); !in {
+func (p *PropBundle) ReflectionBusVolume(v int) (int, *PropValue) {
+	tp := ForwardTranslateProp(TReflectionBusVolume, v)
+	if i, in := p.HasPidRaw(tp); !in {
 		return -1, nil
 	} else {
 		return i, &p.PropValues[i]
 	}
 }
 
-func (p *PropBundle) AddHDRActiveRange() {
-	if i, in := p.HasPid(PropTypeHDRActiveRange); !in {
-		p.PropValues = slices.Insert(p.PropValues, i, PropValue{PropTypeHDRActiveRange, []byte{0, 0, 0, 0}})
+func (p *PropBundle) AddHDRActiveRange(v int) {
+	tp := ForwardTranslateProp(THDRActiveRange, v)
+	if i, in := p.HasPidRaw(tp); !in {
+		p.PropValues = slices.Insert(p.PropValues, i, PropValue{tp, []byte{0, 0, 0, 0}})
 	}
 }
 
-func (p *PropBundle) HDRActiveRange() (int, *PropValue) {
-	if i, in := p.HasPid(PropTypeHDRActiveRange); !in {
+func (p *PropBundle) HDRActiveRange(v int) (int, *PropValue) {
+	tp := ForwardTranslateProp(THDRActiveRange, v)
+	if i, in := p.HasPidRaw(tp); !in {
 		return -1, nil
 	} else {
 		return i, &p.PropValues[i]
 	}
 }
 
-func (p *PropBundle) Remove(pId PropType) {
-	i, found := p.HasPid(pId)
+func (p *PropBundle) Remove(pid PropType, v int) {
+	tp := ForwardTranslateProp(pid, v)
+	i, found := p.HasPidRaw(tp)
 	if !found {
 		return
 	}
@@ -243,8 +261,8 @@ func (r *RangePropBundle) Clone() RangePropBundle {
 	return rp
 }
 
-func (r *RangePropBundle) Encode() []byte {
-	size := r.Size()
+func (r *RangePropBundle) Encode(v int) []byte {
+	size := r.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(len(r.RangeValues)))
 	for _, i := range r.RangeValues {
@@ -256,15 +274,15 @@ func (r *RangePropBundle) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (r *RangePropBundle) Size() uint32 {
+func (r *RangePropBundle) Size(v int) uint32 {
 	return uint32(1 + len(r.RangeValues) + SizeOfRangeValue * len(r.RangeValues))
 }
 
-func (r *RangePropBundle) HasPid(pID PropType) (int, bool) {
+func (r *RangePropBundle) HasPidRaw(pid uint8) (int, bool) {
 	return sort.Find(len(r.RangeValues), func(i int) int {
-		if pID < r.RangeValues[i].P {
+		if pid < r.RangeValues[i].P {
 			return -1
-		} else if pID == r.RangeValues[i].P {
+		} else if pid == r.RangeValues[i].P {
 			return 0
 		} else {
 			return 1
@@ -272,26 +290,33 @@ func (r *RangePropBundle) HasPid(pID PropType) (int, bool) {
 	})
 }
 
-func (r *RangePropBundle) Add(pId PropType) {
-	if idx, in := r.HasPid(pId); !in {
+func (r *RangePropBundle) HasPid(pid PropType, v int) (int, bool) {
+	return r.HasPidRaw(ForwardTranslateProp(pid, v))
+}
+
+func (r *RangePropBundle) Add(pid PropType, v int) {
+	tp := ForwardTranslateProp(pid, v)
+	if idx, in := r.HasPidRaw(tp); !in {
 		r.RangeValues = slices.Insert(r.RangeValues, idx,
-			RangeValue{pId, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}},
+			RangeValue{tp, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}},
 		)
 	}
 }
 
-func (r *RangePropBundle) AddWithVal(pId PropType, lower [4]byte, upper [4]byte) {
-	if idx, in := r.HasPid(pId); !in {
+func (r *RangePropBundle) AddWithVal(pid PropType, lower [4]byte, upper [4]byte, v int) {
+	tp := ForwardTranslateProp(pid, v)
+	if idx, in := r.HasPidRaw(tp); !in {
 		r.RangeValues = slices.Insert(r.RangeValues, idx,
-			RangeValue{pId, lower[:], upper[:]},
+			RangeValue{tp, lower[:], upper[:]},
 		)
 	}
 }
 
-func (r *RangePropBundle) Remove(pId PropType) error {
-	i, found := r.HasPid(pId)
+func (r *RangePropBundle) Remove(pid PropType, v int) error {
+	tp := ForwardTranslateProp(pid, v)
+	i, found := r.HasPidRaw(tp)
 	if !found {
-		return fmt.Errorf("Failed to find property ID %d", pId)
+		return fmt.Errorf("Failed to find property ID %d", pid)
 	}
 	r.RangeValues = slices.Delete(r.RangeValues, i, i + 1)
 	return nil
@@ -311,27 +336,29 @@ func (r *RangePropBundle) Sort() {
 	)
 }
 
-func (r *RangePropBundle) AddBaseProp() {
+func (r *RangePropBundle) AddBaseProp(v int) {
 	for _, t := range BaseRangePropType {
-		if i, in := r.HasPid(t); !in {
+		tp := ForwardTranslateProp(t, v)
+		if i, in := r.HasPidRaw(tp); !in {
 			r.RangeValues = slices.Insert(r.RangeValues, i, 
-				RangeValue{t, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}},
+				RangeValue{tp, []byte{0, 0, 0, 0}, []byte{0, 0, 0, 0}},
 			)
 			break
 		}
 	}
 }
 
-func (r *RangePropBundle) ChangeBaseProp(idx int, nextPid PropType) {
+func (r *RangePropBundle) ChangeBaseProp(idx int, nextPid PropType, v int) {
 	if !slices.Contains(BasePropType, nextPid) {
 		return
 	}
+	tp := ForwardTranslateProp(nextPid, v)
 	if slices.ContainsFunc(r.RangeValues, func(r RangeValue) bool {
-		return r.P == nextPid
+		return r.P == tp
 	}) {
 		return
 	}
-	r.RangeValues[idx].P = nextPid
+	r.RangeValues[idx].P = tp 
 	for i := range 4 {
 		r.RangeValues[idx].Min[i] = 0
 		r.RangeValues[idx].Max[i] = 0
@@ -356,7 +383,7 @@ func (r *RangePropBundle) SetPropMaxByIdxF32(idx int, v float32) {
 
 const SizeOfRangeValue = 8
 type RangeValue struct {
-	P     PropType
+	P     uint8
 	Min []byte // Union[tid, uni / float32]
 	Max []byte // Union[tid, uni / float32]
 }
