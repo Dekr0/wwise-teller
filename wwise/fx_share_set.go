@@ -151,9 +151,9 @@ func (h *FxShareSet) assert() {
 	}
 }
 
-func (h *FxShareSet) Encode() []byte {
+func (h *FxShareSet) Encode(v int) []byte {
 	h.assert()
-	dataSize := h.DataSize()
+	dataSize := h.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.Append(HircTypeFxShareSet)
@@ -161,26 +161,29 @@ func (h *FxShareSet) Encode() []byte {
 	w.Append(h.Id)
 	w.Append(h.PluginTypeId)
 	if h.PluginParam != nil {
-		w.AppendBytes(h.PluginParam.Encode())
+		w.AppendBytes(h.PluginParam.Encode(v))
 	}
 	w.Append(uint8(len(h.MediaMap)))
 	for _, i := range h.MediaMap {
 		w.Append(i)
 	}
-	w.AppendBytes(h.RTPC.Encode())
-	w.AppendBytes(h.StateProp.Encode())
-	w.AppendBytes(h.StateGroup.Encode())
+	w.AppendBytes(h.RTPC.Encode(v))
+	w.AppendBytes(h.StateProp.Encode(v))
+	w.AppendBytes(h.StateGroup.Encode(v))
 	w.Append(uint16(len(h.PluginProps)))
 	for _, p := range h.PluginProps {
-		w.Append(p)
+		w.AppendBytes(p.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (h *FxShareSet) DataSize() uint32 {
-	size := 8 + 1 + uint32(len(h.MediaMap)) * SizeOfMediaMapItem + h.RTPC.Size() + h.StateProp.Size() + h.StateGroup.Size() + 2 + uint32(len(h.PluginProps)) * SizeOfPluginProp
+func (h *FxShareSet) DataSize(v int) uint32 {
+	size := 8 + 1 + uint32(len(h.MediaMap)) * SizeOfMediaMapItem + h.RTPC.Size(v) + h.StateProp.Size(v) + h.StateGroup.Size(v) + 2
+	for _, i := range h.PluginProps {
+		size += i.Size(v)
+	}
 	if h.PluginParam != nil {
-		size += h.PluginParam.Size()
+		size += h.PluginParam.Size(v)
 	}
 	return size
 }

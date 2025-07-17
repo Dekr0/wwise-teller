@@ -11,37 +11,37 @@ type PluginParam struct {
 	PluginParamData FxParam
 }
 
-func (p *PluginParam) Encode() []byte {
+func (p *PluginParam) Encode(v int) []byte {
 	assert.Equal(
 		p.PluginParamSize,
-		p.PluginParamData.Size(),
+		p.PluginParamData.Size(v),
 		"Plugin parameter size doesn't equal # of bytes in plugin parameter data",
 	)
-	size := 4 + p.PluginParamData.Size()
+	size := 4 + p.PluginParamData.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(p.PluginParamSize)
-	w.AppendBytes(p.PluginParamData.Encode())
+	w.AppendBytes(p.PluginParamData.Encode(v))
 	return w.BytesAssert(int(size))
 }
 
-func (p *PluginParam) Size() uint32 {
-	return 4 + p.PluginParamData.Size()
+func (p *PluginParam) Size(v int) uint32 {
+	return 4 + p.PluginParamData.Size(v)
 }
 
 type FxParam interface {
-	Encode() []byte
-	Size()     uint32
+	Encode(int) []byte
+	Size(int)     uint32
 }
 
 type FxPlaceholder struct {
 	Data []byte
 }
 
-func (f *FxPlaceholder) Encode() []byte {
+func (f *FxPlaceholder) Encode(int) []byte {
 	return f.Data
 }
 
-func (f *FxPlaceholder) Size() uint32 {
+func (f *FxPlaceholder) Size(int) uint32 {
 	return uint32(len(f.Data))
 }
 
@@ -53,8 +53,8 @@ type SourceSine struct {
 	Data        []byte
 }
 
-func (f *SourceSine) Encode() []byte {
-	size := f.Size()
+func (f *SourceSine) Encode(v int) []byte {
+	size := f.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(f.Frequency)
 	w.Append(f.Gain)
@@ -64,7 +64,7 @@ func (f *SourceSine) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (f *SourceSine) Size() uint32 {
+func (f *SourceSine) Size(int) uint32 {
 	return 4 * 4 + uint32(len(f.Data))
 }
 
@@ -75,8 +75,8 @@ type SourceSlience struct {
 	Data                  []byte
 }
 
-func (f *SourceSlience) Encode() []byte {
-	size := f.Size()
+func (f *SourceSlience) Encode(v int) []byte {
+	size := f.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(f.Duration)
 	w.Append(f.RandomizedLengthMinus)
@@ -85,7 +85,7 @@ func (f *SourceSlience) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (f *SourceSlience) Size() uint32 {
+func (f *SourceSlience) Size(int) uint32 {
 	return 3 * 4 + uint32(len(f.Data))
 }
 
@@ -104,8 +104,8 @@ type ParametricEQ struct {
 	Data         []byte
 }
 
-func (f *ParametricEQ) Encode() []byte {
-	size := f.Size()
+func (f *ParametricEQ) Encode(v int) []byte {
+	size := f.Size(v)
 	w := wio.NewWriter(uint64(size))
 	for _, b := range f.EQBand {
 		w.Append(b)
@@ -116,7 +116,7 @@ func (f *ParametricEQ) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (f *ParametricEQ) Size() uint32 {
+func (f *ParametricEQ) Size(int) uint32 {
 	return 56 + uint32(len(f.Data))
 }
 
@@ -187,8 +187,8 @@ type MeterFX struct {
 	Data                []byte
 }
 
-func (f *MeterFX) Encode() []byte {
-	size := f.Size()
+func (f *MeterFX) Encode(v int) []byte {
+	size := f.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(f.Attack)
 	w.Append(f.Release)
@@ -210,7 +210,7 @@ func (f *MeterFX) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (f *MeterFX) Size() uint32 {
+func (f *MeterFX) Size(int) uint32 {
 	size := 25 + uint32(len(f.Data))
 	if f.InfiniteHold != nil {
 		size += 1
@@ -235,8 +235,8 @@ type PeakLimiter struct {
 	Data        []byte
 }
 
-func (f *PeakLimiter) Encode() []byte {
-	size := f.Size()
+func (f *PeakLimiter) Encode(v int) []byte {
+	size := f.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(f.Threshold)
 	w.Append(f.Ratio)
@@ -249,7 +249,7 @@ func (f *PeakLimiter) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (f *PeakLimiter) Size() uint32 {
+func (f *PeakLimiter) Size(int) uint32 {
 	return 22 + uint32(len(f.Data))
 }
 
@@ -259,8 +259,8 @@ type GainFX struct {
 	Data         []byte
 }
 
-func (f *GainFX) Encode() []byte {
-	size := f.Size()
+func (f *GainFX) Encode(v int) []byte {
+	size := f.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(f.FullbandGain)
 	w.Append(f.LFEGain)
@@ -268,7 +268,7 @@ func (f *GainFX) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (f *GainFX) Size() uint32 {
+func (f *GainFX) Size(int) uint32 {
 	return 8 + uint32(len(f.Data))
 }
 
@@ -283,8 +283,8 @@ type Compressor struct {
 	Data        []byte
 }
 
-func (f *Compressor) Encode() []byte {
-	size := f.Size()
+func (f *Compressor) Encode(v int) []byte {
+	size := f.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(f.Threshold)
 	w.Append(f.Ratio)
@@ -297,7 +297,7 @@ func (f *Compressor) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (f *Compressor) Size() uint32 {
+func (f *Compressor) Size(v int) uint32 {
 	return 22 + uint32(len(f.Data))
 }
 
@@ -312,8 +312,8 @@ type Expander struct {
 	Data        []byte
 }
 
-func (f *Expander) Encode() []byte {
-	size := f.Size()
+func (f *Expander) Encode(v int) []byte {
+	size := f.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(f.Threshold)
 	w.Append(f.Ratio)
@@ -326,7 +326,7 @@ func (f *Expander) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (f *Expander) Size() uint32 {
+func (f *Expander) Size(v int) uint32 {
 	return 22 + uint32(len(f.Data))
 }
 
