@@ -20,8 +20,8 @@ func (h *Event) NewAction(actionID uint32) {
 	h.ActionIDs = append(h.ActionIDs, actionID)
 }
 
-func (h *Event) Encode() []byte {
-	dataSize := h.DataSize()
+func (h *Event) Encode(v int) []byte {
+	dataSize := h.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeEvent))
@@ -34,7 +34,7 @@ func (h *Event) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (h *Event) DataSize() uint32 {
+func (h *Event) DataSize(int) uint32 {
 	return 4 + 1 + 4 * uint32(len(h.ActionIDs))
 }
 

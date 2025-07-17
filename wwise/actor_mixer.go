@@ -14,20 +14,20 @@ type ActorMixer struct {
 	Container  Container
 }
 
-func (a *ActorMixer) Encode() []byte {
-	dataSize := a.DataSize()
+func (a *ActorMixer) Encode(v int) []byte {
+	dataSize := a.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeActorMixer))
 	w.Append(dataSize)
 	w.Append(a.Id)
-	w.AppendBytes(a.BaseParam.Encode())
-	w.AppendBytes(a.Container.Encode())
+	w.AppendBytes(a.BaseParam.Encode(v))
+	w.AppendBytes(a.Container.Encode(v))
 	return w.BytesAssert(int(size))
 }
 
-func (a *ActorMixer) DataSize() uint32 {
-	return uint32(4 + a.BaseParam.Size() + a.Container.Size())
+func (a *ActorMixer) DataSize(v int) uint32 {
+	return uint32(4 + a.BaseParam.Size(v) + a.Container.Size(v))
 }
 
 func (a *ActorMixer) BaseParameter() *BaseParameter { return a.BaseParam }
