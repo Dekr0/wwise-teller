@@ -41,7 +41,7 @@ var KnownHircTypes []HircType = []HircType{
 	HircTypeBus,
 	HircTypeLayerCntr,
 	HircTypeMusicSegment,
-	HircTypeMusicTrack,
+	// HircTypeMusicTrack,
 	HircTypeMusicSwitchCntr,
 	HircTypeMusicRanSeqCntr,
 	HircTypeAttenuation,
@@ -190,7 +190,7 @@ var HircTypeName []string = []string{
 }
 
 type HircObj interface {
-	Encode() []byte
+	Encode(int) []byte
 	BaseParameter() *BaseParameter
 	HircID() (uint32, error)
 	HircType() HircType
