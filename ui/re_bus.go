@@ -254,7 +254,7 @@ func renderBus(t *be.BankTab, b *wwise.Bus) {
 	renderBusEarlyReflection(t, &b.AuxParam, &b.PropBundle)
 	renderHDR(b)
 	renderBusAdvanceSetting(b)
-	renderAllProp(&b.PropBundle, nil)
+	renderAllProp(&b.PropBundle, nil, t.Version())
 	renderBusFxParam(t, &b.BusFxParam)
 }
 
@@ -271,7 +271,7 @@ func renderAuxBus(t *be.BankTab, b *wwise.AuxBus) {
 	renderBusAuxParam(t, &b.AuxParam, &b.PropBundle)
 	renderBusEarlyReflection(t, &b.AuxParam, &b.PropBundle)
 	renderAuxBusAdvanceSetting(b)
-	renderAllProp(&b.PropBundle, nil)
+	renderAllProp(&b.PropBundle, nil, t.Version())
 	renderBusFxParam(t, &b.BusFxParam)
 }
 
@@ -289,6 +289,8 @@ func renderBusAuxParam(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBundle) {
 func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxParam) {
 	DefaultSize.X = 440
 	if imgui.BeginTableV("UserAuxSendTable", 7, DefaultTableFlags, DefaultSize, 0) {
+		v := t.Version()
+
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 8, 0)
 		imgui.TableSetupColumnV("Aux Bus", imgui.TableColumnFlagsWidthFixed, 128, 0)
 		imgui.TableSetupColumnV("", imgui.TableColumnFlagsWidthFixed, 20, 0)
@@ -299,7 +301,7 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
 
-		i := wwise.PropTypeUserAuxSendVolume0
+		i := wwise.TUserAuxSendVolume0
 		for j, aid := range a.AuxIds {
 			imgui.TableNextRow()
 
@@ -378,7 +380,7 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 			}
 
 			val := float32(0.0)
-			idx, pv := p.Prop(i)
+			idx, pv := p.Prop(i, v)
 			in := idx != -1
 			if in {
 				binary.Decode(pv.V, wio.ByteOrder, &val)
@@ -404,7 +406,7 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 			imgui.SetNextItemWidth(16)
 			imgui.PushIDStr(fmt.Sprintf("AddUserAuxSend%d", j))
 			if imgui.Button("+") {
-				p.Add(i)
+				p.Add(i, v)
 			}
 			imgui.PopID()
 			imgui.EndDisabled()
@@ -414,7 +416,7 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 			imgui.SetNextItemWidth(16)
 			imgui.PushIDStr(fmt.Sprintf("RmUserAuxSend%d", j))
 			if imgui.Button("X") {
-				p.Remove(i)
+				p.Remove(i, v)
 			}
 			imgui.PopID()
 			imgui.EndDisabled()
@@ -428,6 +430,7 @@ func renderBusUserAuxSendTable(t *be.BankTab, p *wwise.PropBundle, a *wwise.AuxP
 
 func renderBusEarlyReflection(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBundle) {
 	if imgui.TreeNodeExStr("Early Reflections") {
+		v := t.Version()
 		overrideReflectionAuxBus := a.OverrideReflectionAuxBus()
 		imgui.BeginDisabled()
 		imgui.Checkbox("Override early reflection bus", &overrideReflectionAuxBus)
@@ -506,7 +509,7 @@ func renderBusEarlyReflection(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBun
 		imgui.EndDisabled()
 
 		val := float32(0)
-		idx, pv := p.Prop(wwise.PropTypeReflectionBusVolume)
+		idx, pv := p.Prop(wwise.TReflectionBusVolume, v)
 		in := idx != -1
 		if in {
 			binary.Decode(pv.V, wio.ByteOrder, &val)
@@ -533,7 +536,7 @@ func renderBusEarlyReflection(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBun
 		imgui.PushIDStr("AddReflectionAuxBusSend")
 		imgui.SameLine()
 		if imgui.Button("+") {
-			p.Add(wwise.PropTypeReflectionBusVolume)
+			p.Add(wwise.TReflectionBusVolume, v)
 		}
 		imgui.PopID()
 		imgui.EndDisabled()
@@ -544,7 +547,7 @@ func renderBusEarlyReflection(t *be.BankTab, a *wwise.AuxParam, p *wwise.PropBun
 		imgui.PushIDStr("RmReflectionAuxBusSend")
 		imgui.SameLine()
 		if imgui.Button("X") {
-			p.Remove(wwise.PropTypeReflectionBusVolume)
+			p.Remove(wwise.TReflectionBusVolume, v)
 		}
 		imgui.PopID()
 		imgui.EndDisabled()
