@@ -6,15 +6,19 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseBankSourceData(r *wio.Reader) wwise.BankSourceData {
-	b := wwise.BankSourceData{
-		PluginID:          r.U32Unsafe(),
-		StreamType:        wwise.SourceType(r.U8Unsafe()),
-		SourceID:          r.U32Unsafe(),
-		InMemoryMediaSize: r.U32Unsafe(),
-		SourceBits:        r.U8Unsafe(),
-		PluginParam:       nil,
+func ParseBankSourceData(r *wio.Reader, v int) wwise.BankSourceData {
+	var b wwise.BankSourceData = wwise.BankSourceData{}
+	b.PluginID = r.U32Unsafe()
+	b.StreamType = wwise.SourceType(r.U8Unsafe())
+	b.SourceID = r.U32Unsafe()
+	if v <= 150 {
+		b.InMemoryMediaSize = r.U32Unsafe()
+	} else {
+		b.CacheID = r.U32Unsafe()
+		b.InMemoryMediaSize = r.U32Unsafe()
 	}
+	b.SourceBits = r.U8Unsafe()
+	b.PluginParam = nil
 	if !b.HasParam() {
 		return b
 	}
@@ -28,7 +32,7 @@ func ParseBankSourceData(r *wio.Reader) wwise.BankSourceData {
 		return b
 	}
 	begin := r.Pos()
-	ParsePluginParam(r, b.PluginParam, b.PluginID)
+	ParsePluginParam(r, b.PluginParam, b.PluginID, v)
 	end := r.Pos()
 	if begin >= end {
 		panic("Reader consume zero byte.")

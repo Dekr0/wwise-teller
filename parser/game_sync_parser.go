@@ -6,7 +6,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseState(size uint32, r *wio.Reader) *wwise.State {
+func ParseState(size uint32, r *wio.Reader, v int) *wwise.State {
 	assert.Equal(0, r.Pos(), "State parser position doesn't start at position 0.")
 	begin := r.Pos()
 
@@ -28,7 +28,7 @@ func ParseState(size uint32, r *wio.Reader) *wwise.State {
 	return &state
 }
 
-func ParseEvent(size uint32, r *wio.Reader) *wwise.Event {
+func ParseEvent(size uint32, r *wio.Reader, v int) *wwise.Event {
 	assert.Equal(0, r.Pos(), "Layer container parser position doesn't start at position 0.")
 	begin := r.Pos()
 	e := wwise.Event{}

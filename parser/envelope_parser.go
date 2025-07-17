@@ -6,13 +6,13 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseModulator(size uint32, r *wio.Reader) *wwise.Modulator {
+func ParseModulator(size uint32, r *wio.Reader, v int) *wwise.Modulator {
 	assert.Equal(0, r.Pos(), "Envelope modulator parser position doesn't start at position 0.")
 	begin := r.Pos()
 	e := wwise.Modulator{ Id: r.U32Unsafe() }
-	ParsePropBundle(r, &e.PropBundle)
-	ParseRangePropBundle(r, &e.RangePropBundle)
-	ParseRTPC(r, &e.RTPC)
+	ParsePropBundle(r, &e.PropBundle, v)
+	ParseRangePropBundle(r, &e.RangePropBundle, v)
+	ParseRTPC(r, &e.RTPC, v)
 	e.PropBundle.Modulator = true
 	e.RangePropBundle.Modulator = true
 	e.RTPC.Modulator = true
@@ -26,20 +26,20 @@ func ParseModulator(size uint32, r *wio.Reader) *wwise.Modulator {
 	return &e
 }
 
-func ParseLFOModulator(size uint32, r *wio.Reader) *wwise.Modulator {
-	e := ParseModulator(size, r)
+func ParseLFOModulator(size uint32, r *wio.Reader, v int) *wwise.Modulator {
+	e := ParseModulator(size, r, v)
 	e.ModulatorType = wwise.HircTypeLFOModulator
 	return e
 }
 
-func ParseEnvelopeModulator(size uint32, r *wio.Reader) *wwise.Modulator {
-	e := ParseModulator(size, r)
+func ParseEnvelopeModulator(size uint32, r *wio.Reader, v int) *wwise.Modulator {
+	e := ParseModulator(size, r, v)
 	e.ModulatorType = wwise.HircTypeEnvelopeModulator
 	return e
 }
 
-func ParseTimeModulator(size uint32, r *wio.Reader) *wwise.Modulator {
-	e := ParseModulator(size, r)
+func ParseTimeModulator(size uint32, r *wio.Reader, v int) *wwise.Modulator {
+	e := ParseModulator(size, r, v)
 	e.ModulatorType = wwise.HircTypeTimeModulator
 	return e
 }

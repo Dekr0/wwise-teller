@@ -6,7 +6,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParsePluginParam(r *wio.Reader, p *wwise.PluginParam, pluginId uint32) {
+func ParsePluginParam(r *wio.Reader, p *wwise.PluginParam, pluginId uint32, v int) {
 	p.PluginParamSize = r.U32Unsafe()
 	p.PluginParamData = &wwise.FxPlaceholder{Data: []byte{}}
 	if p.PluginParamSize > 0 {

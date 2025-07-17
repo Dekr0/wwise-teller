@@ -6,7 +6,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseMusicSegment(size uint32, r *wio.Reader) *wwise.MusicSegment {
+func ParseMusicSegment(size uint32, r *wio.Reader, v int) *wwise.MusicSegment {
 	assert.Equal(0, r.Pos(), "Music Segment parser position doesn't start at position 0.")
 	begin := r.Pos()
 
@@ -14,9 +14,9 @@ func ParseMusicSegment(size uint32, r *wio.Reader) *wwise.MusicSegment {
 
 	m.Id = r.U32Unsafe()
 	m.OverrideFlags = r.U8Unsafe()
-	m.BaseParam = *ParseBaseParam(r)
-	ParseContainer(r, &m.Children)
-	ParseMeterInfo(r, &m.MeterInfo)
+	m.BaseParam = *ParseBaseParam(r, v)
+	ParseContainer(r, &m.Children, v)
+	ParseMeterInfo(r, &m.MeterInfo, v)
 	m.Stingers = make([]wwise.Stinger, r.U32Unsafe())
 	ParseStingers(r, m.Stingers)
 
@@ -35,7 +35,7 @@ func ParseMusicSegment(size uint32, r *wio.Reader) *wwise.MusicSegment {
 	return &m
 }
 
-func ParseMeterInfo(r *wio.Reader, m *wwise.MeterInfo) {
+func ParseMeterInfo(r *wio.Reader, m *wwise.MeterInfo, v int) {
 	m.GridPeriod = r.F64Unsafe()
 	m.GridOffset = r.F64Unsafe()
 	m.Tempo = r.F32Unsafe()
@@ -63,7 +63,7 @@ func ParseMusicSegmentMarkers(r *wio.Reader, markers []wwise.MusicSegmentMarker)
 	}
 }
 
-func ParseMusicTrack(size uint32, r *wio.Reader) *wwise.MusicTrack {
+func ParseMusicTrack(size uint32, r *wio.Reader, v int) *wwise.MusicTrack {
 	assert.Equal(0, r.Pos(), "Music Segment parser position doesn't start at position 0.")
 	begin := r.Pos()
 
@@ -73,24 +73,24 @@ func ParseMusicTrack(size uint32, r *wio.Reader) *wwise.MusicTrack {
 		Sources:       make([]wwise.BankSourceData, r.U32Unsafe()),
 	}
 	for i := range m.Sources {
-		m.Sources[i] = ParseBankSourceData(r)
+		m.Sources[i] = ParseBankSourceData(r, v)
 	}
 
 	m.PlayListItems = make([]wwise.MusicTrackPlayListItem, r.U32Unsafe())
-	ParseMusicTrackPlayList(r, m.PlayListItems)
+	ParseMusicTrackPlayList(r, m.PlayListItems, v)
 	if len(m.PlayListItems) > 0 {
 		m.NumSubTrack = r.U32Unsafe()
 	}
 
 	m.ClipAutomations = make([]wwise.ClipAutomation, r.U32Unsafe())
-	ParseClipAutomation(r, m.ClipAutomations)
+	ParseClipAutomation(r, m.ClipAutomations, v)
 
-	m.BaseParam = *ParseBaseParam(r)
+	m.BaseParam = *ParseBaseParam(r, v)
 
 	m.TrackType = r.U8Unsafe()
 	if m.UseSwitchAndTransition() {
-		ParseMusicTrackSwitchParam(r, &m.SwitchParam)
-		ParseMusicTrackTransitionParam(r, &m.TransitionParam)
+		ParseMusicTrackSwitchParam(r, &m.SwitchParam, v)
+		ParseMusicTrackTransitionParam(r, &m.TransitionParam, v)
 	}
 
 	m.LookAheadTime = r.I32Unsafe()
@@ -105,7 +105,7 @@ func ParseMusicTrack(size uint32, r *wio.Reader) *wwise.MusicTrack {
 	return &m
 }
 
-func ParseMusicTrackPlayList(r *wio.Reader, p []wwise.MusicTrackPlayListItem) {
+func ParseMusicTrackPlayList(r *wio.Reader, p []wwise.MusicTrackPlayListItem, v int) {
 	for i := range p {
 		p[i].TrackID = r.U32Unsafe()
 		p[i].SourceID = r.U32Unsafe()
@@ -117,7 +117,7 @@ func ParseMusicTrackPlayList(r *wio.Reader, p []wwise.MusicTrackPlayListItem) {
 	}
 }
 
-func ParseClipAutomation(r *wio.Reader, cs []wwise.ClipAutomation) {
+func ParseClipAutomation(r *wio.Reader, cs []wwise.ClipAutomation, v int) {
 	for i := range cs {
 		cs[i].ClipIndex = r.U32Unsafe()
 		cs[i].AutoType = r.U32Unsafe()
@@ -130,7 +130,7 @@ func ParseClipAutomation(r *wio.Reader, cs []wwise.ClipAutomation) {
 	}
 }
 
-func ParseMusicTrackSwitchParam(r *wio.Reader, s *wwise.MusicTrackSwitchParam) {
+func ParseMusicTrackSwitchParam(r *wio.Reader, s *wwise.MusicTrackSwitchParam, v int) {
 	s.GroupType = r.U8Unsafe()
 	s.GroupID = r.U32Unsafe()
 	s.DefaultSwitch = r.U32Unsafe()
@@ -141,7 +141,7 @@ func ParseMusicTrackSwitchParam(r *wio.Reader, s *wwise.MusicTrackSwitchParam) {
 	}
 }
 
-func ParseMusicTrackTransitionParam(r *wio.Reader, t *wwise.MusicTrackTransitionParam) {
+func ParseMusicTrackTransitionParam(r *wio.Reader, t *wwise.MusicTrackTransitionParam, v int) {
 	t.SrcTransitionTime = r.I32Unsafe()
 	t.SrcFadeCurve = r.U32Unsafe()
 	t.SrcFadeOffset = r.I32Unsafe()
@@ -152,22 +152,22 @@ func ParseMusicTrackTransitionParam(r *wio.Reader, t *wwise.MusicTrackTransition
 	t.DestFadeOffset = r.I32Unsafe()
 }
 
-func ParseMusicRanSeqCntr(size uint32, r *wio.Reader) *wwise.MusicRanSeqCntr {
+func ParseMusicRanSeqCntr(size uint32, r *wio.Reader, v int) *wwise.MusicRanSeqCntr {
 	assert.Equal(0, r.Pos(), "Muisc random / sequence container parser position doesn't start at position 0.")
 	begin := r.Pos()
 
 	m := wwise.MusicRanSeqCntr{}
 	m.Id = r.U32Unsafe()
 	m.OverwriteFlags = r.U8Unsafe()
-	m.BaseParam = *ParseBaseParam(r)
-	ParseContainer(r, &m.Children)
-	ParseMeterInfo(r, &m.MeterInfo)
+	m.BaseParam = *ParseBaseParam(r, v)
+	ParseContainer(r, &m.Children, v)
+	ParseMeterInfo(r, &m.MeterInfo, v)
 	m.Stingers = make([]wwise.Stinger, r.U32Unsafe())
 	ParseStingers(r, m.Stingers)
 	m.TransitionRules = make([]wwise.MusicTransitionRule, r.U32Unsafe())
-	ParseTransitionRules(r, m.TransitionRules)
+	ParseTransitionRules(r, m.TransitionRules, v)
 	totalNumPlayListNodes := r.U32Unsafe()
-	ParseMusicPlayListNodes(r, &m.PlayListNode, &totalNumPlayListNodes)
+	ParseMusicPlayListNodes(r, &m.PlayListNode, &totalNumPlayListNodes, v)
 	if totalNumPlayListNodes > 0 {
 		panic("Number play list node checker is not equal to zero")
 	}
@@ -182,7 +182,7 @@ func ParseMusicRanSeqCntr(size uint32, r *wio.Reader) *wwise.MusicRanSeqCntr {
 	return &m
 }
 
-func ParseTransitionRules(r *wio.Reader, rules []wwise.MusicTransitionRule) {
+func ParseTransitionRules(r *wio.Reader, rules []wwise.MusicTransitionRule, v int) {
 	for i := range rules {
 		rule := &rules[i]
 		rule.SrcIDs = make([]uint32, r.U32Unsafe())
@@ -230,7 +230,7 @@ func ParseTransitionRules(r *wio.Reader, rules []wwise.MusicTransitionRule) {
 }
 
 func ParseMusicPlayListNodes(
-	r *wio.Reader, p *wwise.MusicPlayListNode, totalNumPlayListNodes *uint32,
+	r *wio.Reader, p *wwise.MusicPlayListNode, totalNumPlayListNodes *uint32, v int,
 ) {
 	*totalNumPlayListNodes -= 1
 	p.SegmentID = r.U32Unsafe()
@@ -245,24 +245,24 @@ func ParseMusicPlayListNodes(
 	p.UsingWeight = r.U8Unsafe()
 	p.Shuffle = r.U8Unsafe()
 	for i := range p.PlayListLeafs {
-		ParseMusicPlayListNodes(r, &p.PlayListLeafs[i], totalNumPlayListNodes)
+		ParseMusicPlayListNodes(r, &p.PlayListLeafs[i], totalNumPlayListNodes, v)
 	}
 }
 
-func ParseMusicSwitchCntr(size uint32, r *wio.Reader) (m *wwise.MusicSwitchCntr) {
+func ParseMusicSwitchCntr(size uint32, r *wio.Reader, v int) (m *wwise.MusicSwitchCntr) {
 	assert.Equal(0, r.Pos(), "Music switch container parser position doesn't start at position 0.")
 	begin := r.Pos()
 
 	m = &wwise.MusicSwitchCntr{}
 	m.Id = r.U32Unsafe()
 	m.OverwriteFlags = r.U8Unsafe()
-	m.BaseParam = *ParseBaseParam(r)
-	ParseContainer(r, &m.Children)
-	ParseMeterInfo(r, &m.MeterInfo)
+	m.BaseParam = *ParseBaseParam(r, v)
+	ParseContainer(r, &m.Children, v)
+	ParseMeterInfo(r, &m.MeterInfo, v)
 	m.Stingers = make([]wwise.Stinger, r.U32Unsafe())
 	ParseStingers(r, m.Stingers)
 	m.TransitionRules = make([]wwise.MusicTransitionRule, r.U32Unsafe())
-	ParseTransitionRules(r, m.TransitionRules)
+	ParseTransitionRules(r, m.TransitionRules, v)
 	m.ContinuePlayBack = r.U8Unsafe()
 	m.DecisionTreeData = r.ReadAllUnsafe()
 

@@ -25,9 +25,9 @@ type ParserResult struct {
 	obj wwise.HircObj
 }
 
-type Parser func(uint32, *wio.Reader) wwise.HircObj
+type Parser func(uint32, *wio.Reader, int) wwise.HircObj
 
-func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint32) (
+func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint32, v int) (
 	*wwise.HIRC, error,
 ) {
 	assert.Equal(0, r.Pos(), "Parser for HIRC does not start at byte 0.")
@@ -86,6 +86,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeSound:
 				go ParserRoutine(
@@ -96,6 +97,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeAction:
 				go ParserRoutine(
@@ -106,6 +108,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeEvent:
 				go ParserRoutine(
@@ -116,6 +119,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeRanSeqCntr:
 				go ParserRoutine(
@@ -126,6 +130,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeSwitchCntr:
 				go ParserRoutine(
@@ -136,6 +141,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeActorMixer:
 				go ParserRoutine(
@@ -146,6 +152,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeBus:
 				go ParserRoutine(
@@ -156,6 +163,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeLayerCntr:
 				go ParserRoutine(
@@ -166,6 +174,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeMusicSegment:
 				go ParserRoutine(
@@ -176,6 +185,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeMusicTrack:
 				go ParserRoutine(
@@ -186,6 +196,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeMusicSwitchCntr:
 				go ParserRoutine(
@@ -196,6 +207,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeMusicRanSeqCntr:
 				go ParserRoutine(
@@ -206,6 +218,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeAttenuation:
 				go ParserRoutine(
@@ -216,6 +229,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeFxShareSet:
 				go ParserRoutine(
@@ -226,6 +240,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeFxCustom:
 				go ParserRoutine(
@@ -236,6 +251,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeAuxBus:
 				go ParserRoutine(
@@ -246,6 +262,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeLFOModulator:
 				go ParserRoutine(
@@ -256,6 +273,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeEnvelopeModulator:
 				go ParserRoutine(
@@ -266,6 +284,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			case wwise.HircTypeTimeModulator:
 				go ParserRoutine(
@@ -276,6 +295,7 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 					hirc,
 					sem,
 					&parsed,
+					v,
 				)
 			default:
 				panic("Assertion Trap")
@@ -292,45 +312,45 @@ func ParseHIRC(ctx context.Context, r *wio.Reader, I uint8, T []byte, size uint3
 			var obj wwise.HircObj
 			switch wwise.HircType(eHircType) {
 			case wwise.HircTypeState:
-				obj = ParseState(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseState(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeSound:
-				obj = ParseSound(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseSound(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeAction:
-				obj = ParseAction(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseAction(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeEvent:
-				obj = ParseEvent(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseEvent(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeRanSeqCntr:
-				obj = ParseRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeSwitchCntr:
-				obj = ParseSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeActorMixer:
-				obj = ParseActorMixer(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseActorMixer(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeBus:
-				obj = ParseBus(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseBus(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeLayerCntr:
-				obj = ParseLayerCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseLayerCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeMusicSegment:
-				obj = ParseMusicSegment(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseMusicSegment(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeMusicTrack:
-				obj = ParseMusicTrack(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseMusicTrack(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeMusicSwitchCntr:
-				obj = ParseMusicSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseMusicSwitchCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeMusicRanSeqCntr:
-				obj = ParseMusicRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseMusicRanSeqCntr(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeAttenuation:
-				obj = ParseAttenuation(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseAttenuation(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeFxShareSet:
-				obj = ParseFxShareSet(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseFxShareSet(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeFxCustom:
-				obj = ParseFxCustom(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseFxCustom(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeAuxBus:
-				obj = ParseAuxBus(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseAuxBus(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeLFOModulator:
-				obj = ParseLFOModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseLFOModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeEnvelopeModulator:
-				obj = ParseEnvelopeModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseEnvelopeModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			case wwise.HircTypeTimeModulator:
-				obj = ParseTimeModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)))
+				obj = ParseTimeModulator(dwSectionSize, r.NewBufferReaderUnsafe(uint64(dwSectionSize)), v)
 			default:
 				panic("Assertion Trap")
 			}
@@ -449,12 +469,13 @@ func ParserRoutine[T wwise.HircObj](
 	size uint32,
 	i uint32,
 	r *wio.Reader,
-	f func(uint32, *wio.Reader) T,
+	f func(uint32, *wio.Reader, int) T,
 	h *wwise.HIRC,
 	sem chan struct{},
 	parsed *atomic.Uint32,
+	v int,
 ) {
-	AddHircObj(h, i, f(size, r))
+	AddHircObj(h, i, f(size, r, v))
 	parsed.Add(1)
 	<- sem
 }
