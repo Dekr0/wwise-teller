@@ -46,7 +46,7 @@ func renderRTPC(hid uint32, r *wwise.RTPC) {
 				imgui.EndDisabled()
 
 				imgui.BeginDisabledV(!ModifiyEverything)
-				paramID := int32(ri.ParamID)
+				paramID := int32(ri.ParamID.Value)
 				imgui.SetNextItemWidth(320)
 				if imgui.ComboStrarr(
 					"RTPC Parameter",
@@ -54,7 +54,6 @@ func renderRTPC(hid uint32, r *wwise.RTPC) {
 					wwise.RTPCParameterIDName,
 					int32(wwise.RTPCParameterTypeCount),
 				) {
-					ri.ParamID = wwise.RTPCParameterType(paramID)
 				}
 				imgui.EndDisabled()
 
@@ -73,7 +72,7 @@ func renderRTPC(hid uint32, r *wwise.RTPC) {
 				}
 				imgui.EndDisabled()
 
-				renderRTPCGraph(ri.RTPCID, ri.RTPCCurveID, ri.ParamID, ri.RTPCGraphPoints)
+				renderRTPCGraph(ri.RTPCID, ri.RTPCCurveID, wwise.RTPCParameterType(ri.ParamID.Value), ri.RTPCGraphPoints)
 
 				imgui.TreePop()
 			}
