@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"slices"
 )
 
 var ByteOrder = binary.LittleEndian
@@ -132,6 +133,38 @@ type Var struct {
 	Value uint64
 }
 
+func (v *Var) Set(value uint64) error {
+	if value == 0 {
+		v.Bytes = []byte{0}
+		v.Value = 0
+		return nil
+	}
+	tmp := value
+	b := []uint8{}
+	m := 0 
+	for m < 10 {
+		curr := tmp & 0b0111_1111
+		tmp >>= 7
+		b = append(b, uint8(curr))
+		if tmp == 0 {
+			break
+		}
+		m += 1
+	}
+	if m >= 10 {
+		return fmt.Errorf("%d is too large for variable length unsigned integer", value)
+	}
+	v.Value = value
+	v.Bytes = b
+	slices.Reverse(v.Bytes)
+	for i := range v.Bytes {
+		if i < len(v.Bytes) - 1 {
+			v.Bytes[i] |= 0b1000_0000
+		}
+	}
+	return nil
+}
+
 func (r *Reader) VarUnsafe() Var {
 	v, err := r.Var()
 	if err != nil {
@@ -141,6 +174,7 @@ func (r *Reader) VarUnsafe() Var {
 	return v
 }
 
+// Little Endian Base 128 (variable length code)
 func (r *Reader) Var() (Var, error) {
 	var cur uint8 
 	err := binary.Read(r.r, r.o, &cur)
@@ -149,21 +183,21 @@ func (r *Reader) Var() (Var, error) {
 	}
 	r.p += 1
 
-	v := Var{[]uint8{}, uint64(cur) & 0x7F}
+	v := Var{[]uint8{}, uint64(cur) & 0b0111_1111}
 	v.Bytes = append(v.Bytes, cur)
 
 	m := 0
-	for cur & 0x80 > 0 && m < 10 {
+
+	for cur & 0b1000_0000 > 0 && m < 10 {
 		err := binary.Read(r.r, r.o, &cur)
 		if err != nil {
 			return Var{}, err
 		}
 		v.Bytes = append(v.Bytes, cur)
-		v.Value = (v.Value << 7) | (uint64(cur) & 0x7F)
+		v.Value = (v.Value << 7) | (uint64(cur) & 0b0111_1111)
 		m += 1
 		r.p += 1
 	}
-
 	if m >= 10 {
 		return Var{}, fmt.Errorf("Unexpected variable loop count")
 	}

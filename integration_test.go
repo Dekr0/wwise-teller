@@ -1,7 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"testing"
+
+	"github.com/Dekr0/wwise-teller/parser"
+	"github.com/Dekr0/wwise-teller/wio"
+	"github.com/Dekr0/wwise-teller/wwise"
 )
 
 
@@ -431,3 +437,23 @@ func TestChangeSoundPartial(t *testing.T) {
 	}
 }
 */
+
+func TestVar(t *testing.T) {
+	bnk, err := parser.ParseBank("./scripts/output/content_audio_las_7.st_bnk", context.Background(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, ok := bnk.HIRC().ActorMixerHirc.Load(uint32(351417743))
+	if !ok {
+		t.Fatal()
+	}
+	r := v.(*wwise.RanSeqCntr)
+	num := r.BaseParam.StateGroup.NumStateGroups
+	newValue := 0xF
+	num.Set(uint64(newValue))
+
+	rr := bytes.NewReader(num.Bytes)
+	rrr := wio.NewReader(rr, wio.ByteOrder)
+	va := rrr.VarUnsafe()
+	t.Log(va.Value, newValue)
+}
