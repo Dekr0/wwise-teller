@@ -71,7 +71,7 @@ func NewHIRC(I uint8, T []byte, numHircItem uint32) *HIRC {
 	}
 }
 
-func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
+func (h *HIRC) encode(ctx context.Context, v int) ([]byte, error) {
 	type result struct {
 		i int
 		b []byte
@@ -99,14 +99,14 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 			if i < len(h.HircObjs) {
 				j := i
 				go func() {
-					c <- &result{j, h.HircObjs[j].Encode()}
+					c <- &result{j, h.HircObjs[j].Encode(v)}
 					<-sem
 				}()
 				i += 1
 			}
 		default:
 			if i < len(h.HircObjs) {
-				results[i] = h.HircObjs[i].Encode()
+				results[i] = h.HircObjs[i].Encode(v)
 				done += 1
 				i += 1
 			}
@@ -116,8 +116,8 @@ func (h *HIRC) encode(ctx context.Context) ([]byte, error) {
 	return bytes.Join(results, []byte{}), nil
 }
 
-func (h *HIRC) Encode(ctx context.Context) ([]byte, error) {
-	b, err := h.encode(ctx)
+func (h *HIRC) Encode(ctx context.Context, v int) ([]byte, error) {
+	b, err := h.encode(ctx, v)
 	if err != nil {
 		return nil, err
 	}
