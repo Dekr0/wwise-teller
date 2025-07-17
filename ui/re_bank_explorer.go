@@ -24,7 +24,7 @@ func renderBankExplorer(bnkMngr *be.BankManager) {
 			path := key.(string)
 			tab := value.(*be.BankTab)
 
-			imgui.PushIDStr(filepath.Base(path))
+			imgui.PushIDStr(path)
 			selected := imgui.TabItemFlagsNone
 			if bnkMngr.SetNextBank != nil && bnkMngr.SetNextBank == tab {
 				selected = imgui.TabItemFlagsSetSelected
