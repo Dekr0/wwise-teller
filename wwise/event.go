@@ -9,8 +9,9 @@ import (
 type Event struct {
 	HircObj
 
-	Id        uint32
-	ActionIDs []uint32
+	Id             uint32
+	NumActionIDs   wio.Var
+	ActionIDs    []uint32
 }
 
 func (h *Event) NewAction(actionID uint32) {
@@ -27,7 +28,7 @@ func (h *Event) Encode(v int) []byte {
 	w.AppendByte(uint8(HircTypeEvent))
 	w.Append(dataSize)
 	w.Append(h.Id)
-	w.Append(uint8(len(h.ActionIDs)))
+	w.AppendBytes(h.NumActionIDs.Bytes)
 	for _, i := range h.ActionIDs {
 		w.Append(i)
 	}
@@ -35,7 +36,7 @@ func (h *Event) Encode(v int) []byte {
 }
 
 func (h *Event) DataSize(int) uint32 {
-	return 4 + 1 + 4 * uint32(len(h.ActionIDs))
+	return 4 + uint32(len(h.NumActionIDs.Bytes)) + 4 * uint32(len(h.ActionIDs))
 }
 
 func (h *Event) BaseParameter() *BaseParameter { return nil }

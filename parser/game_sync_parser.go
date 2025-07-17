@@ -33,7 +33,8 @@ func ParseEvent(size uint32, r *wio.Reader, v int) *wwise.Event {
 	begin := r.Pos()
 	e := wwise.Event{}
 	e.Id = r.U32Unsafe()
-	e.ActionIDs = make([]uint32, r.U8Unsafe())
+	e.NumActionIDs = r.VarUnsafe()
+	e.ActionIDs = make([]uint32, e.NumActionIDs.Value, e.NumActionIDs.Value)
 	for i := range e.ActionIDs {
 		e.ActionIDs[i] = r.U32Unsafe()
 	}

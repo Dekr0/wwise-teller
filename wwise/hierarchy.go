@@ -461,5 +461,5 @@ func (h *HIRC) AppendNewActionToEvent(a *Action, eventID uint32) error {
 	if in {
 		panic(fmt.Sprintf("Action object %d already exist!", a.Id))
 	}
-	return nil
+	return event.NumActionIDs.Set(uint64(len(event.ActionIDs)))
 }
