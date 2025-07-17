@@ -87,9 +87,8 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 	if err != nil {
 		return nil, err
 	}
-	wwise.BankVersion = version
 
-	if wwise.BankVersion < 141 {
+	if version < 141 {
 		return nil, errors.New("Wwise teller currently only targets version 141, or version above 141")
 	}
 
@@ -227,7 +226,7 @@ func ParseBank(path string, ctx context.Context, diffTest bool) (*wwise.Bank, er
 				return nil, err
 			}
 			slog.Info("Start parsing HIRC section...", "chunkSize", size)
-			go HIRCRoutine(ctx, reader, c, I, tag, size)
+			go HIRCRoutine(ctx, reader, c, I, tag, size, int(version))
 			I += 1
 			pending += 1
 			hasHIRC = true
@@ -426,8 +425,9 @@ func HIRCRoutine(
 	I uint8,
 	T []byte,
 	size uint32,
+	v int,
 ) {
-	cu, e := ParseHIRC(ctx, r, I, T, size)
+	cu, e := ParseHIRC(ctx, r, I, T, size, v)
 	c <- &DecodeResult{cu, e}
 }
 
