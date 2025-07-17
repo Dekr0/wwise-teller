@@ -220,5 +220,4 @@ func renderPlaySound(bnkTab *be.BankTab, data *wwise.DATA, sound *wwise.Sound) {
 		}
 		imgui.EndTable()
 	}
-
 }
