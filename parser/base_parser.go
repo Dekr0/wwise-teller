@@ -5,42 +5,55 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseBaseParam(r *wio.Reader) *wwise.BaseParameter {
+func ParseBaseParam(r *wio.Reader, v int) *wwise.BaseParameter {
 	b := wwise.BaseParameter{}
 	b.BitIsOverrideParentFx = r.U8Unsafe()
-	ParseFxChunk(r, &b.FxChunk)
-	ParseFxChunkMetadata(r, &b.FxChunkMetadata)
-	b.BitOverrideAttachmentParams = r.U8Unsafe()
+	ParseFxChunk(r, &b.FxChunk, v)
+	ParseFxChunkMetadata(r, &b.FxChunkMetadata, v)
+	if v <= 145 {
+		b.BitOverrideAttachmentParams = r.U8Unsafe()
+	}
 	b.OverrideBusId = r.U32Unsafe()
 	b.DirectParentId = r.U32Unsafe()
 	b.ByBitVectorA = r.U8Unsafe()
-	ParsePropBundle(r, &b.PropBundle)
-	ParseRangePropBundle(r, &b.RangePropBundle)
-	ParsePositioningParam(r, &b.PositioningParam)
-	ParseAuxParam(r, &b.AuxParam)
-	ParseAdvanceSetting(r, &b.AdvanceSetting)
-	ParseStateProp(r, &b.StateProp)
-	ParseStateGroup(r, &b.StateGroup)
-	ParseRTPC(r, &b.RTPC)
+	ParsePropBundle(r, &b.PropBundle, v)
+	ParseRangePropBundle(r, &b.RangePropBundle, v)
+	ParsePositioningParam(r, &b.PositioningParam, v)
+	ParseAuxParam(r, &b.AuxParam, v)
+	ParseAdvanceSetting(r, &b.AdvanceSetting, v)
+	ParseStateProp(r, &b.StateProp, v)
+	ParseStateGroup(r, &b.StateGroup, v)
+	ParseRTPC(r, &b.RTPC, v)
 	return &b
 }
 
-func ParsePropBundle(r *wio.Reader, p *wwise.PropBundle) {
+func ParsePropBundle(r *wio.Reader, p *wwise.PropBundle, v int) {
 	CProps := r.U8Unsafe()
 	p.PropValues = make([]wwise.PropValue, CProps)
 	for i := range CProps {
-		p.PropValues[i].P = wwise.PropType(r.U8Unsafe())
+		p.PropValues[i].P = r.U8Unsafe()
 	}
 	for i := range CProps {
 		p.PropValues[i].V = r.ReadNUnsafe(4, 0)
 	}
 }
 
-func ParseRangePropBundle(r *wio.Reader, p *wwise.RangePropBundle) {
+func ParseStatePropBundle(r *wio.Reader, p *wwise.StatePropBundle, v int) {
+	CProps := r.U16Unsafe()
+	p.StatePropValues = make([]wwise.StatePropValue, CProps)
+	for i := range CProps {
+		p.StatePropValues[i].P = wwise.StatePropType(r.U16Unsafe())
+	}
+	for i := range CProps {
+		p.StatePropValues[i].V = r.ReadNUnsafe(4, 0)
+	}
+}
+
+func ParseRangePropBundle(r *wio.Reader, p *wwise.RangePropBundle, v int) {
 	CProps := r.U8Unsafe()
 	p.RangeValues = make([]wwise.RangeValue, CProps)
 	for i := range p.RangeValues {
-		p.RangeValues[i].P = wwise.PropType(r.U8Unsafe())
+		p.RangeValues[i].P = r.U8Unsafe()
 	}
 	for i := range p.RangeValues {
 		p.RangeValues[i].Min = r.ReadNUnsafe(4, 0)
@@ -48,7 +61,7 @@ func ParseRangePropBundle(r *wio.Reader, p *wwise.RangePropBundle) {
 	}
 }
 
-func ParsePositioningParam(r *wio.Reader, p *wwise.PositioningParam) {
+func ParsePositioningParam(r *wio.Reader, p *wwise.PositioningParam, v int) {
 	p.BitsPositioning = r.U8Unsafe()
 	if !p.HasPositioningAnd3D() {
 		return
@@ -81,7 +94,7 @@ func ParsePositioningParam(r *wio.Reader, p *wwise.PositioningParam) {
 	}
 }
 
-func ParseAuxParam(r *wio.Reader, a *wwise.AuxParam) {
+func ParseAuxParam(r *wio.Reader, a *wwise.AuxParam, v int) {
 	a.AuxBitVector = r.U8Unsafe()
 	if a.HasAux() {
 		a.AuxIds[0] = r.U32Unsafe()
@@ -97,7 +110,7 @@ func ParseAuxParam(r *wio.Reader, a *wwise.AuxParam) {
 	a.RestoreReflectionAuxBus = a.ReflectionAuxBus
 }
 
-func ParseAdvanceSetting(r *wio.Reader, a *wwise.AdvanceSetting) {
+func ParseAdvanceSetting(r *wio.Reader, a *wwise.AdvanceSetting, v int) {
 	a.AdvanceSettingBitVector = r.U8Unsafe()
 	a.VirtualQueueBehavior = r.U8Unsafe()
 	a.MaxNumInstance = r.U16Unsafe()
@@ -105,50 +118,54 @@ func ParseAdvanceSetting(r *wio.Reader, a *wwise.AdvanceSetting) {
 	a.HDRBitVector = r.U8Unsafe()
 }
 
-func ParseStateProp(r *wio.Reader, s *wwise.StateProp) {
-	NumStateProps := r.U8Unsafe()
-	s.StatePropItems = make([]wwise.StatePropItem, NumStateProps)
+func ParseStateProp(r *wio.Reader, s *wwise.StateProp, v int) {
+	s.NumStateProps = r.VarUnsafe()
+	s.StatePropItems = make([]wwise.StatePropItem, s.NumStateProps.Value, s.NumStateProps.Value)
 	for i := range s.StatePropItems {
-		s.StatePropItems[i].PropertyId = wwise.RTPCParameterType(r.U8Unsafe())
+		s.StatePropItems[i].PropertyId = r.VarUnsafe()
 		s.StatePropItems[i].AccumType = wwise.RTPCAccumType(r.U8Unsafe())
 		s.StatePropItems[i].InDb = r.U8Unsafe()
 	}
 }
 
-func ParseStateGroup(r *wio.Reader, s *wwise.StateGroup) {
-	NumStateGroups := r.U8Unsafe()
-	s.StateGroupItems = make([]wwise.StateGroupItem, NumStateGroups)
+func ParseStateGroup(r *wio.Reader, s *wwise.StateGroup, v int) {
+	s.NumStateGroups = r.VarUnsafe()
+	s.StateGroupItems = make([]wwise.StateGroupItem, s.NumStateGroups.Value, s.NumStateGroups.Value)
 	for i := range s.StateGroupItems {
 		item := &s.StateGroupItems[i]
 		item.StateGroupID = r.U32Unsafe()
 		item.StateSyncType = r.U8Unsafe()
-		NumStates := r.U8Unsafe()
-		item.States = make([]wwise.StateGroupItemState, NumStates)
+		item.NumStates = r.VarUnsafe()
+		item.States = make([]wwise.StateGroupItemState, item.NumStates.Value, item.NumStates.Value)
 		for i := range item.States {
 			item.States[i].StateID = r.U32Unsafe()
-			item.States[i].StateInstanceID = r.U32Unsafe()
+			if v <= 145 {
+				item.States[i].StateInstanceID = r.U32Unsafe()
+			} else {
+				ParseStatePropBundle(r, &item.States[i].StatePropBundle, v)
+			}
 		}
 	}
 }
 
-func ParseRTPC(r *wio.Reader, rtpc *wwise.RTPC) {
-	NumRTPC := r.U16Unsafe()
+func ParseRTPC(r *wio.Reader, rtpc *wwise.RTPC, v int) {
+	NumRTPC := r.U16Unsafe() // NumCurves in > 141
 	rtpc.RTPCItems = make([]wwise.RTPCItem, NumRTPC, NumRTPC)
 	for i := range rtpc.RTPCItems {
 		item := &rtpc.RTPCItems[i]
 		item.RTPCID = r.U32Unsafe()
 		item.RTPCType = r.U8Unsafe()
 		item.RTPCAccum = wwise.RTPCAccumType(r.U8Unsafe())
-		item.ParamID = wwise.RTPCParameterType(r.U8Unsafe())
+		item.ParamID = r.VarUnsafe()
 		item.RTPCCurveID = r.U32Unsafe()
 		item.Scaling = wwise.CurveScalingType(r.U8Unsafe())
 		NumRTPCGraphPoints := r.U16Unsafe()
 		item.RTPCGraphPoints = make([]wwise.RTPCGraphPoint, NumRTPCGraphPoints, NumRTPCGraphPoints)
-		ParseRTPCGraphPoints(r, item.RTPCGraphPoints)
+		ParseRTPCGraphPoints(r, item.RTPCGraphPoints, v)
 	}
 }
 
-func ParseRTPCGraphPoints(r *wio.Reader, pts []wwise.RTPCGraphPoint) {
+func ParseRTPCGraphPoints(r *wio.Reader, pts []wwise.RTPCGraphPoint, v int) {
 	for i := range pts {
 		pts[i].From = r.F32Unsafe()
 		pts[i].To = r.F32Unsafe()
