@@ -11,9 +11,9 @@ type Sound struct {
 	BaseParam *BaseParameter
 }
 
-func (s *Sound) Encode() []byte {
-	b := s.BankSourceData.Encode()
-	b = append(b, s.BaseParam.Encode()...)
+func (s *Sound) Encode(v int) []byte {
+	b := s.BankSourceData.Encode(v)
+	b = append(b, s.BaseParam.Encode(v)...)
 	dataSize := uint32(4 + len(b))
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))

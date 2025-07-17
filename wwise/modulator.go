@@ -101,21 +101,21 @@ type Modulator struct {
 	RTPC            RTPC
 }
 
-func (e *Modulator) Encode() []byte {
-	dataSize := e.DataSize()
+func (e *Modulator) Encode(v int) []byte {
+	dataSize := e.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.Append(e.ModulatorType)
 	w.Append(dataSize)
 	w.Append(e.Id)
-	w.AppendBytes(e.PropBundle.Encode())
-	w.AppendBytes(e.RangePropBundle.Encode())
-	w.AppendBytes(e.RTPC.Encode())
+	w.AppendBytes(e.PropBundle.Encode(v))
+	w.AppendBytes(e.RangePropBundle.Encode(v))
+	w.AppendBytes(e.RTPC.Encode(v))
 	return w.BytesAssert(int(size))
 }
 
-func (e *Modulator) DataSize() uint32 {
-	return 4 + e.PropBundle.Size() + e.RangePropBundle.Size() + e.RTPC.Size()
+func (e *Modulator) DataSize(v int) uint32 {
+	return 4 + e.PropBundle.Size(v) + e.RangePropBundle.Size(v) + e.RTPC.Size(v)
 }
 
 func (h *Modulator) BaseParameter() *BaseParameter { return nil }

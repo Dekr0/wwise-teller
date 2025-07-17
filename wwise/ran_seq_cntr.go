@@ -29,16 +29,16 @@ func (r *RanSeqCntr) Clone(id uint32, withParent bool) RanSeqCntr {
 	}
 }
 
-func (r *RanSeqCntr) Encode() []byte {
-	dataSize := r.DataSize()
+func (r *RanSeqCntr) Encode(v int) []byte {
+	dataSize := r.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeRanSeqCntr))
 	w.Append(dataSize)
 	w.Append(r.Id)
-	w.AppendBytes(r.BaseParam.Encode())
+	w.AppendBytes(r.BaseParam.Encode(v))
 	w.Append(r.PlayListSetting)
-	w.AppendBytes(r.Container.Encode())
+	w.AppendBytes(r.Container.Encode(v))
 	w.Append(uint16(len(r.PlayListItems)))
 	for _, i := range r.PlayListItems {
 		w.Append(i)
@@ -46,8 +46,8 @@ func (r *RanSeqCntr) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (r *RanSeqCntr) DataSize() uint32 {
-	return uint32(4 + r.BaseParam.Size() + r.Container.Size() + SizeOfPlayListSetting + 2 + uint32(len(r.PlayListItems)) * SizeOfPlayListItem)
+func (r *RanSeqCntr) DataSize(v int) uint32 {
+	return uint32(4 + r.BaseParam.Size(v) + r.Container.Size(v) + SizeOfPlayListSetting + 2 + uint32(len(r.PlayListItems)) * SizeOfPlayListItem)
 }
 
 func (r *RanSeqCntr) BaseParameter() *BaseParameter { return &r.BaseParam }

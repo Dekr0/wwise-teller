@@ -18,16 +18,16 @@ type MusicSwitchCntr struct {
 	DecisionTreeData    []byte
 }
 
-func (h *MusicSwitchCntr) Encode() []byte {
-	dataSize := h.DataSize()
+func (h *MusicSwitchCntr) Encode(v int) []byte {
+	dataSize := h.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeMusicSwitchCntr))
 	w.Append(dataSize)
 	w.Append(h.Id)
 	w.AppendByte(h.OverwriteFlags)
-	w.AppendBytes(h.BaseParam.Encode())
-	w.AppendBytes(h.Children.Encode())
+	w.AppendBytes(h.BaseParam.Encode(v))
+	w.AppendBytes(h.Children.Encode(v))
 	w.Append(h.MeterInfo)
 	w.Append(uint32(len(h.Stingers)))
 	for _, s := range h.Stingers {
@@ -35,22 +35,22 @@ func (h *MusicSwitchCntr) Encode() []byte {
 	}
 	w.Append(uint32(len(h.TransitionRules)))
 	for _, t := range h.TransitionRules {
-		w.AppendBytes(t.Encode())
+		w.AppendBytes(t.Encode(v))
 	}
 	w.AppendByte(h.ContinuePlayBack)
 	w.AppendBytes(h.DecisionTreeData)
 	return w.BytesAssert(int(size))
 }
 
-func (h *MusicSwitchCntr) DataSize() uint32 {
+func (h *MusicSwitchCntr) DataSize(v int) uint32 {
 	size := 4 + 1 +
-		h.BaseParam.Size() + 
-		h.Children.Size() + 
+		h.BaseParam.Size(v) + 
+		h.Children.Size(v) + 
 		SizeOfMeterInfo + 
 		4 + uint32(len(h.Stingers)) * SizeOfStinger
 	size += 4
 	for _, t := range h.TransitionRules {
-		size += t.Size()
+		size += t.Size(v)
 	}
 	size += 1 + uint32(len(h.DecisionTreeData))
 	return size

@@ -79,25 +79,25 @@ func (p *PositioningParam) HasAutomation() bool {
 	return p.HasPositioningAnd3D() && _3DPositioningType != 0
 }
 
-func (p *PositioningParam) Encode() []byte {
+func (p *PositioningParam) Encode(v int) []byte {
 	p.assert()
 
 	if !p.HasPositioning() || !p.HasPositioningAnd3D() {
-		size := p.Size()
+		size := p.Size(v)
 		w := wio.NewWriter(uint64(size))
 		w.AppendByte(p.BitsPositioning)
 		return w.BytesAssert(int(size))
 	}
 
 	if !p.HasAutomation() {
-		size := p.Size()
+		size := p.Size(v)
 		w := wio.NewWriter(uint64(size))
 		w.AppendByte(p.BitsPositioning)
 		w.AppendByte(p.Bits3D)
 		return w.BytesAssert(int(size))
 	}
 
-	size := p.Size()
+	size := p.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(p.BitsPositioning)
 	w.Append(p.Bits3D)
@@ -112,7 +112,7 @@ func (p *PositioningParam) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (p *PositioningParam) Size() uint32 {
+func (p *PositioningParam) Size(v int) uint32 {
 	if !p.HasPositioning() || !p.HasPositioningAnd3D() {
 		return 1
 	}

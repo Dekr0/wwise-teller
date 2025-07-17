@@ -66,8 +66,8 @@ func (h *MusicTrack) RemoveAutomation(i int) {
 	h.ClipAutomations = slices.Delete(h.ClipAutomations, i, i + 1)
 }
 
-func (h *MusicTrack) Encode() []byte {
-	dataSize := h.DataSize()
+func (h *MusicTrack) Encode(v int) []byte {
+	dataSize := h.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeMusicTrack))
@@ -76,7 +76,7 @@ func (h *MusicTrack) Encode() []byte {
 	w.AppendByte(h.OverrideFlags)
 	w.Append(uint32(len(h.Sources)))
 	for _, s := range h.Sources {
-		w.AppendBytes(s.Encode())
+		w.AppendBytes(s.Encode(v))
 	}
 	w.Append(uint32(len(h.PlayListItems)))
 	for _, p := range h.PlayListItems {
@@ -87,22 +87,22 @@ func (h *MusicTrack) Encode() []byte {
 	}
 	w.Append(uint32(len(h.ClipAutomations)))
 	for _, c := range h.ClipAutomations {
-		w.AppendBytes(c.Encode())
+		w.AppendBytes(c.Encode(v))
 	}
-	w.AppendBytes(h.BaseParam.Encode())
+	w.AppendBytes(h.BaseParam.Encode(v))
 	w.AppendByte(h.TrackType)
 	if h.UseSwitchAndTransition() {
-		w.AppendBytes(h.SwitchParam.Encode())
+		w.AppendBytes(h.SwitchParam.Encode(v))
 		w.Append(h.TransitionParam)
 	}
 	w.Append(h.LookAheadTime)
 	return w.BytesAssert(int(size))
 }
 
-func (h *MusicTrack) DataSize() uint32 {
+func (h *MusicTrack) DataSize(v int) uint32 {
 	dataSize := uint32(4 + 1 + 4)
 	for _, s := range h.Sources {
-		dataSize += s.Size()
+		dataSize += s.Size(v)
 	}
 	dataSize += 4 + uint32(len(h.PlayListItems)) * SizeOfMusicTrackPlayListItem
 	if len(h.PlayListItems) > 0 {
@@ -110,11 +110,11 @@ func (h *MusicTrack) DataSize() uint32 {
 	}
 	dataSize += 4
 	for _, c := range h.ClipAutomations {
-		dataSize += uint32(c.Size())
+		dataSize += uint32(c.Size(v))
 	}
-	dataSize += h.BaseParam.Size() + 1 
+	dataSize += h.BaseParam.Size(v) + 1 
 	if h.UseSwitchAndTransition() {
-		dataSize += uint32(h.SwitchParam.Size()) + SizeOfMusicTrackTransitionParam 
+		dataSize += uint32(h.SwitchParam.Size(v)) + SizeOfMusicTrackTransitionParam 
 	}
 	dataSize += 4
 	return dataSize
@@ -177,19 +177,19 @@ func (c *ClipAutomation) RemoveRTPCGraphPoint(i int) {
 	c.RTPCGraphPoints = slices.Delete(c.RTPCGraphPoints, i, i + 1)
 }
 
-func (c *ClipAutomation) Encode() []byte {
-	dataSize := c.Size()
+func (c *ClipAutomation) Encode(v int) []byte {
+	dataSize := c.Size(v)
 	w := wio.NewWriter(uint64(dataSize))
 	w.Append(c.ClipIndex)
 	w.Append(c.AutoType)
 	w.Append(uint32(len(c.RTPCGraphPoints)))
 	for _, r := range c.RTPCGraphPoints {
-		w.AppendBytes(r.Encode())
+		w.AppendBytes(r.Encode(v))
 	}
 	return w.BytesAssert(int(dataSize))
 }
 
-func (c *ClipAutomation) Size() uint16 {
+func (c *ClipAutomation) Size(int) uint16 {
 	return 4 + 4 + 4 + uint16(len(c.RTPCGraphPoints)) * SizeOfRTPCGraphPoint
 }
 
@@ -206,8 +206,8 @@ type MusicTrackSwitchParam struct {
 	SwitchAssociates []uint32
 }
 
-func (m *MusicTrackSwitchParam) Encode() []byte {
-	dataSize := m.Size()
+func (m *MusicTrackSwitchParam) Encode(v int) []byte {
+	dataSize := m.Size(v)
 	w := wio.NewWriter(uint64(dataSize))
 	w.Append(m.GroupType)
 	w.Append(m.GroupID)
@@ -219,7 +219,7 @@ func (m *MusicTrackSwitchParam) Encode() []byte {
 	return w.BytesAssert(int(dataSize))
 }
 
-func (m *MusicTrackSwitchParam) Size() uint16 {
+func (m *MusicTrackSwitchParam) Size(int) uint16 {
 	return 1 + 4 + 4 + 4 + uint16(len(m.SwitchAssociates)) * 4
 }
 

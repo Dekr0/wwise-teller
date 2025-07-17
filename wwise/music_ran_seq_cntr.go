@@ -16,16 +16,16 @@ type MusicRanSeqCntr struct {
 	PlayListNode        MusicPlayListNode
 }
 
-func (h *MusicRanSeqCntr) Encode() []byte {
-	dataSize := h.DataSize()
+func (h *MusicRanSeqCntr) Encode(v int) []byte {
+	dataSize := h.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeMusicRanSeqCntr))
 	w.Append(dataSize)
 	w.Append(h.Id)
 	w.AppendByte(h.OverwriteFlags)
-	w.AppendBytes(h.BaseParam.Encode())
-	w.AppendBytes(h.Children.Encode())
+	w.AppendBytes(h.BaseParam.Encode(v))
+	w.AppendBytes(h.Children.Encode(v))
 	w.Append(h.MeterInfo)
 	w.Append(uint32(len(h.Stingers)))
 	for _, s := range h.Stingers {
@@ -33,24 +33,24 @@ func (h *MusicRanSeqCntr) Encode() []byte {
 	}
 	w.Append(uint32(len(h.TransitionRules)))
 	for _, t := range h.TransitionRules {
-		w.AppendBytes(t.Encode())
+		w.AppendBytes(t.Encode(v))
 	}
 	w.Append(h.PlayListNode.NumNodes())
-	w.AppendBytes(h.PlayListNode.Encode())
+	w.AppendBytes(h.PlayListNode.Encode(v))
 	return w.BytesAssert(int(size))
 }
 
-func (h *MusicRanSeqCntr) DataSize() uint32 {
+func (h *MusicRanSeqCntr) DataSize(v int) uint32 {
 	size := 4 + 1 +
-		h.BaseParam.Size() + 
-		h.Children.Size() + 
+		h.BaseParam.Size(v) + 
+		h.Children.Size(v) + 
 		SizeOfMeterInfo + 
 		4 + uint32(len(h.Stingers)) * SizeOfStinger
 	size += 4
 	for _, t := range h.TransitionRules {
-		size += t.Size()
+		size += t.Size(v)
 	}
-	size += 4  + h.PlayListNode.Size()
+	size += 4  + h.PlayListNode.Size(v)
 	return size
 }
 
@@ -135,8 +135,8 @@ type MusicTransitionRule struct {
 	}
 }
 
-func (m *MusicTransitionRule) Encode() []byte {
-	size := m.Size()
+func (m *MusicTransitionRule) Encode(v int) []byte {
+	size := m.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(uint32(len(m.SrcIDs)))
 	for _, s := range m.SrcIDs {
@@ -155,7 +155,7 @@ func (m *MusicTransitionRule) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (m *MusicTransitionRule) Size() uint32 {
+func (m *MusicTransitionRule) Size(int) uint32 {
 	size := 4 + uint32(len(m.SrcIDs)) * 4 +
 			4 + uint32(len(m.DestIDs)) * 4 +
 			SizeOfTransitionRulePair + 1 
@@ -185,8 +185,8 @@ type MusicPlayListNode struct {
 	PlayListLeafs    []MusicPlayListNode
 }
 
-func (p *MusicPlayListNode) Encode() []byte {
-	size := p.Size()
+func (p *MusicPlayListNode) Encode(v int) []byte {
+	size := p.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(p.SegmentID)
 	w.Append(p.PlayListItemID)
@@ -200,15 +200,15 @@ func (p *MusicPlayListNode) Encode() []byte {
 	w.AppendByte(p.UsingWeight)
 	w.AppendByte(p.Shuffle)
 	for _, p := range p.PlayListLeafs {
-		w.AppendBytes(p.Encode())
+		w.AppendBytes(p.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (p *MusicPlayListNode) Size() uint32 {
+func (p *MusicPlayListNode) Size(v int) uint32 {
 	size := uint32(SizeOfPlayListNode)
 	for _, l := range p.PlayListLeafs {
-		size += l.Size()
+		size += l.Size(v)
 	}
 	return size 
 }

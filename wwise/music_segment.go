@@ -41,16 +41,16 @@ func (h *MusicSegment) SetMidiTargetTypeBus(set bool) {
 	h.OverrideFlags = wio.SetBit(h.OverrideFlags, 3, set)
 }
 
-func (h *MusicSegment) Encode() []byte {
-	dataSize := h.Size()
+func (h *MusicSegment) Encode(v int) []byte {
+	dataSize := h.Size(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeMusicSegment))
 	w.Append(dataSize)
 	w.Append(h.Id)
 	w.AppendByte(h.OverrideFlags)
-	w.AppendBytes(h.BaseParam.Encode())
-	w.AppendBytes(h.Children.Encode())
+	w.AppendBytes(h.BaseParam.Encode(v))
+	w.AppendBytes(h.Children.Encode(v))
 	w.Append(h.MeterInfo)
 	w.Append(uint32(len(h.Stingers)))
 	for _, s := range h.Stingers {
@@ -64,8 +64,8 @@ func (h *MusicSegment) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (h *MusicSegment) Size() uint32 {
-	dataSize := 4 + 1 + h.BaseParam.Size() + h.Children.Size() + SizeOfMeterInfo + 4 + SizeOfStinger*uint32(len(h.Stingers))
+func (h *MusicSegment) Size(v int) uint32 {
+	dataSize := 4 + 1 + h.BaseParam.Size(v) + h.Children.Size(v) + SizeOfMeterInfo + 4 + SizeOfStinger*uint32(len(h.Stingers))
 	dataSize += 8 + 4
 	for _, m := range h.Markers {
 		dataSize += uint32(m.Size())
