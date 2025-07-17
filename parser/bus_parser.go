@@ -6,7 +6,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseBus(size uint32, r *wio.Reader) *wwise.Bus {
+func ParseBus(size uint32, r *wio.Reader, v int) *wwise.Bus {
 	assert.Equal(0, r.Pos(), "Bus parser position doesn't start at 0.")
 	begin := r.Pos()
 	bus := wwise.Bus{
@@ -17,9 +17,9 @@ func ParseBus(size uint32, r *wio.Reader) *wwise.Bus {
 	if bus.OverrideBusId == 0 {
 		bus.DeviceShareSetID = r.U32Unsafe()
 	}
-	ParsePropBundle(r, &bus.PropBundle)
-	ParsePositioningParam(r, &bus.PositioningParam)
-	ParseAuxParam(r, &bus.AuxParam)
+	ParsePropBundle(r, &bus.PropBundle, v)
+	ParsePositioningParam(r, &bus.PositioningParam, v)
+	ParseAuxParam(r, &bus.AuxParam, v)
 
 	bus.VirtualBehaviorBitVector = r.U8Unsafe()
 	bus.MaxNumInstance = r.U16Unsafe()
@@ -38,11 +38,16 @@ func ParseBus(size uint32, r *wio.Reader) *wwise.Bus {
 		bus.DuckInfoList[i].TargetProp = wwise.PropType(r.U8Unsafe())
 	}
 
-	ParseFxChunk(r, &bus.BusFxParam.FxChunk)
-	bus.BusFxParam.FxID_0 = r.U32Unsafe()
-	bus.BusFxParam.IsShareSet_0 = r.U8Unsafe()
+	ParseFxChunk(r, &bus.BusFxParam.FxChunk, v)
 
-	bus.OverrideAttachmentParams = r.U8Unsafe()
+	if v <= 145 {
+		bus.BusFxParam.FxID_0 = r.U32Unsafe()
+		bus.BusFxParam.IsShareSet_0 = r.U8Unsafe()
+	}
+
+	if v <= 145 {
+		bus.OverrideAttachmentParams = r.U8Unsafe()
+	}
 
 	bus.BusFxMetadataParam.FxChunkMetadataItems = make([]wwise.FxChunkMetadataItem, r.U8Unsafe())
 	for i := range bus.BusFxMetadataParam.FxChunkMetadataItems {
@@ -51,9 +56,9 @@ func ParseBus(size uint32, r *wio.Reader) *wwise.Bus {
 		bus.BusFxMetadataParam.FxChunkMetadataItems[i].BitIsShareSet = r.U8Unsafe()
 	}
 
-	ParseRTPC(r, &bus.BusRTPC)
-	ParseStateProp(r, &bus.StateProp)
-	ParseStateGroup(r, &bus.StateGroup)
+	ParseRTPC(r, &bus.BusRTPC, v)
+	ParseStateProp(r, &bus.StateProp, v)
+	ParseStateGroup(r, &bus.StateGroup, v)
 
 	end := r.Pos()
 	if begin >= end {
@@ -65,7 +70,7 @@ func ParseBus(size uint32, r *wio.Reader) *wwise.Bus {
 	return &bus
 }
 
-func ParseAuxBus(size uint32, r *wio.Reader) *wwise.AuxBus {
+func ParseAuxBus(size uint32, r *wio.Reader, v int) *wwise.AuxBus {
 	assert.Equal(0, r.Pos(), "Aux Bus parser position doesn't start at 0.")
 	begin := r.Pos()
 	bus := wwise.AuxBus{
@@ -75,9 +80,9 @@ func ParseAuxBus(size uint32, r *wio.Reader) *wwise.AuxBus {
 	if bus.OverrideBusId == 0 {
 		bus.DeviceShareSetID = r.U32Unsafe()
 	}
-	ParsePropBundle(r, &bus.PropBundle)
-	ParsePositioningParam(r, &bus.PositioningParam)
-	ParseAuxParam(r, &bus.AuxParam)
+	ParsePropBundle(r, &bus.PropBundle, v)
+	ParsePositioningParam(r, &bus.PositioningParam, v)
+	ParseAuxParam(r, &bus.AuxParam, v)
 
 	bus.VirtualBehaviorBitVector = r.U8Unsafe()
 	bus.MaxNumInstance = r.U16Unsafe()
@@ -96,11 +101,16 @@ func ParseAuxBus(size uint32, r *wio.Reader) *wwise.AuxBus {
 		bus.DuckInfoList[i].TargetProp = wwise.PropType(r.U8Unsafe())
 	}
 
-	ParseFxChunk(r, &bus.BusFxParam.FxChunk)
-	bus.BusFxParam.FxID_0 = r.U32Unsafe()
-	bus.BusFxParam.IsShareSet_0 = r.U8Unsafe()
+	ParseFxChunk(r, &bus.BusFxParam.FxChunk, v)
 
-	bus.OverrideAttachmentParams = r.U8Unsafe()
+	if v <= 145 {
+		bus.BusFxParam.FxID_0 = r.U32Unsafe()
+		bus.BusFxParam.IsShareSet_0 = r.U8Unsafe()
+	}
+
+	if v <= 145 {
+		bus.OverrideAttachmentParams = r.U8Unsafe()
+	}
 
 	bus.BusFxMetadataParam.FxChunkMetadataItems = make([]wwise.FxChunkMetadataItem, r.U8Unsafe())
 	for i := range bus.BusFxMetadataParam.FxChunkMetadataItems {
@@ -109,9 +119,9 @@ func ParseAuxBus(size uint32, r *wio.Reader) *wwise.AuxBus {
 		bus.BusFxMetadataParam.FxChunkMetadataItems[i].BitIsShareSet = r.U8Unsafe()
 	}
 
-	ParseRTPC(r, &bus.BusRTPC)
-	ParseStateProp(r, &bus.StateProp)
-	ParseStateGroup(r, &bus.StateGroup)
+	ParseRTPC(r, &bus.BusRTPC, v)
+	ParseStateProp(r, &bus.StateProp, v)
+	ParseStateGroup(r, &bus.StateGroup, v)
 
 	end := r.Pos()
 	if begin >= end {
@@ -123,4 +133,4 @@ func ParseAuxBus(size uint32, r *wio.Reader) *wwise.AuxBus {
 	return &bus
 }
 
-func ParseAudioDevice(size uint32, r *wio.Reader) {}
+func ParseAudioDevice(size uint32, r *wio.Reader, v int) {}
