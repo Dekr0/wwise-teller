@@ -6,13 +6,13 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func ParseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
+func ParseActorMixer(size uint32, r *wio.Reader, v int) *wwise.ActorMixer {
 	assert.Equal(0, r.Pos(), "Actor mixer parser position doesn't start at position 0.")
 	begin := r.Pos()
 	a := wwise.ActorMixer{}
 	a.Id = r.U32Unsafe()
-	a.BaseParam = ParseBaseParam(r)
-	ParseContainer(r, &a.Container)
+	a.BaseParam = ParseBaseParam(r, v)
+	ParseContainer(r, &a.Container, v)
 	end := r.Pos()
 	if begin >= end {
 		panic("Reader consumes zero byte.")
@@ -23,15 +23,15 @@ func ParseActorMixer(size uint32, r *wio.Reader) *wwise.ActorMixer {
 	return &a
 }
 
-func ParseLayerCntr(size uint32, r *wio.Reader) *wwise.LayerCntr {
+func ParseLayerCntr(size uint32, r *wio.Reader, v int) *wwise.LayerCntr {
 	assert.Equal(0, r.Pos(), "Layer container parser position doesn't start at position 0.")
 	begin := r.Pos()
 	l := wwise.LayerCntr{
 		Id:        r.U32Unsafe(),
-		BaseParam: ParseBaseParam(r),
+		BaseParam: ParseBaseParam(r, v),
 	}
-	ParseContainer(r, &l.Container)
-	l.Layers = ParseLayers(r, make([]wwise.Layer, r.U32Unsafe()))
+	ParseContainer(r, &l.Container, v)
+	l.Layers = ParseLayers(r, make([]wwise.Layer, r.U32Unsafe()), v)
 	l.IsContinuousValidation = r.U8Unsafe()
 	
 	end := r.Pos()
@@ -44,11 +44,11 @@ func ParseLayerCntr(size uint32, r *wio.Reader) *wwise.LayerCntr {
 	return &l
 }
 
-func ParseLayers(r *wio.Reader, layers []wwise.Layer) []wwise.Layer {
+func ParseLayers(r *wio.Reader, layers []wwise.Layer, v int) []wwise.Layer {
 	for i := range layers {
 		l := &layers[i]
 		l.Id = r.U32Unsafe()
-		ParseRTPC(r, &l.InitialRTPC)
+		ParseRTPC(r, &l.InitialRTPC, v)
 		l.RTPCId = r.U32Unsafe()
 		l.RTPCType = r.U8Unsafe()
 		l.LayerRTPCs = make([]wwise.LayerRTPC, r.U32Unsafe())
@@ -66,16 +66,16 @@ func ParseLayers(r *wio.Reader, layers []wwise.Layer) []wwise.Layer {
 	return layers
 }
 
-func ParseRanSeqCntr(size uint32, r *wio.Reader) *wwise.RanSeqCntr {
+func ParseRanSeqCntr(size uint32, r *wio.Reader, v int) *wwise.RanSeqCntr {
 	assert.Equal(0, r.Pos(), "Random / Sequence container parser position doesn't start at position 0.")
 	begin := r.Pos()
 
 	rs := wwise.RanSeqCntr{
 		Id:               r.U32Unsafe(),
-		BaseParam:       *ParseBaseParam(r),
+		BaseParam:       *ParseBaseParam(r, v),
 	}
 	ParsePlayListSetting(r, &rs.PlayListSetting)
-	ParseContainer(r, &rs.Container)
+	ParseContainer(r, &rs.Container, v)
 	rs.PlayListItems = make([]wwise.PlayListItem, r.U16Unsafe())
 	for i := range rs.PlayListItems {
 		rs.PlayListItems[i].UniquePlayID = r.U32Unsafe()
@@ -106,13 +106,13 @@ func ParsePlayListSetting(r *wio.Reader, p *wwise.PlayListSetting) {
 	p.PlayListBitVector = r.U8Unsafe()
 }
 
-func ParseSound(size uint32, r *wio.Reader) *wwise.Sound {
+func ParseSound(size uint32, r *wio.Reader, v int) *wwise.Sound {
 	assert.Equal(0, r.Pos(), "Sound parser position doesn't start 0.")
 	begin := r.Pos()
 	s := &wwise.Sound{}
 	s.Id = r.U32Unsafe()
-	s.BankSourceData = ParseBankSourceData(r)
-	s.BaseParam = ParseBaseParam(r)
+	s.BankSourceData = ParseBankSourceData(r, v)
+	s.BaseParam = ParseBaseParam(r, v)
 	end := r.Pos()
 	if begin >= end {
 		panic("reader consumes zero byte")
@@ -123,18 +123,18 @@ func ParseSound(size uint32, r *wio.Reader) *wwise.Sound {
 	return s
 }
 
-func ParseSwitchCntr(size uint32, r *wio.Reader) *wwise.SwitchCntr {
+func ParseSwitchCntr(size uint32, r *wio.Reader, v int) *wwise.SwitchCntr {
 	assert.Equal(0, r.Pos(), "Switch container parser position doesn't start at 0.")
 	begin := r.Pos()
 	s := wwise.SwitchCntr{
 		Id:                     r.U32Unsafe(),
-		BaseParam:              ParseBaseParam(r),
+		BaseParam:              ParseBaseParam(r, v),
 		GroupType:              r.U8Unsafe(),
 		GroupID:                r.U32Unsafe(),
 		DefaultSwitch:          r.U32Unsafe(),
 		IsContinuousValidation: r.U8Unsafe(),
 	}
-	ParseContainer(r, &s.Container)
+	ParseContainer(r, &s.Container, v)
 	s.SwitchGroups = make([]wwise.SwitchGroupItem, r.U32Unsafe())
 	for i := range s.SwitchGroups {
 		s.SwitchGroups[i].SwitchID = r.U32Unsafe()
@@ -147,7 +147,7 @@ func ParseSwitchCntr(size uint32, r *wio.Reader) *wwise.SwitchCntr {
 	s.SwitchParams = make([]wwise.SwitchParam, NumSwitchParam)
 	for i := range s.SwitchParams {
 		s.SwitchParams[i].NodeId = r.U32Unsafe()
-		if wwise.BankVersion <= 150 {
+		if v <= 150 {
 			s.SwitchParams[i].PlayBackBitVector = r.U8Unsafe()
 			s.SwitchParams[i].ModeBitVector = r.U8Unsafe()
 		} else {
@@ -166,7 +166,7 @@ func ParseSwitchCntr(size uint32, r *wio.Reader) *wwise.SwitchCntr {
 	return &s
 }
 
-func ParseContainer(r *wio.Reader, c *wwise.Container) {
+func ParseContainer(r *wio.Reader, c *wwise.Container, v int) {
 	NumChild := r.U32Unsafe()
 	c.Children = make([]uint32, NumChild)
 	for i := range c.Children {
@@ -174,7 +174,7 @@ func ParseContainer(r *wio.Reader, c *wwise.Container) {
 	}
 }
 
-func ParseAttenuation(size uint32, r *wio.Reader) *wwise.Attenuation {
+func ParseAttenuation(size uint32, r *wio.Reader, v int) *wwise.Attenuation {
 	assert.Equal(0, r.Pos(), "Attenuation parser position doesn't start at position 0.")
 	begin := r.Pos()
 
@@ -183,7 +183,7 @@ func ParseAttenuation(size uint32, r *wio.Reader) *wwise.Attenuation {
 		IsHeightSpreadEnabled: r.U8Unsafe(),
 		IsConeEnabled: r.U8Unsafe(),
 	}
-	if wwise.BankVersion <= 141 {
+	if v <= 141 {
 		a.Curves = make([]int8, 7, 7)
 	} else {
 		a.Curves = make([]int8, 19, 19)
@@ -202,8 +202,8 @@ func ParseAttenuation(size uint32, r *wio.Reader) *wwise.Attenuation {
 	}
 
 	a.AttenuationConversionTables = make([]wwise.AttenuationConversionTable, r.U8Unsafe())
-	ParseAttenuationConversionTables(r, a.AttenuationConversionTables)
-	ParseRTPC(r, &a.RTPC)
+	ParseAttenuationConversionTables(r, a.AttenuationConversionTables, v)
+	ParseRTPC(r, &a.RTPC, v)
 
 	end := r.Pos()
 	if begin >= end {
@@ -215,10 +215,10 @@ func ParseAttenuation(size uint32, r *wio.Reader) *wwise.Attenuation {
 	return &a
 }
 
-func ParseAttenuationConversionTables(r *wio.Reader, t []wwise.AttenuationConversionTable) {
+func ParseAttenuationConversionTables(r *wio.Reader, t []wwise.AttenuationConversionTable, v int) {
 	for i := range t {
 		t[i].EnumScaling = r.U8Unsafe()
 		t[i].RTPCGraphPoints = make([]wwise.RTPCGraphPoint, r.U16Unsafe())
-		ParseRTPCGraphPoints(r, t[i].RTPCGraphPoints)
+		ParseRTPCGraphPoints(r, t[i].RTPCGraphPoints, v)
 	}
 }
