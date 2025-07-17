@@ -17,7 +17,7 @@ func NewMETA(I uint8, T []byte, Data []byte) *META {
 	return &META{I, T, Data}
 }
 
-func (e *META) Encode(ctx context.Context) ([]byte, error) {
+func (e *META) Encode(ctx context.Context, v int) ([]byte, error) {
 	encoded := e.T
 	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(e.B)))
 	if err != nil {

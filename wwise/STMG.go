@@ -17,7 +17,7 @@ func NewSTMG(I uint8, T []byte, b []byte) *STMG {
 	return &STMG{I, T, b}
 }
 
-func (s *STMG) Encode(ctx context.Context) ([]byte, error) {
+func (s *STMG) Encode(ctx context.Context, v int) ([]byte, error) {
 	encoded := s.T 
 	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(s.B)))
 	if err != nil {

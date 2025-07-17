@@ -13,7 +13,7 @@ type ENVS struct {
 	B []byte
 }
 
-func (e *ENVS) Encode(ctx context.Context) ([]byte, error) {
+func (e *ENVS) Encode(ctx context.Context, v int) ([]byte, error) {
 	encoded := e.T
 	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(e.B)))
 	if err != nil {

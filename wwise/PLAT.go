@@ -17,7 +17,7 @@ func NewPLAT(I uint8, T []byte, b []byte) *PLAT {
 	return &PLAT{I, T, b}
 }
 
-func (p *PLAT) Encode(ctx context.Context) ([]byte, error) {
+func (p *PLAT) Encode(ctx context.Context, v int) ([]byte, error) {
 	encoded := p.T
 	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(p.B)))
 	if err != nil {

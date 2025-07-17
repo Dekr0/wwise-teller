@@ -17,7 +17,7 @@ func NewFXPR(I uint8, T []byte, b []byte) *FXPR {
 	return &FXPR{I, T, b}
 }
 
-func (f *FXPR) Encode(ctx context.Context) ([]byte, error) {
+func (f *FXPR) Encode(ctx context.Context, v int) ([]byte, error) {
 	encoded := f.T
 	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(f.B)))
 	if err != nil {

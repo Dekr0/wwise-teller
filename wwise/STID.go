@@ -17,7 +17,7 @@ func NewSTID(I uint8, T []byte, b []byte) *STID {
 	return &STID{I, T, b}
 }
 
-func (s *STID) Encode(ctx context.Context) ([]byte, error) {
+func (s *STID) Encode(ctx context.Context, v int) ([]byte, error) {
 	encoded := s.T 
 	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(s.B)))
 	if err != nil {

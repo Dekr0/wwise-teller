@@ -32,7 +32,7 @@ func NewDIDX(I uint8, T []byte, num uint32) *DIDX {
 	}
 }
 
-func (d *DIDX) Encode(ctx context.Context) ([]byte, error) {
+func (d *DIDX) Encode(ctx context.Context, v int) ([]byte, error) {
 	size := uint32(len(d.MediaIndexs) * SizeOfMediaIndex)
 	w := wio.NewWriter(uint64(SizeOfChunkHeader + size))
 	w.AppendBytes(d.T)

@@ -16,7 +16,7 @@ type DATAAppendOnly struct {
 	B []byte
 }
 
-func (d *DATAAppendOnly) Encode(ctx context.Context) ([]byte, error) {
+func (d *DATAAppendOnly) Encode(ctx context.Context, v int) ([]byte, error) {
 	size := uint32(len(d.B))
 	bw := wio.NewWriter(uint64(SizeOfChunkHeader + size))
 	bw.AppendBytes(d.T)
@@ -46,7 +46,7 @@ type DATA struct {
 	AudiosMap     map[uint32][]byte
 }
 
-func (d *DATA) Encode(ctx context.Context) ([]byte, error) {
+func (d *DATA) Encode(ctx context.Context, v int) ([]byte, error) {
 	size := d.Size()
 	bw := wio.NewWriter(uint64(SizeOfChunkHeader + size))
 	bw.AppendBytes(d.T)
