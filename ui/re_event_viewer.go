@@ -125,7 +125,7 @@ func renderAction(t *be.BankTab, a *wwise.Action) {
 		}
 	}
 
-	renderAllProp(&a.PropBundle, &a.RangePropBundle)
+	renderAllProp(&a.PropBundle, &a.RangePropBundle, t.Version())
 	renderActionParam(a)
 	imgui.SameLine()
 }
