@@ -1,6 +1,9 @@
 package wwise
 
 import (
+	"bytes"
+	"encoding/binary"
+
 	"github.com/Dekr0/wwise-teller/assert"
 	"github.com/Dekr0/wwise-teller/wio"
 )
@@ -125,11 +128,21 @@ type MediaMapItem struct {
 	SourceId uint32
 }
 
-const SizeOfPluginProp = 6
 type PluginProp struct {
-	PropertyID RTPCParameterType
+	PropertyID wio.Var
 	RTPCAccum  RTPCAccumType
 	Value      float32
+}
+
+func (p *PluginProp) Size(int) uint32 {
+	return uint32(len(p.PropertyID.Bytes)) + 1 + 4
+}
+
+func (p *PluginProp) Encode(v int) []byte {
+	b := bytes.Clone(p.PropertyID.Bytes)
+	b, _ = binary.Append(b, wio.ByteOrder, uint8(p.RTPCAccum))
+	b, _ = binary.Append(b, wio.ByteOrder, p.Value)
+	return b
 }
 
 func (h *FxCustom) HasParam() bool {
@@ -144,9 +157,9 @@ func (h *FxCustom) assert() {
 	}
 }
 
-func (h *FxCustom) Encode() []byte {
+func (h *FxCustom) Encode(v int) []byte {
 	h.assert()
-	dataSize := h.DataSize()
+	dataSize := h.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.Append(HircTypeFxCustom)
@@ -154,26 +167,29 @@ func (h *FxCustom) Encode() []byte {
 	w.Append(h.Id)
 	w.Append(h.PluginTypeId)
 	if h.PluginParam != nil {
-		w.AppendBytes(h.PluginParam.Encode())
+		w.AppendBytes(h.PluginParam.Encode(v))
 	}
 	w.Append(uint8(len(h.MediaMap)))
 	for _, i := range h.MediaMap {
 		w.Append(i)
 	}
-	w.AppendBytes(h.RTPC.Encode())
-	w.AppendBytes(h.StateProp.Encode())
-	w.AppendBytes(h.StateGroup.Encode())
+	w.AppendBytes(h.RTPC.Encode(v))
+	w.AppendBytes(h.StateProp.Encode(v))
+	w.AppendBytes(h.StateGroup.Encode(v))
 	w.Append(uint16(len(h.PluginProps)))
 	for _, p := range h.PluginProps {
-		w.Append(p)
+		w.AppendBytes(p.Encode(v))
 	}
 	return w.BytesAssert(int(size))
 }
 
-func (h *FxCustom) DataSize() uint32 {
-	size := 8 + 1 + uint32(len(h.MediaMap)) * SizeOfMediaMapItem + h.RTPC.Size() + h.StateProp.Size() + h.StateGroup.Size() + 2 + uint32(len(h.PluginProps)) * SizeOfPluginProp
+func (h *FxCustom) DataSize(v int) uint32 {
+	size := 8 + 1 + uint32(len(h.MediaMap)) * SizeOfMediaMapItem + h.RTPC.Size(v) + h.StateProp.Size(v) + h.StateGroup.Size(v) + 2
+	for _, i := range h.PluginProps {
+		size += i.Size(v)
+	}
 	if h.PluginParam != nil {
-		size += h.PluginParam.Size()
+		size += h.PluginParam.Size(v)
 	}
 	return size
 }
