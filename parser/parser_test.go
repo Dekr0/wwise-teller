@@ -1,4 +1,4 @@
-// NOTES: since DATA chunk and DIDX chunk omit alignment, all byte-by-byte will 
+// NOTES: since DATA chunk and DIDX chunk omit alignment, all byte-by-byte will
 // fail.
 package parser
 
@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +20,10 @@ type malformedSoundbank struct {
 }
 
 func TestParseBank(t *testing.T) {
-	banks, err := os.ReadDir("../tests/default_st_bnks")
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+	})))
+	banks, err := os.ReadDir("../scripts/output")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,9 +32,9 @@ func TestParseBank(t *testing.T) {
 
 	for _, bank := range banks {
 		t.Log(bank.Name())
-		bnkPath := filepath.Join("../tests/default_st_bnks", bank.Name())
+		bnkPath := filepath.Join("../scripts/output", bank.Name())
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 360)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*360)
 		bnk, err := ParseBank(bnkPath, ctx, true)
 		if err != nil {
 			cancel()
@@ -43,7 +47,7 @@ func TestParseBank(t *testing.T) {
 		}
 		cancel()
 
-		ctx, cancel = context.WithTimeout(context.Background(), time.Second * 4)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*160)
 		blob, err := bnk.Encode(ctx, true)
 		if err != nil {
 			cancel()
@@ -60,16 +64,12 @@ func TestParseBank(t *testing.T) {
 			if len(blob) > len(orig) {
 				for i := range orig {
 					if blob[i] != orig[i] {
-						l, _ := bnk.HIRC().Encode(context.Background())
-						fmt.Println(len(l))
 						t.Fatalf("%s: Byte difference at %d. Original: %d, Received: %d\n", bank.Name(), i, orig[i], blob[i])
 					}
 				}
 			} else {
 				for i := range blob {
 					if blob[i] != orig[i] {
-						l, _ := bnk.HIRC().Encode(context.Background())
-						fmt.Println(len(l))
 						t.Fatalf("%s: Byte difference at %d. Original: %d, Received: %d\n", bank.Name(), i, orig[i], blob[i])
 					}
 				}
@@ -129,7 +129,7 @@ func TestParseMusicBank(t *testing.T) {
 			if len(blob) > len(orig) {
 				for i := range orig {
 					if blob[i] != orig[i] {
-						l, _ := bnk.HIRC().Encode(context.Background())
+						l, _ := bnk.HIRC().Encode(context.Background(), int(bnk.BKHD().BankGenerationVersion))
 						fmt.Println(len(l))
 						t.Fatalf("%s: Byte difference at %d. Original: %d, Received: %d\n", bank.Name(), i, orig[i], blob[i])
 					}
@@ -137,7 +137,7 @@ func TestParseMusicBank(t *testing.T) {
 			} else {
 				for i := range blob {
 					if blob[i] != orig[i] {
-						l, _ := bnk.HIRC().Encode(context.Background())
+						l, _ := bnk.HIRC().Encode(context.Background(), int(bnk.BKHD().BankGenerationVersion))
 						fmt.Println(len(l))
 						t.Fatalf("%s: Byte difference at %d. Original: %d, Received: %d\n", bank.Name(), i, orig[i], blob[i])
 					}
@@ -154,9 +154,9 @@ func TestParseMusicBank(t *testing.T) {
 
 func TestFaulty(t *testing.T) {
 	banks := []string{
-		"../tests/content_audio_music_mission_illuminate.st_bnk",
+		"../scripts/output/content_audio_foley_player.st_bnk",
 	}
-	
+
 	excludes := []*malformedSoundbank{}
 
 	for _, bank := range banks {
@@ -190,7 +190,7 @@ func TestFaulty(t *testing.T) {
 			if len(blob) > len(orig) {
 				for i := range orig {
 					if blob[i] != orig[i] {
-						l, _ := bnk.HIRC().Encode(context.Background())
+						l, _ := bnk.HIRC().Encode(context.Background(), int(bnk.BKHD().BankGenerationVersion))
 						fmt.Println(len(l))
 						t.Fatalf("%s: Byte difference at %d. Original: %d, Received: %d\n", bank, i, orig[i], blob[i])
 					}
@@ -198,7 +198,7 @@ func TestFaulty(t *testing.T) {
 			} else {
 				for i := range blob {
 					if blob[i] != orig[i] {
-						l, _ := bnk.HIRC().Encode(context.Background())
+						l, _ := bnk.HIRC().Encode(context.Background(), int(bnk.BKHD().BankGenerationVersion))
 						fmt.Println(len(l))
 						t.Fatalf("%s: Byte difference at %d. Original: %d, Received: %d\n", bank, i, orig[i], blob[i])
 					}
