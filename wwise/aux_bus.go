@@ -22,7 +22,7 @@ type AuxBus struct {
 	// NumDucks               uint32
 	DuckInfoList              []DuckInfo
 	BusFxParam                BusFxParam
-	OverrideAttachmentParams  uint8
+	OverrideAttachmentParams  uint8 // <= 145
 	BusFxMetadataParam        BusFxMetadataParam
 	BusRTPC                   RTPC
 	StateProp                 StateProp
@@ -89,8 +89,8 @@ func (h *AuxBus) SetHDRReleaseModeExponential(set bool) {
 	h.HDRBitVector = wio.SetBit(h.HDRBitVector, 1, set)
 }
 
-func (h *AuxBus) Encode() []byte {
-	dataSize := h.DataSize()
+func (h *AuxBus) Encode(v int) []byte {
+	dataSize := h.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeAuxBus))
@@ -100,9 +100,9 @@ func (h *AuxBus) Encode() []byte {
 	if h.OverrideBusId == 0 {
 		w.Append(h.DeviceShareSetID)
 	}
-	w.AppendBytes(h.PropBundle.Encode())
-	w.AppendBytes(h.PositioningParam.Encode())
-	w.AppendBytes(h.AuxParam.Encode())
+	w.AppendBytes(h.PropBundle.Encode(v))
+	w.AppendBytes(h.PositioningParam.Encode(v))
+	w.AppendBytes(h.AuxParam.Encode(v))
 	w.Append(h.VirtualBehaviorBitVector)
 	w.Append(h.MaxNumInstance)
 	w.Append(h.ChannelConf)
@@ -113,26 +113,31 @@ func (h *AuxBus) Encode() []byte {
 	for _, i := range h.DuckInfoList {
 		w.Append(i)
 	}
-	w.AppendBytes(h.BusFxParam.Encode())
-	w.Append(h.OverrideAttachmentParams)
-	w.AppendBytes(h.BusFxMetadataParam.Encode())
-	w.AppendBytes(h.BusRTPC.Encode())
-	w.AppendBytes(h.StateProp.Encode())
-	w.AppendBytes(h.StateGroup.Encode())
+	w.AppendBytes(h.BusFxParam.Encode(v))
+	if v <= 145 {
+		w.Append(h.OverrideAttachmentParams)
+	}
+	w.AppendBytes(h.BusFxMetadataParam.Encode(v))
+	w.AppendBytes(h.BusRTPC.Encode(v))
+	w.AppendBytes(h.StateProp.Encode(v))
+	w.AppendBytes(h.StateGroup.Encode(v))
 	return w.BytesAssert(int(size))
 }
 
-func (h *AuxBus) DataSize() uint32 {
-	size := 29 + 
-		h.PropBundle.Size() + 
-		h.PositioningParam.Size() +
-		h.AuxParam.Size() +
+func (h *AuxBus) DataSize(v int) uint32 {
+	size := uint32(28)
+	if v <= 145 {
+		size += 1
+	}
+	size += h.PropBundle.Size(v) + 
+		h.PositioningParam.Size(v) +
+		h.AuxParam.Size(v) +
 		uint32(len(h.DuckInfoList)) * SizeOfDuckInfo +
-		h.BusFxParam.Size() +
-		h.BusFxMetadataParam.Size() +
-		h.BusRTPC.Size() +
-		h.StateProp.Size() +
-		h.StateGroup.Size()
+		h.BusFxParam.Size(v) +
+		h.BusFxMetadataParam.Size(v) +
+		h.BusRTPC.Size(v) +
+		h.StateProp.Size(v) +
+		h.StateGroup.Size(v)
 	if h.OverrideBusId == 0 {
 		size += 4
 	}

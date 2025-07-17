@@ -1,6 +1,8 @@
 package wwise
 
-import "github.com/Dekr0/wwise-teller/wio"
+import (
+	"github.com/Dekr0/wwise-teller/wio"
+)
 
 type ChannelConfigType uint8
 
@@ -97,7 +99,7 @@ type Bus struct {
 	// NumDucks               uint32
 	DuckInfoList              []DuckInfo
 	BusFxParam                BusFxParam
-	OverrideAttachmentParams  uint8
+	OverrideAttachmentParams  uint8 // <= 145
 	BusFxMetadataParam        BusFxMetadataParam
 	BusRTPC                   RTPC
 	StateProp                 StateProp
@@ -175,8 +177,8 @@ func (h *Bus) SetHDRReleaseModeExponential(set bool) {
 	h.HDRBitVector = wio.SetBit(h.HDRBitVector, 1, set)
 }
 
-func (h *Bus) Encode() []byte {
-	dataSize := h.DataSize()
+func (h *Bus) Encode(v int) []byte {
+	dataSize := h.DataSize(v)
 	size := SizeOfHircObjHeader + dataSize
 	w := wio.NewWriter(uint64(size))
 	w.AppendByte(uint8(HircTypeBus))
@@ -186,9 +188,9 @@ func (h *Bus) Encode() []byte {
 	if h.OverrideBusId == 0 {
 		w.Append(h.DeviceShareSetID)
 	}
-	w.AppendBytes(h.PropBundle.Encode())
-	w.AppendBytes(h.PositioningParam.Encode())
-	w.AppendBytes(h.AuxParam.Encode())
+	w.AppendBytes(h.PropBundle.Encode(v))
+	w.AppendBytes(h.PositioningParam.Encode(v))
+	w.AppendBytes(h.AuxParam.Encode(v))
 	w.Append(h.VirtualBehaviorBitVector)
 	w.Append(h.MaxNumInstance)
 	w.Append(h.ChannelConf)
@@ -199,26 +201,31 @@ func (h *Bus) Encode() []byte {
 	for _, i := range h.DuckInfoList {
 		w.Append(i)
 	}
-	w.AppendBytes(h.BusFxParam.Encode())
-	w.Append(h.OverrideAttachmentParams)
-	w.AppendBytes(h.BusFxMetadataParam.Encode())
-	w.AppendBytes(h.BusRTPC.Encode())
-	w.AppendBytes(h.StateProp.Encode())
-	w.AppendBytes(h.StateGroup.Encode())
+	w.AppendBytes(h.BusFxParam.Encode(v))
+	if v <= 145 {
+		w.Append(h.OverrideAttachmentParams)
+	}
+	w.AppendBytes(h.BusFxMetadataParam.Encode(v))
+	w.AppendBytes(h.BusRTPC.Encode(v))
+	w.AppendBytes(h.StateProp.Encode(v))
+	w.AppendBytes(h.StateGroup.Encode(v))
 	return w.BytesAssert(int(size))
 }
 
-func (h *Bus) DataSize() uint32 {
-	size := 29 + 
-		h.PropBundle.Size() + 
-		h.PositioningParam.Size() +
-		h.AuxParam.Size() +
+func (h *Bus) DataSize(v int) uint32 {
+	size := uint32(28)
+	if v <= 145 {
+		size += 1
+	}
+	size += h.PropBundle.Size(v) + 
+		h.PositioningParam.Size(v) +
+		h.AuxParam.Size(v) +
 		uint32(len(h.DuckInfoList)) * SizeOfDuckInfo +
-		h.BusFxParam.Size() +
-		h.BusFxMetadataParam.Size() +
-		h.BusRTPC.Size() +
-		h.StateProp.Size() +
-		h.StateGroup.Size()
+		h.BusFxParam.Size(v) +
+		h.BusFxMetadataParam.Size(v) +
+		h.BusRTPC.Size(v) +
+		h.StateProp.Size(v) +
+		h.StateGroup.Size(v)
 	if h.OverrideBusId == 0 {
 		size += 4
 	}
@@ -245,21 +252,27 @@ func (h *Bus) Leafs() []uint32 { return []uint32{} }
 
 type BusFxParam struct {
 	FxChunk       FxChunk
-	FxID_0        uint32
-	IsShareSet_0  uint8  // != 0
+	FxID_0        uint32  // <= 145
+	IsShareSet_0  uint8   // != 0 <= 145
 }
 
-func (b *BusFxParam) Encode() []byte {
-	size := b.Size()
+func (b *BusFxParam) Encode(v int) []byte {
+	size := b.Size(v)
 	w := wio.NewWriter(uint64(size))
-	w.AppendBytes(b.FxChunk.Encode())
-	w.Append(b.FxID_0)
-	w.Append(b.IsShareSet_0)
+	w.AppendBytes(b.FxChunk.Encode(v))
+	if v <= 145 {
+		w.Append(b.FxID_0)
+		w.Append(b.IsShareSet_0)
+	}
 	return w.BytesAssert(int(size))
 }
 
-func (b *BusFxParam) Size() uint32 {
-	return b.FxChunk.Size() + 5
+func (b *BusFxParam) Size(v int) uint32 {
+	if v <= 145 {
+		return b.FxChunk.Size(v) + 5
+	} else {
+		return b.FxChunk.Size(v)
+	}
 }
 
 type BusFxMetadataParam struct {
@@ -267,8 +280,8 @@ type BusFxMetadataParam struct {
 	FxChunkMetadataItems []FxChunkMetadataItem
 }
 
-func (b *BusFxMetadataParam) Encode() []byte {
-	size := b.Size()
+func (b *BusFxMetadataParam) Encode(v int) []byte {
+	size := b.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(uint8(len(b.FxChunkMetadataItems)))
 	for _, i := range b.FxChunkMetadataItems {
@@ -277,6 +290,6 @@ func (b *BusFxMetadataParam) Encode() []byte {
 	return w.BytesAssert(int(size))
 }
 
-func (b *BusFxMetadataParam) Size() uint32 {
+func (b *BusFxMetadataParam) Size(int) uint32 {
 	return 1 + uint32(len(b.FxChunkMetadataItems)) * SizeOfFxChunkMetadata
 }
