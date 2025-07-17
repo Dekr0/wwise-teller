@@ -69,6 +69,7 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 	var b *wwise.BaseParameter
 	buf := make([]byte, 4, 4)
 	dbuf := make([]byte, 4, 4)
+	ver := int(bnk.BKHD().BankGenerationVersion)
 	for _, m := range spec.Modifiers {
 		var in bool
 		v, in = h.ActorMixerHirc.Load(m.Id)
@@ -79,7 +80,7 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 		o = v.(wwise.HircObj)
 		b = o.BaseParameter()
 		if b == nil {
-			slog.Error(fmt.Sprintf("%s %d cannot perform base property modification", wwise.PropLabel_140[o.HircType()], m.Id))
+			slog.Error(fmt.Sprintf("%s %d cannot perform base property modification", wwise.HircTypeName[o.HircType()], m.Id))
 			continue
 		}
 		for i := range m.RequirePropIds {
@@ -88,17 +89,17 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 				slog.Error(err.Error())
 				continue
 			}
-			if idx, in := b.PropBundle.HasPid(pid); !in {
+			if idx, in := b.PropBundle.HasPid(pid, ver); !in {
 				binary.Encode(buf, wio.ByteOrder, &val)
-				b.PropBundle.AddWithVal(pid, [4]byte(buf))
+				b.PropBundle.AddWithVal(pid, [4]byte(buf), ver)
 			} else {
 				b.PropBundle.SetPropByIdxF32(idx, val)
 			}
 		}
 		if m.HDRActiveRange >= 0.0 {
 			// Enable HDR Envelope and set HDR Active range
-			b.SetEnableEnvelope(true)
-			i, _ := b.PropBundle.HDRActiveRange()
+			b.SetEnableEnvelope(true, ver)
+			i, _ := b.PropBundle.HDRActiveRange(ver)
 			if i != -1 {
 				b.PropBundle.SetPropByIdxF32(i, m.HDRActiveRange)
 			}
@@ -108,7 +109,7 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 				slog.Error(fmt.Sprintf("Invalid base property ID %d", p))
 				continue
 			}
-			b.PropBundle.Remove(p)
+			b.PropBundle.Remove(p, ver)
 		}
 		for i := range m.RequireRangePropIds {
 			pid, p := m.RequireRangePropIds[i], m.RequireRangePropVals[i]
@@ -116,10 +117,10 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 				slog.Error(err.Error())
 				continue
 			}
-			if idx, in := b.RangePropBundle.HasPid(pid); !in {
+			if idx, in := b.RangePropBundle.HasPid(pid, ver); !in {
 				binary.Encode(buf, wio.ByteOrder, &p.Min)
 				binary.Encode(dbuf, wio.ByteOrder, &p.Max)
-				b.RangePropBundle.AddWithVal(pid, [4]byte(buf), [4]byte(dbuf))
+				b.RangePropBundle.AddWithVal(pid, [4]byte(buf), [4]byte(dbuf), ver)
 			} else {
 				b.RangePropBundle.SetPropMinByIdxF32(idx, p.Min)
 				b.RangePropBundle.SetPropMinByIdxF32(idx, p.Max)
@@ -130,7 +131,7 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 				slog.Error(fmt.Sprintf("Invalid base property ID %d", p))
 				continue
 			}
-			b.RangePropBundle.Remove(p)
+			b.RangePropBundle.Remove(p, ver)
 		}
 	}
 	return nil
