@@ -10,12 +10,9 @@ import (
 	"github.com/Dekr0/wwise-teller/ui"
 	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/waapi"
-	"github.com/Dekr0/wwise-teller/wwise"
 )
 
 func main() {
-	wwise.InitTranslation()
-
 	proc := flag.String("proc", "", "Filepath to sound bank processor pipelines specification")
 	procDeadline := flag.Uint64("deadline", 16, "Deadline in seconds of running sound bank processor pipelines")
 
