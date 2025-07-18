@@ -13,15 +13,26 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
+// META ->
+// 4 byte - `M`, `E`, `T`, `A`      - tag
+// 4 byte - unsigned 32 bit integer - chunk size
+// 1 byte - unsigned 8 bit integer  - integration type
+// 8 byte - unsigned 64 bit integer - sound bank file ID
+// 4 byte - size 4 bytes array      - sound bank XOR value
+// 4 byte - unsigned 32 bit integer - wwise dependency size
+// n byte - bytes array             - wwise dependency data
+
 var NotHelldiversIntegration = errors.New("Not a Helldivers integration")
 
-const SizeOfMetaStable = 12
-const SizeOfMetaHeader = wwise.SizeOfChunkHeader + 1
-const SizeOfMetaBufferInit = SizeOfMetaStable + SizeOfMetaHeader
+const SizeOfMetaStableBase = 13
+const SizeOfMetaIntegrationType = 1
+const SizeOfMetaHeader = wwise.SizeOfChunkHeader + SizeOfMetaIntegrationType
+const SizeOfMetaBufferInit = SizeOfMetaStableBase + SizeOfMetaHeader
 type METAStable struct {
-	FileID   uint64
+	FileID      uint64
 	XOR      [4]byte
-	WwiseDep []byte
+	HasDep      uint8
+	WwiseDep  []byte
 }
 
 func GenHelldiversPatchStableMulti(bnks [][]byte, metas [][]byte, path string) error {
