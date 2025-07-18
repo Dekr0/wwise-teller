@@ -21,8 +21,9 @@ func (e *META) Encode(ctx context.Context, v int) ([]byte, error) {
 	encoded := e.T
 	encoded, err := binary.Append(encoded, wio.ByteOrder, uint32(len(e.B)))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+	encoded = append(encoded, e.B...)
 	return encoded, nil
 }
 
