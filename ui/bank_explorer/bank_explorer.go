@@ -243,8 +243,8 @@ func (b *BankTab) OpenActorMixerHircNode(id uint32) {
 	h.OpenActorMixerHircNode(id)
 }
 
-func (b *BankTab) SearchNearestEventAction(id uint32) (hasAction, hasEvent bool) {
-	hasAction, hasEvent = false, false
+func (b *BankTab) SearchNearestEventAction(id uint32) (find bool) {
+	find = false
 	h := b.Bank.HIRC()
 	actionId := uint32(0)
 	h.Actions.Range(func(key, value any) bool {
@@ -256,7 +256,7 @@ func (b *BankTab) SearchNearestEventAction(id uint32) (hasAction, hasEvent bool)
 		return true
 	})
 	if actionId == 0 {
-		return hasAction, hasEvent 
+		return find
 	}
 
 	eventId := uint32(0)
@@ -273,15 +273,15 @@ func (b *BankTab) SearchNearestEventAction(id uint32) (hasAction, hasEvent bool)
 	v, ok := h.Actions.Load(actionId)
 	if ok {
 		b.EventViewer.ActiveAction = v.(*wwise.Action)
-		hasAction = true
+		find = true
 	}
 	v, ok = h.Events.Load(eventId)
 	if ok {
 		b.EventViewer.ActiveEvent = v.(*wwise.Event)
-		hasEvent = true
+		find = true
 	}
 
-	return hasAction, hasEvent
+	return find
 }
 
 func (b *BankTab) OpenBusHircNode(id uint32) {
