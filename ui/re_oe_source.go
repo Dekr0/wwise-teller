@@ -16,7 +16,11 @@ func renderBankSourceData(t *be.BankTab, o *wwise.Sound) {
 		bsd := &o.BankSourceData
 		imgui.Text(fmt.Sprintf("Plugin Type ID: %d", bsd.PluginType()))
 		imgui.Text(fmt.Sprintf("Plugin Company ID: %d", bsd.Company()))
-		imgui.Text("Stream Type: " + wwise.SourceTypeNames[bsd.StreamType])
+
+		curr := int32(bsd.StreamType)
+		if imgui.ComboStrarr("Stream Type: ", &curr, wwise.SourceTypeNames, int32(len(wwise.SourceTypeNames))) {
+			bsd.StreamType = wwise.SourceType(curr)
+		}
 
 		renderChangeSourceQuery(t, bsd)
 		imgui.SameLine()
