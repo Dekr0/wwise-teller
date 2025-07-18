@@ -82,16 +82,21 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 			a.Data[0x0B] = 0x00
 
 			a.META = make([]byte, 0, SizeOfMetaBufferInit)
-			a.META = append(a.META, 'M', 'E', 'T', 'A')
-			a.META = append(a.META, 0, 0, 0, 0)
-			a.META = append(a.META, byte(IntegrationTypeHelldivers2))
-			a.META, err = binary.Append(a.META, wio.ByteOrder, h.FileID)
+			a.META = append(a.META, 'M', 'E', 'T', 'A') // 4
+			a.META = append(a.META, 0, 0, 0, 0) // 8
+			a.META = append(a.META, byte(IntegrationTypeHelldivers2)) // 13
+			a.META, err = binary.Append(a.META, wio.ByteOrder, h.FileID) // 21
 			if err != nil {
 				return err
 			}
 			a.META = append(a.META, XOR...)
 			if dep, in := wwiseDependencies[h.FileID]; in && !dry {
-				a.META = append(a.META, dep.Data...)
+				if len(a.META) != 21 {
+					panic(fmt.Sprintf("Sound bank %d has not filled up the necessary information on META chunk (chunk tag + chunk size + integration type + file id). The current META size chunk is %d.", h.FileID, len(a.META)))
+				}
+
+				a.META = append(a.META, uint8(1)) // 22
+				a.META = append(a.META, dep.Data...) // 22 + sizeof(wwise dependency)
 				size := len(a.META) - wwise.SizeOfChunkHeader
 
 				buffer := make([]byte, 4, 4)
@@ -110,7 +115,7 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 				path = bytes.ReplaceAll(path, []byte{'/'}, []byte{'_'})
 
 				if bytes.Compare(path, []byte{}) == 0 {
-					path = []byte(fmt.Sprintf("%d", a.Header.FileID))
+					path = fmt.Appendf(path, "%d", a.Header.FileID)
 				}
 
 				name := fmt.Sprintf("%s.st_bnk", path)
@@ -149,10 +154,15 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 				path = bytes.ReplaceAll(path, []byte{'/'}, []byte{'_'})
 
 				if bytes.Compare(path, []byte{}) == 0 {
-					path = []byte(fmt.Sprintf("%d", a.Header.FileID))
+					path = fmt.Appendf(path, "%d", a.Header.FileID)
 				}
 				name := fmt.Sprintf("%s.st_bnk", path)
 
+				if len(bnk.META) != 21 {
+					panic(fmt.Sprintf("Sound bank %d has not filled up the necessary information on META chunk (chunk tag + chunk size + integration type + file id). The current META size chunk is %d.", h.FileID, len(bnk.META)))
+				}
+
+				bnk.META = append(bnk.META, uint8(1))
 				bnk.META = append(bnk.META, a.Data...)
 
 				size := len(bnk.META) - wwise.SizeOfChunkHeader
@@ -184,6 +194,26 @@ func ExtractSoundBankStable(path string, dest string, dry bool) error {
 				wwiseDependencies[h.FileID] = a
 			}
 		}
+	}
+
+	for fid, bnk := range soundBanks {
+		if _, in := wwiseDependencies[fid]; in {
+			continue
+		}
+		if len(bnk.META) != 21 {
+			panic(fmt.Sprintf("Sound bank %d has not filled up the necessary information on META chunk (chunk tag + chunk size + integration type + file id). The current META size chunk is %d.", fid, len(bnk.META)))
+		}
+		bnk.META = append(bnk.META, uint8(0))
+		size := len(bnk.META) - wwise.SizeOfChunkHeader
+		buffer := make([]byte, 4, 4)
+		_, err := binary.Encode(buffer, wio.ByteOrder, uint32(size))
+		if err != nil {
+			return err
+		}
+		bnk.META[4] = buffer[0]
+		bnk.META[5] = buffer[1]
+		bnk.META[6] = buffer[2]
+		bnk.META[7] = buffer[3]
 	}
 
 	return nil
