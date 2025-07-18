@@ -61,6 +61,7 @@ type BankTab struct {
 	// Sync
 	Focus             BankTabEnum 
 	SounBankLock      atomic.Bool
+	WEMStreamRef      map[string]uint32
 	WEMExportLock     atomic.Bool
 	WEMExportCache    sync.Map
 	ErrorAudioSources sync.Map
@@ -301,7 +302,7 @@ func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
 	}
 	c := make(chan *result)
 	go func() {
-		data, err := b.Bank.Encode(ctx, false)
+		data, err := b.Bank.Encode(ctx, true, false)
 		c <- &result{data, err}
 	}()
 
