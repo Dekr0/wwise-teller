@@ -252,7 +252,7 @@ func RunProcessPipeline(
 			}
 			ctx, cancel := context.WithTimeout(ctx, time.Second * 8)
 			defer cancel()
-			bnkData, err := bnk.Encode(ctx, false)
+			bnkData, err := bnk.Encode(ctx, false, false)
 			if err != nil {
 				slog.Error(fmt.Sprintf("Failed to encode sound bank %s", p.Banks[i]), "error", err)
 				slog.Warn(fmt.Sprintf("Skipping sound bank %s", p.Banks[i]))
@@ -273,7 +273,7 @@ func RunProcessPipeline(
 			}
 			ctx, cancel := context.WithTimeout(ctx, time.Second * 8)
 			defer cancel()
-			bnkData, err := bnk.Encode(ctx, false)
+			bnkData, err := bnk.Encode(ctx, true, false)
 			if err != nil {
 				slog.Error(fmt.Sprintf("Failed to encode sound bank %s", p.Banks[i]), "error", err)
 				slog.Warn(fmt.Sprintf("Skipping sound bank %s", p.Banks[i]))

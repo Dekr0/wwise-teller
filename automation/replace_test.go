@@ -20,7 +20,7 @@ func TestReplace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = bnk.Encode(context.Background(), false)
+	_, err = bnk.Encode(context.Background(), true, false)
 	if err != nil {
 		t.Fatal(err)
 	}

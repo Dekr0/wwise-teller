@@ -134,7 +134,7 @@ func TestAppendRanSeqCntr(t *testing.T) {
 
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second * 2)
 	defer cancel()
-	data, err := bnk.Encode(ctx, false)
+	data, err := bnk.Encode(ctx, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
