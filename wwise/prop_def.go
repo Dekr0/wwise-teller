@@ -155,4 +155,3 @@ var PropLabel_154 = map[uint8]string{
     0x4A: "Loop",
     0x4B: "Attenuation ID",
 }
-
