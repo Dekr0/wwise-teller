@@ -78,6 +78,7 @@ func GenHelldiversPatchStableMulti(bnks [][]byte, metas [][]byte, path string) e
 		bnkAssetHeader = AssetHeader{
 			FileID: ms[i].FileID,
 			TypeID: AssetTypeSoundBank,
+			DataOffset: dataOffset,
 			StreamOffset: 0,
 			GPURsrcOffset: 0,
 			UnknownU64A: 0,
