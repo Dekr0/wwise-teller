@@ -119,7 +119,7 @@ func CreateEncodeClosure(
 	}
 }
 
-func (bnk *Bank) Encode(ctx context.Context, diffTest bool) ([]byte, error) {
+func (bnk *Bank) Encode(ctx context.Context, excludeMETA bool, diffTest bool) ([]byte, error) {
 	if !diffTest {
 		bnk.ComputeDIDXOffset()
 		if bnk.DIDX() != nil && bnk.DATA() != nil {
@@ -136,7 +136,7 @@ func (bnk *Bank) Encode(ctx context.Context, diffTest bool) ([]byte, error) {
 
 	i := 0
 	for _, cu := range bnk.Chunks {
-		if bytes.Compare(cu.Tag(), []byte{'M', 'E', 'T', 'A'}) == 0 {
+		if excludeMETA && bytes.Compare(cu.Tag(), []byte{'M', 'E', 'T', 'A'}) == 0 {
 			continue
 		}
 		go CreateEncodeClosure(ctx, c, cu, int(bnk.BKHD().BankGenerationVersion))()
@@ -152,7 +152,7 @@ func (bnk *Bank) Encode(ctx context.Context, diffTest bool) ([]byte, error) {
 				return nil, res.e
 			}
 			chunks[res.i] = res.b
-			slog.Debug(
+			slog.Info(
 				fmt.Sprintf("Encoded %s section.", res.b[0:4]),
 				"size", len(res.b[8:]),
 			)
