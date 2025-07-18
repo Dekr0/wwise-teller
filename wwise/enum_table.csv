@@ -1,0 +1,95 @@
+Volume,Volume
+LFE,LFE
+Pitch,Pitch
+LPF,LPF
+HPF,HPF
+MakeUpGain,Make Up Gain
+InitialDelay,Initial Delay
+DelayTime,Delay Time
+UserAuxSendVolume0,User Aux Send Volume 0
+UserAuxSendVolume1,User Aux Send Volume 1
+UserAuxSendVolume2,User Aux Send Volume 2
+UserAuxSendVolume3,User Aux Send Volume 3
+UserAuxSendLPF0,User Aux Send LPF 0
+UserAuxSendLPF1,User Aux Send LPF 1
+UserAuxSendLPF2,User Aux Send LPF 2
+UserAuxSendLPF3,User Aux Send LPF 3
+UserAuxSendHPF0,User Aux Send HPF 0
+UserAuxSendHPF1,User Aux Send HPF 1
+UserAuxSendHPF2,User Aux Send HPF 2
+UserAuxSendHPF3,User Aux Send HPF 3
+GameAuxSendVolume,Game Aux Send Volume
+GameAuxSendLPF,Game Aux Send LPF
+GameAuxSendHPF,Game Aux Send HPF
+BusVolume,Bus Volume
+OutputBusVolume,Output Bus Volume
+OutputBusHPF,Output Bus HPF
+OutputBusLPF,Output Bus LPF
+ReflectionBusVolume,Reflection Bus Volume
+HDRBusThreshold,HDR Bus Threshold
+HDRBusRatio,HDR Bus Ratio
+HDRBusReleaseTime,HDR Bus Release Time
+HDRActiveRange,HDR Active Range
+HDRBusGameParam,HDR Bus Game Param
+HDRBusGameParamMin,HDR Bus Game Param Min
+HDRBusGameParamMax,HDR Bus Game Param Max
+MidiTrackingRootNote,Midi Tracking Root Note
+MidiPlayOnNoteType,Midi Play On Note Type
+MidiTransposition,Midi Transposition
+MidiVelocityOffset,Midi Velocity Offset
+MidiKeyRangeMin,Midi Key Range Min
+MidiKeyRangeMax,Midi Key Range Max
+MidiVelocityRangeMin,Midi Velocity Range Min
+MidiVelocityRangeMax,Midi Velocity Range Max
+MidiChannelMask,Midi Channel Mask
+MidiTempoSource,Midi Tempo Source
+MidiTargetNode,Midi Target Node
+PANLR,PAN LR
+PANFR,PAN FR
+PANUD,PAN UD
+CenterPCT,Center PCT
+PositioningPanX2D,Positioning Pan X 2D
+PositioningPanY2D,Positioning Pan Y 2D
+PositioningPanZ2D,Positioning Pan Z 2D
+PositioningPanX3D,Positioning Pan X 3D
+PositioningPanY3D,Positioning Pan Y 3D
+PositioningPanZ3D,Positioning Pan Z 3D
+PositioningCenterPercent,Positioning Center Percent
+PositioningTypeBlend,Positioning Type Blend
+PositioningEnableAttenuation,Positioning Enable Attenuation
+PositioningConeAttenuationOnOff,Positioning Cone Attenuation On Off
+PositioningConeAttenuation,Positioning Cone Attenuation
+PositioningConeLPF,Positioning Cone LPF
+PositioningConeHPF,Positioning Cone HPF
+FeedbackVolumeUnused,Feedback Volume Unused
+FeedbackLPFUnused,Feedback LPF Unused
+BypassFX,Bypass FX
+BypassAllFX,Bypass All FX
+BypassAllMetadata,Bypass All Metadata
+AttachedPluginFXID,Attached Plugin FX ID
+MuteRatio,Mute Ratio
+PlayMechanismSpecialTransitionsValue,Play Mechanism Special Transitions Value
+TransitionTime,Transition Time
+TrimInTime,Trim In Time
+TrimOutTime,Trim Out Time
+FadeInTime,Fade In Time
+FadeOutTime,Fade Out Time
+FadeInCurve,Fade In Curve
+FadeOutCurve,Fade Out Curve
+LoopCrossfadeDuration,Loop Crossfade Duration
+CrossfadeUpCurve,Crossfade Up Curve
+CrossfadeDownCurve,Crossfade Down Curve
+Priority,Priority
+PriorityDistanceOffset,Priority Distance Offset
+MaxNumInstances,Max Num Instances
+Probability,Probability
+DialogueMode,Dialogue Mode
+Available0,Available 0
+Available1,Available 1
+Available2,Available 2
+PlaybackSpeed,Playback Speed
+Loop,Loop
+LoopStart,Loop Start
+LoopEnd,Loop End
+AttenuationDistanceScaling,Attenuation Distance Scaling
+AttenuationID,Attenuation ID
