@@ -158,6 +158,13 @@ func renderActorMixerHircCtx(
 		if imgui.SelectableBool("Search For A Event and An Action") {
 		}
 	})
+
+	if imgui.SelectableBool("Search For Events and Actions") {
+		if t.SearchNearestEventAction(id) {
+			t.Focus = be.BankTabEvents
+			imgui.SetWindowFocusStr("Events")
+		}
+	}
 }
 
 func renderMusicHircTree(t *be.BankTab, open *bool) {
