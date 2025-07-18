@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/Dekr0/wwise-teller/integration"
 	"github.com/Dekr0/wwise-teller/integration/helldivers"
@@ -222,7 +223,9 @@ func RunProcessPipeline(
 	if w != nil { defer w.Done() }
 	var _w sync.WaitGroup
 	if sems != nil { defer func(){ <- sems }() }
-	for _, b := range p.Banks {
+	bnks := make([]*wwise.Bank, len(p.Banks), len(p.Banks))
+	for i, b := range p.Banks {
+		take := i
 		select {
 		case <- ctx.Done():
 			slog.Error(ctx.Err().Error())
@@ -230,12 +233,72 @@ func RunProcessPipeline(
 			return
 		case sems <- struct{}{}:
 			_w.Add(1)
-			go RunProcessScripts(ctx, b, p, &_w, sems)
+			go func() {
+				bnks[take] = RunProcessScripts(ctx, b, p, &_w, sems)
+			}()
 		default:
-			RunProcessScripts(ctx, b, p, nil, nil)
+			bnks[i] = RunProcessScripts(ctx, b, p, nil, nil)
 		}
 	}
 	_w.Wait()
+
+	switch p.Integration {
+	case integration.IntegrationTypeNone:
+		panic("Panic Trap")
+	case integration.IntegrationTypeDefault:
+		 for i, bnk := range bnks {
+			if bnk == nil {
+				continue
+			}
+			ctx, cancel := context.WithTimeout(ctx, time.Second * 8)
+			defer cancel()
+			bnkData, err := bnk.Encode(ctx, false)
+			if err != nil {
+				slog.Error(fmt.Sprintf("Failed to encode sound bank %s", p.Banks[i]), "error", err)
+				slog.Warn(fmt.Sprintf("Skipping sound bank %s", p.Banks[i]))
+				continue
+			}
+			basename := filepath.Base(p.Banks[i])
+			err = os.WriteFile(filepath.Join(p.Output, basename), bnkData, 0777)
+			if err != nil {
+				slog.Error(fmt.Sprintf("Failed to save sound bank %s to %s", basename, p.Output), "error", err)
+			}
+		}
+	case integration.IntegrationTypeHelldivers2:
+		bnksData := [][]byte{}
+		metasData := [][]byte{}
+		for i, bnk := range bnks {
+			if bnk == nil {
+				continue
+			}
+			ctx, cancel := context.WithTimeout(ctx, time.Second * 8)
+			defer cancel()
+			bnkData, err := bnk.Encode(ctx, false)
+			if err != nil {
+				slog.Error(fmt.Sprintf("Failed to encode sound bank %s", p.Banks[i]), "error", err)
+				slog.Warn(fmt.Sprintf("Skipping sound bank %s", p.Banks[i]))
+				continue
+			}
+			meta := bnk.META()
+			if meta == nil {
+				slog.Error(fmt.Sprintf("Sound bank %s is missing META data for integration", p.Banks[i]))
+				slog.Warn(fmt.Sprintf("Skipping sound bank %s", p.Banks[i]))
+				continue
+			}
+			bnksData = append(bnksData, bnkData)
+			metasData = append(metasData, meta.B)
+		}
+		if len(bnksData) <= 0  {
+			slog.Warn("No sound bank data available for integration.")
+			return
+		}
+		err := helldivers.GenHelldiversPatchStableMulti(bnksData, metasData, p.Output)
+		if err != nil {
+			slog.Error("Failed to run Helldivers 2 integration", "error", err)
+		}
+	default:
+		panic("Panic Trap")
+	}
 }
 
 func RunProcessScripts(
@@ -244,7 +307,7 @@ func RunProcessScripts(
 	p *ProcessPipeline,
 	w *sync.WaitGroup,
 	sems chan struct{},
-) {
+) *wwise.Bank {
 	if w != nil { defer w.Done() }
 	if sems != nil { defer func() { <- sems }() }
 	if !filepath.IsAbs(bank) {
@@ -253,14 +316,13 @@ func RunProcessScripts(
 	bnk, err := parser.ParseBank(bank, ctx, false)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Failed to parse sound bank %s", bank), "error", err)
-		return
+		return nil
 	}
-	basename := filepath.Base(bank)
 	for _, script := range p.Scripts {
 		select {
 		case <- ctx.Done():
 			slog.Error(ctx.Err().Error())
-			return
+			return nil
 		default:
 		}
 		if !filepath.IsAbs(script.Script) {
@@ -282,38 +344,7 @@ func RunProcessScripts(
 			slog.Error(fmt.Sprintf("Failed to run process script %s", script.Script), "error", err)
 		}
 	}
-	switch p.Integration {
-	case integration.IntegrationTypeNone:
-		panic("Panic Trap")
-	case integration.IntegrationTypeDefault:
-		bnkData, err := bnk.Encode(ctx, false)
-		if err != nil {
-			slog.Error(fmt.Sprintf("Failed to encode sound bank %s", basename), "error", err)
-			return
-		}
-		err = os.WriteFile(filepath.Join(p.Output, basename), bnkData, 0777)
-		if err != nil {
-			slog.Error(fmt.Sprintf("Failed to save sound bank %s to %s", basename, p.Output), "error", err)
-			return
-		}
-	case integration.IntegrationTypeHelldivers2:
-		bnkData, err := bnk.Encode(ctx, false)
-		if err != nil {
-			slog.Error(fmt.Sprintf("Failed to encode sound bank %s", basename), "error", err)
-			return
-		}
-		meta := bnk.META()
-		if meta == nil {
-			slog.Error(fmt.Sprintf("Sound bank %s is missing META chunk.", basename))
-			return
-		}
-		if err := helldivers.GenHelldiversPatchStable(bnkData, meta.B, p.Output); err != nil {
-			slog.Error(fmt.Sprintf("Failed to pack sound bank %s into Helldivers 2 game init archive", basename))
-			return
-		}
-	default:
-		panic("Panic Trap")
-	}
+	return bnk
 }
 
 func ProcessActiveBank(ctx context.Context, bnk *wwise.Bank, fspec string) error {
