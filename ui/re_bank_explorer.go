@@ -164,11 +164,11 @@ func renderBankExplorerMenu(bnkMngr *be.BankManager) {
 			}
 
 			if imgui.BeginMenu("Project") {
-				imgui.BeginDisabledV(bnkMngr.ActiveBank == nil)
-				if imgui.MenuItemBool("Set Selected Bank As Init.bnk") {
-					bnkMngr.InitBank = bnkMngr.ActiveBank
-				}
-				imgui.EndDisabled()
+				Disabled(bnkMngr.ActiveBank == nil, func() {
+					if imgui.MenuItemBool("Set Selected Bank As Init.bnk") {
+						bnkMngr.InitBank = bnkMngr.ActiveBank
+					}
+				})
 				if imgui.BeginMenu("Set Init.bnk Using Existed Banks") {
 					bnkMngr.Banks.Range(func(key, value any) bool {
 						if imgui.MenuItemBool(key.(string)) {
@@ -227,16 +227,16 @@ func renderActorMixerHircTable(t *be.BankTab) {
 		t.FilterActorMixerHircs()
 	}
 
-	imgui.BeginDisabledV(filterState.Type != wwise.HircTypeAll && filterState.Type != wwise.HircTypeSound)
-	imgui.SetNextItemWidth(96)
-	if imgui.InputScalar(
-		"By source ID",
-		imgui.DataTypeU32,
-		uintptr(utils.Ptr(&filterState.Sid)),
-	) {
-		t.FilterActorMixerHircs()
-	}
-	imgui.EndDisabled()
+	Disabled(filterState.Type != wwise.HircTypeAll && filterState.Type != wwise.HircTypeSound, func() {
+		imgui.SetNextItemWidth(96)
+		if imgui.InputScalar(
+			"By source ID",
+			imgui.DataTypeU32,
+			uintptr(utils.Ptr(&filterState.Sid)),
+		) {
+			t.FilterActorMixerHircs()
+		}
+	})
 
 	imgui.SetNextItemWidth(256)
 	preview := wwise.HircTypeName[filterState.Type]
@@ -352,7 +352,6 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 
 	switch sound := o.(type) {
 	case *wwise.Sound:
-		imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
 		Disabled(!GlobalCtx.CopyEnable, func() {
 			if imgui.SelectableBool("Copy Source ID") {
 				clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
@@ -401,4 +400,11 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 			clipboard.Write(clipboard.FmtText, []byte(builder.String()))
 		}
 	})
+
+	if imgui.SelectableBool("Search For Events and Actions") {
+		if t.SearchNearestEventAction(id) {
+			t.Focus = be.BankTabEvents
+			imgui.SetWindowFocusStr("Events")
+		}
+	}
 }
