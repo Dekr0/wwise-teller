@@ -23,7 +23,10 @@ func TestExtractSoundBanksStable(t *testing.T) {
 func TestGenPatchStable(t *testing.T) {
 	ctx := context.Background()
 	bnksName := []string{
+		"./content_audio_wep_volley_gun.st_bnk",
 		"./8342649675791264267.st_bnk",
+		"./content_audio_wep_ar90_karbin.st_bnk",
+		"./content_audio_stratagems_defense_wall.st_bnk",
 	}
 	bnks := []wwise.Bank{}
 	for _, bnkName := range bnksName {
@@ -36,7 +39,7 @@ func TestGenPatchStable(t *testing.T) {
 	bnksData := [][]byte{}
 	metas := [][]byte{}
 	for _, bnk := range bnks {
-		bnkData, err := bnk.Encode(ctx, false)
+		bnkData, err := bnk.Encode(ctx, true, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -59,7 +62,7 @@ func TestExtractSoundBanksPatchStable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := parser.ParseBank("../content_audio_vehicle_combat_walker.st_bnk", context.Background(), false)
+	_, err := parser.ParseBank("../content_audio_wep_ar90_karbin.st_bnk", context.Background(), false)
 	if err != nil {
 		t.Fatal(err)
 	}
