@@ -6,6 +6,8 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	"github.com/Dekr0/wwise-teller/wwise"
+	"golang.design/x/clipboard"
 )
 
 func renderAttenuationTable(t *be.BankTab) {
@@ -73,3 +75,10 @@ func renderAttenuationTable(t *be.BankTab) {
 	}
 }
 
+func renderAttenuationTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
+	Disabled(!GlobalCtx.CopyEnable, func() {
+		if imgui.SelectableBool("Copy ID") {
+			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
+		}
+	})
+}
