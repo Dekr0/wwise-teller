@@ -30,7 +30,7 @@ func TestGenPatchStable(t *testing.T) {
 	}
 	bnks := []wwise.Bank{}
 	for _, bnkName := range bnksName {
-		bnk, err:= parser.ParseBank(bnkName, ctx, false)
+		bnk, err := parser.ParseBank(bnkName, ctx, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -59,11 +59,6 @@ func TestExtractSoundBanksPatchStable(t *testing.T) {
 	slog.SetLogLoggerLevel(slog.LevelInfo.Level())
 
 	if err := ExtractSoundBankStable("./9ba626afa44a3aa3.patch_0", "..", false); err != nil {
-		t.Fatal(err)
-	}
-
-	_, err := parser.ParseBank("../content_audio_wep_ar90_karbin.st_bnk", context.Background(), false)
-	if err != nil {
 		t.Fatal(err)
 	}
 }

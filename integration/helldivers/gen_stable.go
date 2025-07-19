@@ -1,5 +1,3 @@
-// TODO:
-// - Bundle multiple sound banks together
 package helldivers
 
 import (
