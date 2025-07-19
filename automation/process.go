@@ -22,13 +22,16 @@ const ProcessSpecVersion = 0
 
 type ProcessScriptType uint8
 
+// TODO: this will cause migration problem on the user side since they use 
+// number to tag type
 const (
-	TypeRewireWithNewSources ProcessScriptType = 0
-	TypeRewireWithOldSources ProcessScriptType = 1
-	TypeBasePropModifiers    ProcessScriptType = 2
-	TypeImportAsRanSeqCntr   ProcessScriptType = 3
-	TypeReplaceAudioSources  ProcessScriptType = 4
-	ProcessScriptTypeCount   ProcessScriptType = 5
+	TypeRewireWithNewSources ProcessScriptType = iota
+	TypeRewireWithOldSources
+	TypeBasePropModifiers   
+	TypeImportAsRanSeqCntr  
+	TypeReplaceAudioSources 
+	TypeRanSeqModifiers
+	ProcessScriptTypeCount
 )
 
 type Processor struct {
@@ -198,7 +201,8 @@ func Process(ctx context.Context, fspec string) {
 	}
 	sems := make(chan struct{}, 8)
 	var w sync.WaitGroup
-	for _, p := range spec.Pipelines {
+	for i := range spec.Pipelines {
+		p := &spec.Pipelines[i]
 		select {
 		case <- ctx.Done():
 			slog.Error(ctx.Err().Error())
@@ -206,41 +210,43 @@ func Process(ctx context.Context, fspec string) {
 			return
 		case sems <- struct{}{}:
 			w.Add(1)
-			go RunProcessPipeline(ctx, &p, &w, sems)
+			go func() {
+				defer func() {
+					<- sems
+					w.Done()
+				}()
+				go RunProcessPipeline(ctx, p, sems)
+			}()
 		default:
-			RunProcessPipeline(ctx, &p, nil, nil)
+			RunProcessPipeline(ctx, p, sems)
 		}
 	}
 	w.Wait()
 }
 
-func RunProcessPipeline(
-	ctx context.Context,
-	p *ProcessPipeline,
-	w *sync.WaitGroup,
-	sems chan struct{},
-) {
-	if w != nil { defer w.Done() }
-	var _w sync.WaitGroup
-	if sems != nil { defer func(){ <- sems }() }
+func RunProcessPipeline(ctx context.Context, p *ProcessPipeline, sems chan struct{}) {
+	var w sync.WaitGroup
 	bnks := make([]*wwise.Bank, len(p.Banks), len(p.Banks))
-	for i, b := range p.Banks {
-		take := i
+	for i := range p.Banks {
 		select {
 		case <- ctx.Done():
 			slog.Error(ctx.Err().Error())
-			_w.Wait()
+			w.Wait()
 			return
 		case sems <- struct{}{}:
-			_w.Add(1)
-			go func() {
-				bnks[take] = RunProcessScripts(ctx, b, p, &_w, sems)
-			}()
+			w.Add(1)
+			go func(j int) {
+				defer func() {
+					<- sems
+					w.Done()
+				}()
+				bnks[i] = RunProcessScripts(ctx, p.Banks[j], p)
+			}(i)
 		default:
-			bnks[i] = RunProcessScripts(ctx, b, p, nil, nil)
+			bnks[i] = RunProcessScripts(ctx, p.Banks[i], p)
 		}
 	}
-	_w.Wait()
+	w.Wait()
 
 	switch p.Integration {
 	case integration.IntegrationTypeNone:
@@ -301,15 +307,7 @@ func RunProcessPipeline(
 	}
 }
 
-func RunProcessScripts(
-	ctx context.Context,
-	bank string,
-	p *ProcessPipeline,
-	w *sync.WaitGroup,
-	sems chan struct{},
-) *wwise.Bank {
-	if w != nil { defer w.Done() }
-	if sems != nil { defer func() { <- sems }() }
+func RunProcessScripts(ctx context.Context, bank string, p *ProcessPipeline) *wwise.Bank {
 	if !filepath.IsAbs(bank) {
 		bank = filepath.Join(p.BanksWorkspace, bank)
 	}
@@ -337,6 +335,8 @@ func RunProcessScripts(
 			err = ImportAsRanSeqCntr(ctx, bnk, script.Script)
 		case TypeReplaceAudioSources:
 			err = ReplaceAudioSources(ctx, bnk, script.Script, false)
+		case TypeRanSeqModifiers:
+			err = ProcessRanSeq(bnk, script.Script)
 		default:
 			panic(fmt.Sprintf("Unsupport process script type %d.", script.Type))
 		}
