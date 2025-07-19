@@ -16,7 +16,7 @@ import (
 	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
-var testRewire string = filepath.Join(os.Getenv("TESTS"), "rewire")
+var testRewire string = filepath.Join(testScriptsDir, "rewire")
 var testRewireNew string = filepath.Join(testRewire, "new")
 var testRewireNewOkDir string = filepath.Join(testRewire, "ok")
 var testRewireNewCompleteDir string = filepath.Join(testRewireNewOkDir, "complete")

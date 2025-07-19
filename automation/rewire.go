@@ -51,7 +51,7 @@ func RewireWithNewSources(
 	if err != nil {
 		return err
 	}
-	err = db.CheckDatabaseEnv()
+	err = db.Ping()
 	if err != nil {
 		return err
 	}
@@ -126,34 +126,30 @@ func RewireWithNewSources(
 		delete(wemsMapSounds, errorWem)
 	}
 
-	db.WriteLock.Lock()
-	defer db.WriteLock.Unlock()
-	q, closeDb, commit, txRollback, err := db.CreateDefaultConnWithTxQuery(ctx)
+	sids := make([]uint32, len(wemsMapSounds))
+	closeConn, commit, rollback, err := db.AllocateSid(ctx, sids)
 	if err != nil {
 		return err
 	}
-	defer closeDb()
+	defer closeConn()
 
 	wemsMapMediaIndexs := make(map[string]wwise.MediaIndex, len(wemsMapSounds))
+	i := 0
 	for wem := range wemsMapSounds {
-		sid, err := db.TrySid(ctx, q)
-		if err != nil {
-			txRollback()
-			return fmt.Errorf("Failed to allocate a new source ID: %w", err)
-		}
 		if _, in := wemsMapMediaIndexs[wem]; in {
 			panic(fmt.Sprintf("Detect duplicated wem file %s when storing media index", wem))
 		}
-		if audioData, in := wemsMapAudioData[wem]; !in { 
+		audioData, in := wemsMapAudioData[wem]
+		if !in { 
 			panic(fmt.Sprintf("Cannot find audio data with wem file %s", wem)) 
-		} else {
-			wemsMapMediaIndexs[wem] = wwise.MediaIndex{Sid: sid, Size: uint32(len(audioData))}
 		}
+		wemsMapMediaIndexs[wem] = wwise.MediaIndex{Sid: sids[i], Size: uint32(len(audioData))}
+		i += 1
 	}
 
 	if err := commit(); err != nil {
 		slog.Error(err.Error())
-		txRollback()
+		rollback()
 		return err
 	}
 
