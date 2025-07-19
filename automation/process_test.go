@@ -16,8 +16,7 @@ import (
 	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
-var testStBankDir = filepath.Join(os.Getenv("TESTS"), "default_st_bnks")
-var testProcessDir = filepath.Join(os.Getenv("TESTS"), "process")
+var testProcessDir = filepath.Join(testScriptsDir, "process")
 var testProcessOkDir = filepath.Join(testProcessDir, "ok")
 
 func TestProcess(t *testing.T) {

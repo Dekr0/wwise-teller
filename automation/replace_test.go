@@ -2,6 +2,7 @@ package automation
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/Dekr0/wwise-teller/parser"
@@ -13,7 +14,7 @@ func TestReplace(t *testing.T) {
 		t.Fatal(err)
 	}
 	bnk, err := parser.ParseBank(
-		"../tests/default_st_bnks/content_audio_wep_ar61_marauder.st_bnk",
+		filepath.Join(testStBankDir, "content_audio_wep_ar61_marauder.st_bnk"),
 		context.Background(),
 		false,
 	)
