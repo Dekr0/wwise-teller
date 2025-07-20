@@ -170,17 +170,12 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	default:
 		return fmt.Errorf("Parent actor mixer hierarchy type %s is yet supported.", wwise.HircTypeName[parent.HircType()])
 	}
-	if parent == nil {
-		panic("Panic Trap")
-	}
-	v, in = h.Events.Load(s.Event)
+
+	_, in = h.Events.Load(s.Event)
 	if !in {
 		return fmt.Errorf("No event object has ID %d.", s.Event)
 	}
-	event := v.(*wwise.Event)
-	if event == nil {
-		panic("Panic Trap")
-	}
+
 	v, in = h.ActorMixerHirc.Load(s.RefContainer)
 	if !in {
 		return fmt.Errorf("No reference random / sequence container has ID %d.", s.RefContainer)
@@ -212,14 +207,11 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 		return fmt.Errorf("No action has ID %d.", s.RefAction)
 	}
 	refAction := v.(*wwise.Action)
-	if refAction == nil {
-		panic("Panic Trap")
-	}
 
 	wems := make([]string, len(inputsMap))
 	wsource, err := waapi.CreateConversionListInOrder(ctx, inputsMap, wems, s.Conversion, false)
 	if len(inputsMap) != len(wems) {
-		panic("Panic Trap")
+		panic("Length of input maps does not equal to the length of output array")
 	}
 	if err != nil {
 		return err
@@ -401,7 +393,7 @@ func NewSoundToRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) e
 	wems := make([]string, len(inputsMap))
 	wsource, err := waapi.CreateConversionListInOrder(ctx, inputsMap, wems, s.Conversion, false)
 	if len(inputsMap) != len(wems) {
-		panic("Panic Trap")
+		panic("Length of input maps does not equal to the length of output array")
 	}
 	if err != nil {
 		return err
