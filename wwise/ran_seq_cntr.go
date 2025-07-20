@@ -130,6 +130,13 @@ func (r *RanSeqCntr) AddLeafToPlayList(i int) {
 	})
 }
 
+func (r *RanSeqCntr) ResetPlayListToLeafOrder() {
+	r.PlayListItems = slices.Delete(r.PlayListItems, 0, len(r.PlayListItems))
+	for _, lid := range r.Container.Children {
+		r.PlayListItems = append(r.PlayListItems, PlayListItem{lid, 50000})
+	}
+}
+
 func (r *RanSeqCntr) MovePlayListItem(a int, b int) {
 	r.PlayListItems[b], r.PlayListItems[a] = r.PlayListItems[a], r.PlayListItems[b]
 }
