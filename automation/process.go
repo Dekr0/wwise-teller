@@ -27,10 +27,11 @@ type ProcessScriptType uint8
 const (
 	TypeRewireWithNewSources ProcessScriptType = iota
 	TypeRewireWithOldSources
-	TypeBasePropModifiers   
-	TypeImportAsRanSeqCntr  
+	TypeBasePropModifiers 
+	TypeImportAsRanSeqCntr
 	TypeReplaceAudioSources 
 	TypeRanSeqModifiers
+	TypeNewSoundToRanSeqCntr
 	ProcessScriptTypeCount
 )
 
@@ -337,6 +338,8 @@ func RunProcessScripts(ctx context.Context, bank string, p *ProcessPipeline) *ww
 			err = ReplaceAudioSources(ctx, bnk, script.Script, false)
 		case TypeRanSeqModifiers:
 			err = ProcessRanSeq(bnk, script.Script)
+		case TypeNewSoundToRanSeqCntr:
+			err = NewSoundToRanSeqCntr(ctx, bnk, script.Script)
 		default:
 			panic(fmt.Sprintf("Unsupport process script type %d.", script.Type))
 		}

@@ -18,6 +18,7 @@ func renderBankSourceData(t *be.BankTab, o *wwise.Sound) {
 		imgui.Text(fmt.Sprintf("Plugin Company ID: %d", bsd.Company()))
 
 		curr := int32(bsd.StreamType)
+		imgui.SetNextItemWidth(96)
 		if imgui.ComboStrarr("Stream Type: ", &curr, wwise.SourceTypeNames, int32(len(wwise.SourceTypeNames))) {
 			bsd.StreamType = wwise.SourceType(curr)
 		}
