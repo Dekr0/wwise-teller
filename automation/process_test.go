@@ -12,8 +12,7 @@ import (
 	"github.com/Dekr0/wwise-teller/db/id"
 	"github.com/Dekr0/wwise-teller/utils"
 
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var testProcessDir = filepath.Join(testScriptsDir, "process")
