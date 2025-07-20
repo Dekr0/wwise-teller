@@ -4,9 +4,11 @@ import (
 	"context"
 	"flag"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/Dekr0/wwise-teller/automation"
+	"github.com/Dekr0/wwise-teller/db"
 	"github.com/Dekr0/wwise-teller/ui"
 	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/waapi"
@@ -21,6 +23,10 @@ func main() {
 	if *proc != "" {
 		defer utils.CleanTmp()
 		utils.InitTmp()
+		if err := db.InitDatabase(); err != nil {
+			slog.Error("Failed to initialize Wwise sound bank database", "error", err)
+			os.Exit(1)
+		}
 		if *procDeadline == 0 {
 			automation.Process(context.Background(), *proc)
 		} else {
