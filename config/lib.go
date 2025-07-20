@@ -178,7 +178,7 @@ func (c *Config) CheckIdDatabase() {
 		slog.Warn("Some specific operations will error since ID database is missing.")
 		return
 	}
-	if err := db.CheckDatabaseEnv(); err != nil {
+	if err := db.Ping(); err != nil {
 		slog.Error(err.Error())
 		slog.Warn("Some specific operations will error since ID database is missing.")
 		return
