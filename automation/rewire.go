@@ -127,7 +127,7 @@ func RewireWithNewSources(
 	}
 
 	sids := make([]uint32, len(wemsMapSounds))
-	closeConn, commit, rollback, err := db.AllocateSid(ctx, sids)
+	closeConn, commit, rollback, err := db.AllocateSids(ctx, sids)
 	if err != nil {
 		return err
 	}

@@ -12,8 +12,7 @@ import (
 	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/wwise"
 
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var testRewire string = filepath.Join(testScriptsDir, "rewire")
