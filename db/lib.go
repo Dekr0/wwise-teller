@@ -6,16 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/Dekr0/wwise-teller/db/id"
 	"github.com/Dekr0/wwise-teller/utils"
 	"github.com/cenkalti/backoff"
 
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const DatabaseEnv = "IDATABASE"
@@ -23,11 +22,10 @@ const DatabaseEnv = "IDATABASE"
 var DatabaseEnvNotSet   error = fmt.Errorf("Enviromental variable %s is not set.", DatabaseEnv)
 var DatabaseEnvNotAbs   error = fmt.Errorf("Enviromental variable %s is not in absolute path.", DatabaseEnv)
 var DatabaseInitRequire error = errors.New("Wwise sound bank ID database is yet opened and initialized")
-var WriteLock sync.Mutex
 
 func Ping() error {
 	if WwiseIdDB == nil {
-		return DatabaseInitRequire
+		return InitDatabase()
 	}
 	err := WwiseIdDB.Ping()
 	if err != nil {
@@ -46,15 +44,46 @@ func InitDatabase() (err error) {
 	if !filepath.IsAbs(p) {
 		return DatabaseEnvNotAbs
 	}
-	WwiseIdDB, err = sql.Open("sqlite3", p)
+	url, err := url.Parse(p)
+	if err != nil {
+		return fmt.Errorf("Failed to parse Wwise sound bank ID database connection URL: %w", err)
+	}
+
+	values := url.Query()
+	// Tradeoff of enabling WAL mode for concurrent write (https://www.sqlite.org/wal.html)
+	values.Add("_journal_mode", "WAL")
+	// Driver level busy timeout (Application will also has its timeout as well 
+	// but it's exponential backoff)
+	values.Add("_busy_timeout", "500")
+	values.Add("_txlock", "immediate")
+	url.RawQuery = values.Encode()
+
+	WwiseIdDB, err = sql.Open("sqlite3", url.String())
 	if err != nil {
 		return fmt.Errorf("Failed to open database %s: %w", p, err)
 	}
-	slog.Info("Opened Wwise sound bank ID database")
+
+	slog.Info("Opened Wwise sound bank ID database.")
 	err = WwiseIdDB.Ping()
 	if err != nil {
 		return fmt.Errorf("Failed to verify Wwise sound bank ID database: %w", err) 
 	}
+	slog.Info("Verified Wwise sound bank ID database connection.")
+
+    var value string
+    err = WwiseIdDB.QueryRow("PRAGMA journal_mode").Scan(&value)
+    if err != nil {
+        slog.Error("Failed to query Wwise sound bank ID database journal mode", "error", err)
+    }
+	slog.Info(fmt.Sprintf("Journal Mode: %s", value))
+
+    err = WwiseIdDB.QueryRow("PRAGMA busy_timeout").Scan(&value)
+    if err != nil {
+        slog.Error("Failed to query Wwise sound bank ID database busy timeout", "error", err)
+    }
+	slog.Info(fmt.Sprintf("Busy Timeout: %s", value))
+
+	WwiseIdDB.SetMaxOpenConns(1)
 	return nil
 }
 
@@ -70,7 +99,10 @@ func createConn(ctx context.Context) (conn *sql.Conn, err error) {
 		return conn, err
 	}
 	conn, err = WwiseIdDB.Conn(ctx)
-	return conn, fmt.Errorf("Failed to connect to Wwise sound bank ID database: %w", err)
+	if err != nil {
+		return conn, fmt.Errorf("Failed to connect to Wwise sound bank ID database: %w", err)
+	}
+	return conn, nil
 }
 
 func createConnWithQuery(ctx context.Context) (*id.Queries, func(), error) {
