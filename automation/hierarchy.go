@@ -74,28 +74,25 @@ func ParseImportAsRanSeqCntrScript(s *ImportAsRanSeqCntrScript, script string) (
 	}
 
 	{
-		if s.Parent == 0 {
-			return nil, fmt.Errorf("A parent ID is required in order to create new random / sequence container")
-		}
 		if s.PlaybackLimit > 1000 {
 			return nil, fmt.Errorf("Invalid playback limit value %d is not in between 0 and 1000", s.PlaybackLimit)
 		}
 		c, in := wwise.BasePropChecker[wwise.TMakeUpGain]
 		if !in {
-			panic("Panic Trap")
+			panic("Make up gain property checker does not exist.")
 		}
 		if err := c(s.MakeUpGain); err != nil {
 			return nil, err
 		}
 		c, in = wwise.BasePropChecker[wwise.TInitialDelay]
 		if !in {
-			panic("Panic Trap")
+			panic("Initial delay property checker does not exist.")
 		}
 		if err := c(s.InitialDelay); err != nil {
 			return nil, err
 		}
 		if s.HDRActiveRange > 24.0 {
-			return nil, fmt.Errorf("HDR Active Range value %f is not in between 0.0 and 24.0", s.HDRActiveRange)
+			return nil, fmt.Errorf("HDR active range value %f is not in between 0.0 and 24.0", s.HDRActiveRange)
 		}
 	}
 
@@ -171,7 +168,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	switch parent.(type) {
 	case *wwise.ActorMixer:
 	default:
-		return fmt.Errorf("Parent actor mixer hierarchy type %s is yet supported.", wwise.HircTypeName[s.Parent])
+		return fmt.Errorf("Parent actor mixer hierarchy type %s is yet supported.", wwise.HircTypeName[parent.HircType()])
 	}
 	if parent == nil {
 		panic("Panic Trap")
@@ -194,9 +191,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 		return fmt.Errorf("Actor mixer hierarchy object %d is not type of random / sequence container.", s.RefContainer)
 	}
 	refCntr := v.(*wwise.RanSeqCntr)
-	if refCntr == nil {
-		panic("Panic Trap")
-	}
+
 	// Fetch one reference sound
 	var refSound *wwise.Sound
 	for i := 0; i < len(refCntr.Container.Children) && refSound == nil ; i++ {
@@ -245,13 +240,11 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	}
 
 	// Hierarchy IDs generation and Source IDs generation
-	db.WriteLock.Lock()
-	defer db.WriteLock.Unlock()
-	q, closeDb, commit, rollback, err := db.CreateDefaultConnWithTxQuery(ctx)
+	q, closeConn, commit, rollback, err := db.CreateConnWithTxQuery(ctx)
 	if err != nil {
 		return err
 	}
-	defer closeDb()
+	defer closeConn()
 	newSoundIDs := make([]uint32, len(newAudioDatas))
 	newSourceIDs := make([]uint32, len(newAudioDatas))
 	for i := range newAudioDatas {
@@ -294,40 +287,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	}
 
 	newCntr := refCntr.Clone(newCntrId, false)
-	if s.Seq {
-		newCntr.PlayListSetting.Mode = wwise.ModeSequence
-		newCntr.PlayListSetting.SetResetPlayListAtEachPlay(false)
-	} else {
-		newCntr.PlayListSetting.Mode = wwise.ModeRandom
-		newCntr.PlayListSetting.SetResetPlayListAtEachPlay(true)
-	}
-	b := &newCntr.BaseParam
-	b.AdvanceSetting.SetIgnoreParentMaxNumInst(true)
-	b.AdvanceSetting.MaxNumInstance = s.PlaybackLimit
-	p := &b.PropBundle
-	buf := make([]byte, 4) 
-
-	ver := int(bnk.BKHD().BankGenerationVersion)
-	if idx, in := p.HasPid(wwise.TMakeUpGain, ver); !in {
-		binary.Encode(buf, wio.ByteOrder, s.MakeUpGain)
-		p.AddWithVal(wwise.TMakeUpGain, [4]byte(buf), ver)
-	} else {
-		p.SetPropByIdxF32(idx, s.MakeUpGain)
-	}
-	if idx, in := p.HasPid(wwise.TInitialDelay, ver); !in {
-		binary.Encode(buf, wio.ByteOrder, s.InitialDelay)
-		p.AddWithVal(wwise.TInitialDelay, [4]byte(buf), ver)
-	} else {
-		p.SetPropByIdxF32(idx, s.InitialDelay)
-	}
-	if s.HDRActiveRange >= 0.0 {
-		// Enable HDR Envelope and set HDR Active range
-		b.SetEnableEnvelope(true, ver)
-		i, _ := p.HDRActiveRange(ver)
-		if i != -1 {
-			p.SetPropByIdxF32(i, s.HDRActiveRange)
-		}
-	}
+	ImportRanSeqCntrModifer(&newCntr, &s, int(bnk.BKHD().BankGenerationVersion))
 	if err := h.AppendNewRanSeqCntrToActorMixer(&newCntr, s.Parent, false); err != nil {
 		rollback()
 		return fmt.Errorf("Failed to add a new random / sequence container to actor mixer %d: %w", s.Parent, err)
@@ -377,4 +337,197 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	}
 
 	return nil
+}
+
+func NewSoundToRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) error {
+	if bnk.DIDX() == nil {
+		return wwise.NoDIDX
+	}
+	if bnk.DATA() == nil {
+		return wwise.NoDATA
+	}
+	h := bnk.HIRC()
+	if h == nil {
+		return wwise.NoHIRC
+	}
+	proj, err := waapi.GetProject()
+	if err != nil {
+		return err
+	}
+
+	s := ImportAsRanSeqCntrScript{}
+	inputsMap, err := ParseImportAsRanSeqCntrScript(&s, script)
+	if err != nil {
+		return err
+	}
+	if len(inputsMap) <= 0 {
+		slog.Warn("No input file is provided.")
+		return nil
+	}
+
+	v, in := h.ActorMixerHirc.Load(s.Parent)
+	if !in {
+		return fmt.Errorf("No actor mixer hierarchy object has ID %d.", s.Parent)
+	}
+
+	parent := v.(wwise.HircObj)
+	switch parent.(type) {
+	case *wwise.RanSeqCntr:
+	default:
+		return fmt.Errorf("Parent actor mixer hierarchy type %s does not support for this type of script", wwise.HircTypeName[parent.HircType()])
+	}
+
+	// Fetch one reference sound
+	var refSound *wwise.Sound
+	for lid := range parent.Leafs() {
+		v, in := h.ActorMixerHirc.Load(lid)
+		if !in {
+			continue
+		}
+		o := v.(wwise.HircObj)
+		switch h := o.(type) {
+		case *wwise.Sound:
+			refSound = h
+		default:
+		}
+		if refSound != nil {
+			break
+		}
+	}
+	if refSound == nil {
+		return fmt.Errorf("There's no reference sound in container %d to create new sound objects", s.Parent)
+	}
+
+	wems := make([]string, len(inputsMap))
+	wsource, err := waapi.CreateConversionListInOrder(ctx, inputsMap, wems, s.Conversion, false)
+	if len(inputsMap) != len(wems) {
+		panic("Panic Trap")
+	}
+	if err != nil {
+		return err
+	}
+
+	if err := waapi.WwiseConversion(ctx, wsource, proj); err != nil {
+		return err
+	}
+
+	newAudioDatas := make([][]byte, 0, len(wems))
+	for _, wem := range wems {
+		audioData, err := os.ReadFile(wem)
+		if err != nil {
+			slog.Error(fmt.Sprintf("Failed to read audio data from %s", wem))
+			continue
+		}
+		newAudioDatas = append(newAudioDatas, audioData)
+	}
+
+	// Hierarchy IDs generation and Source IDs generation
+	q, closeConn, commit, rollback, err := db.CreateConnWithTxQuery(ctx)
+	if err != nil {
+		return err
+	}
+	defer closeConn()
+	newSoundIDs := make([]uint32, len(newAudioDatas))
+	newSourceIDs := make([]uint32, len(newAudioDatas))
+	for i := range newAudioDatas {
+		newSoundIDs[i], err = db.TryHid(ctx, q)
+		if err != nil {
+			rollback()
+			return err
+		}
+		newSourceIDs[i], err = db.TrySid(ctx, q)
+		if err != nil {
+			rollback()
+			return err
+		}
+	}
+
+	for i, audioData := range newAudioDatas {
+		if err := bnk.AppendAudio(audioData, newSourceIDs[i]); err != nil {
+			rollback()
+			return fmt.Errorf("Failed to add a new audio source file: %w.", err)
+		}
+	}
+	bnk.ComputeDIDXOffset()
+	if err := bnk.CheckDIDXDATA(); err != nil {
+		rollback()
+		return fmt.Errorf("Invalid Integrity appear in DIDX and DATA chunk: %w", err)
+	}
+
+	var newSound *wwise.Sound
+	var pluginID uint32
+	for i := range newAudioDatas {
+		switch s.Format {
+		case waapi.ConversionFormatTypePCM:
+			pluginID = wwise.PCM
+		case waapi.ConversionFormatTypeADPCM:
+			pluginID = wwise.ADPCM
+		case waapi.ConversionFormatTypeVORBIS:
+			pluginID = wwise.VORBIS
+		case waapi.ConversionFormatTypeWEMOpus:
+			pluginID = wwise.WEM_OPUS
+		}
+		newSound = &wwise.Sound{
+			Id: newSoundIDs[i],
+			BankSourceData: wwise.BankSourceData{
+				PluginID: pluginID,
+				StreamType: wwise.STREAM_TYPE_BNK,
+				SourceID: newSourceIDs[i],
+				InMemoryMediaSize: uint32(len(newAudioDatas[i])),
+				SourceBits: 0,
+			},
+			BaseParam: refSound.BaseParam.Clone(false),
+		}
+		if err := h.AppendNewSoundToRanSeqContainer(newSound, s.Parent, false); err != nil {
+			rollback()
+			return fmt.Errorf("Failed to add a new sound object to random / sequence container %d: %w", s.Parent, err)
+		}
+	}
+
+	r := parent.(*wwise.RanSeqCntr)
+	ImportRanSeqCntrModifer(r, &s, int(bnk.BKHD().BankGenerationVersion))
+
+	if err := commit(); err != nil {
+		rollback()
+		return err
+	}
+
+	return nil
+}
+
+func ImportRanSeqCntrModifer(r *wwise.RanSeqCntr, s *ImportAsRanSeqCntrScript, ver int) {
+	if s.Seq {
+		r.PlayListSetting.Mode = wwise.ModeSequence
+		r.PlayListSetting.SetResetPlayListAtEachPlay(false)
+		r.ResetPlayListToLeafOrder()
+	} else {
+		r.PlayListSetting.Mode = wwise.ModeRandom
+		r.PlayListSetting.SetResetPlayListAtEachPlay(true)
+	}
+	b := &r.BaseParam
+	b.AdvanceSetting.SetIgnoreParentMaxNumInst(true)
+	b.AdvanceSetting.MaxNumInstance = s.PlaybackLimit
+	p := &b.PropBundle
+	buf := make([]byte, 4) 
+
+	if idx, in := p.HasPid(wwise.TMakeUpGain, ver); !in {
+		binary.Encode(buf, wio.ByteOrder, s.MakeUpGain)
+		p.AddWithVal(wwise.TMakeUpGain, [4]byte(buf), ver)
+	} else {
+		p.SetPropByIdxF32(idx, s.MakeUpGain)
+	}
+	if idx, in := p.HasPid(wwise.TInitialDelay, ver); !in {
+		binary.Encode(buf, wio.ByteOrder, s.InitialDelay)
+		p.AddWithVal(wwise.TInitialDelay, [4]byte(buf), ver)
+	} else {
+		p.SetPropByIdxF32(idx, s.InitialDelay)
+	}
+	if s.HDRActiveRange >= 0.0 {
+		// Enable HDR Envelope and set HDR Active range
+		b.SetEnableEnvelope(true, ver)
+		i, _ := p.HDRActiveRange(ver)
+		if i != -1 {
+			p.SetPropByIdxF32(i, s.HDRActiveRange)
+		}
+	}
 }
