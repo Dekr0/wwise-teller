@@ -7,9 +7,8 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/go-audio/wav v1.1.0
 	github.com/google/uuid v1.6.0
-	github.com/go-audio/wav v1.1.0
 	github.com/gopxl/beep/v2 v2.1.1
-	github.com/ncruces/go-sqlite3 v0.26.2
+	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/shirou/gopsutil/v4 v4.25.4
 	golang.design/x/clipboard v0.7.1
 )
@@ -20,10 +19,8 @@ require (
 	github.com/go-audio/audio v1.0.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/exp/shiny v0.0.0-20250606033433-dcc06ee1d476 // indirect
 	golang.org/x/image v0.28.0 // indirect
