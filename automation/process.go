@@ -206,20 +206,24 @@ func Process(ctx context.Context, fspec string) {
 		p := &spec.Pipelines[i]
 		select {
 		case <- ctx.Done():
-			slog.Error(ctx.Err().Error())
+			slog.Error("Process is cancelled", "error", ctx.Err().Error())
 			w.Wait()
 			return
 		case sems <- struct{}{}:
 			w.Add(1)
-			go func() {
+			go func(j int) {
 				defer func() {
 					<- sems
 					w.Done()
 				}()
-				go RunProcessPipeline(ctx, p, sems)
-			}()
+				slog.Info(fmt.Sprintf("(Routine) Running process pipeline %d", j))
+				RunProcessPipeline(ctx, p, sems)
+				slog.Info(fmt.Sprintf("(Routine) Finishing process pipeline %d", j))
+			}(i)
 		default:
+			slog.Info(fmt.Sprintf("Running process pipeline %d", i))
 			RunProcessPipeline(ctx, p, sems)
+			slog.Info(fmt.Sprintf("Finishing process pipeline %d", i))
 		}
 	}
 	w.Wait()
@@ -231,7 +235,7 @@ func RunProcessPipeline(ctx context.Context, p *ProcessPipeline, sems chan struc
 	for i := range p.Banks {
 		select {
 		case <- ctx.Done():
-			slog.Error(ctx.Err().Error())
+			slog.Error("Process pipeline is cancelled", "error", ctx.Err().Error())
 			w.Wait()
 			return
 		case sems <- struct{}{}:
@@ -241,10 +245,14 @@ func RunProcessPipeline(ctx context.Context, p *ProcessPipeline, sems chan struc
 					<- sems
 					w.Done()
 				}()
+				slog.Info(fmt.Sprintf("(Routine) Running process script on bank %s", p.Banks[j]))
 				bnks[i] = RunProcessScripts(ctx, p.Banks[j], p)
+				slog.Info(fmt.Sprintf("(Routine) Processed bank %s", p.Banks[j]))
 			}(i)
 		default:
+			slog.Info(fmt.Sprintf("Running process script on bank %s", p.Banks[i]))
 			bnks[i] = RunProcessScripts(ctx, p.Banks[i], p)
+			slog.Info(fmt.Sprintf("Processed bank %s", p.Banks[i]))
 		}
 	}
 	w.Wait()
@@ -272,6 +280,7 @@ func RunProcessPipeline(ctx context.Context, p *ProcessPipeline, sems chan struc
 			}
 		}
 	case integration.IntegrationTypeHelldivers2:
+		slog.Info("Using Helldivers 2 integration")
 		bnksData := [][]byte{}
 		metasData := [][]byte{}
 		for i, bnk := range bnks {
@@ -302,6 +311,8 @@ func RunProcessPipeline(ctx context.Context, p *ProcessPipeline, sems chan struc
 		err := helldivers.GenHelldiversPatchStableMulti(bnksData, metasData, p.Output)
 		if err != nil {
 			slog.Error("Failed to run Helldivers 2 integration", "error", err)
+		} else {
+			slog.Info("Generated Helldivers 2 patch")
 		}
 	default:
 		panic("Panic Trap")
@@ -320,13 +331,14 @@ func RunProcessScripts(ctx context.Context, bank string, p *ProcessPipeline) *ww
 	for _, script := range p.Scripts {
 		select {
 		case <- ctx.Done():
-			slog.Error(ctx.Err().Error())
+			slog.Error("Process scripts execution is cancelled", "error", ctx.Err().Error())
 			return nil
 		default:
 		}
 		if !filepath.IsAbs(script.Script) {
 			script.Script = filepath.Join(p.ScriptsWorkspace, script.Script)
 		}
+		slog.Info(fmt.Sprintf("Running processing script %s", script.Script))
 		switch script.Type {
 		case TypeRewireWithNewSources:
 			err = RewireWithNewSources(ctx, bnk, script.Script, false)
