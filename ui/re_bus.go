@@ -777,17 +777,22 @@ func renderAuxBusAdvanceSetting(b *wwise.AuxBus) {
 
 func renderBusFxParam(t *be.BankTab, b *wwise.BusFxParam) {
 	if imgui.TreeNodeStr("FX") {
+		byPassAllFx := b.FxChunk.BitsFxByPass != 0
 		{
-			imgui.BeginDisabled()
-			byPassFx := b.FxChunk.BitsFxByPass != 0
-			imgui.Checkbox("By Passing FX", &byPassFx)
-			imgui.EndDisabled()
+			if imgui.Checkbox("By Passing FX", &byPassAllFx) {
+				b.FxChunk.BypassFx(byPassAllFx)
+			}
 		}
 
 		if imgui.BeginTableV("FXChunkTable", 3, DefaultTableFlags, DefaultSize, 0) {
 			imgui.TableSetupColumn("Unique FX Index")
 			imgui.TableSetupColumn("FX ID")
-			imgui.TableSetupColumn("Is Share Set")
+			if t.Version() <= 145 {
+				imgui.TableSetupColumn("Is Share Set")
+			}
+			if t.Version() > 145 {
+				imgui.TableSetupColumn("Bypass FX")
+			}
 			imgui.TableSetupScrollFreeze(0, 1)
 			imgui.TableHeadersRow()
 			for i := range b.FxChunk.FxChunkItems {
@@ -814,10 +819,22 @@ func renderBusFxParam(t *be.BankTab, b *wwise.BusFxParam) {
 				}
 
 				imgui.TableSetColumnIndex(2)
-				imgui.BeginDisabled()
-				isSharedSet := fi.BitIsShareSet != 0
-				imgui.Checkbox(fmt.Sprintf("##IsShareSet%d", i), &isSharedSet)
-				imgui.EndDisabled()
+				if t.Version() <= 145 {
+					Disabled(true, func() {
+						isSharedSet := fi.BitIsShareSet != 0
+						imgui.Checkbox(fmt.Sprintf("##IsShareSet%d", i), &isSharedSet)
+					})
+				}
+				if t.Version() > 145 {
+					bypassFx := fi.BitVector != 0
+					Disabled(byPassAllFx, func() {
+						if imgui.Checkbox(fmt.Sprintf("##Bypass%d", i), &bypassFx) {
+							if bypassFx && !byPassAllFx {
+								fi.Bypass(bypassFx)
+							}
+						}
+					})
+				}
 			}
 
 			imgui.EndTable()
