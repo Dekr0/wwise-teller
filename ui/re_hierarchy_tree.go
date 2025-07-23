@@ -54,7 +54,7 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 	if err != nil { panic("Panic Trap") }
 
 	sid = strconv.FormatUint(uint64(id), 10)
-	selected = t.ActorMixerViewer.LinearStorage.Contains(imgui.ID(id))
+	selected = t.ActorMixerViewer.Selected(id)
 
 	imgui.TableNextRow()
 	imgui.TableSetColumnIndex(0)
@@ -69,9 +69,9 @@ func renderActorMixerHircNode(t *be.BankTab, node *wwise.ActorMixerHircNode) {
 	node.Open = open 
 	if imgui.IsItemClickedV(imgui.MouseButtonLeft) {
 		if !imgui.CurrentIO().KeyCtrl() {
-			t.ActorMixerViewer.LinearStorage.Clear()
+			t.ActorMixerViewer.Clear()
 		}
-		t.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(id), true)
+		t.ActorMixerViewer.SetSelected(id, true)
 	}
 
 	if imgui.BeginPopupContextItem() {
