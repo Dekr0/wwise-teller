@@ -6,6 +6,7 @@ package bank_explorer
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -233,7 +234,7 @@ func (b *BankTab) SetActiveActorMixerHirc(id uint32) {
 	b.ActorMixerViewer.CntrStorage.Clear()
 	b.ActorMixerViewer.RanSeqPlaylistStorage.Clear()
 	b.ActorMixerViewer.LinearStorage.Clear()
-	b.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(id), true)
+	b.ActorMixerViewer.SetSelected(id, true)
 }
 
 func (b *BankTab) OpenActorMixerHircNode(id uint32) {
@@ -348,6 +349,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 	}
 
 	actorMixerHircs := []wwise.HircObj{}
+	actorMixerSelectionHash := map[uint32]uint32{}
 	actorMixerRoots := []wwise.HircObj{}
 	attenuations := []*wwise.Attenuation{}
 	buses := []wwise.HircObj{}
@@ -364,6 +366,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 		c := hirc.HierarchyCount()
 
 		actorMixerHircs = make([]wwise.HircObj, 0, c.ActorMixerHircs)
+		actorMixerSelectionHash = make(map[uint32]uint32, c.ActorMixerHircs)
 		actorMixerRoots = make([]wwise.HircObj, 0, c.ActorMixerRoots)
 		attenuations = make([]*wwise.Attenuation, 0, c.Attenuations)
 		buses = make([]wwise.HircObj, 0, c.Buses)
@@ -373,9 +376,24 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 		musicHircs = make([]wwise.HircObj, 0, c.MusicHircs)
 		musicHircRoots = make([]wwise.HircObj, 0, c.MusicHircRoots)
 		states = make([]*wwise.State, 0, c.States)
-		for _, o := range hirc.HircObjs {
+		for i, o := range hirc.HircObjs {
 			if wwise.ActorMixerHircType(o) {
 				actorMixerHircs = append(actorMixerHircs, o)
+				id, err := o.HircID()
+				if err != nil {
+					panic("All actor mixer hierarchy should be able to return a hierarchy ID without error")
+				}
+				if id == 85813280 {
+					fmt.Println(i)
+				}
+				if _, in := actorMixerSelectionHash[id]; in {
+					slog.Warn(fmt.Sprintf("ID %d is duplicated in actor mixer hierarchy", id))
+				} else {
+					if id == 85813280 {
+						fmt.Println(i)
+					}
+					actorMixerSelectionHash[id] = uint32(i)
+				}
 				if wwise.ContainerActorMixerHircType(o) {
 					actorMixerRoots = append(actorMixerRoots, o)
 				}
@@ -433,6 +451,7 @@ func (b *BankManager) OpenBank(ctx context.Context, path string) error {
 				Roots: actorMixerRoots,
 			},
 			LinearStorage: imgui.NewSelectionBasicStorage(),
+			SelectionHash: actorMixerSelectionHash,
 			CntrStorage: imgui.NewSelectionBasicStorage(),
 			RanSeqPlaylistStorage: imgui.NewSelectionBasicStorage(),
 		},
