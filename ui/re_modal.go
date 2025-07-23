@@ -78,8 +78,9 @@ func pushSaveSoundBankModal(
 	bnkMngr *be.BankManager,
 	saveTab *be.BankTab,
 	saveName string,
+	excludeMeta bool,
 ) {
-	onSave := saveSoundBankFunc(bnkMngr, saveTab, saveName)
+	onSave := saveSoundBankFunc(bnkMngr, saveTab, saveName, excludeMeta)
 	renderF, done, err := saveFileDialogFunc(onSave, GlobalCtx.Config.Home)
 	if err != nil {
 		slog.Error(
