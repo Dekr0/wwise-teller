@@ -303,24 +303,18 @@ func renderActorMixerHircTable(t *be.BankTab) {
 				imgui.TableNextRow()
 				imgui.TableSetColumnIndex(0)
 
-				var idS string
-				var selected bool = false
 				id, err := o.HircID()
 				if err != nil {
-					idS = "-"
-				} else {
-					idS = strconv.FormatUint(uint64(id), 10)
-					selected = storage.Contains(imgui.ID(id))
-					imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(id))
+					panic(fmt.Sprintf("Actor mixer hierarchy object should return an id without error"))
 				}
 
-				if err != nil {
-					imgui.PushIDStr(fmt.Sprintf("UnknownID%d", n))
-				}
+				selected := t.ActorMixerViewer.Selected(id)
+				imgui.SetNextItemSelectionUserData(imgui.SelectionUserData(t.ActorMixerViewer.GetSelectionHash(id)))
+
 				flags := imgui.SelectableFlagsSpanAllColumns | 
 					     imgui.SelectableFlagsAllowOverlap
 				size := imgui.NewVec2(0, 0)
-				imgui.SelectableBoolPtrV(idS, &selected, flags, size)
+				imgui.SelectableBoolPtrV(strconv.FormatUint(uint64(id), 10), &selected, flags, size)
 
 				if imgui.BeginPopupContextItem() {
 					renderActorMixerHircTableCtx(t, o, id)
@@ -336,10 +330,6 @@ func renderActorMixerHircTable(t *be.BankTab) {
 					)
 				}
 				imgui.Text(st)
-
-				if err != nil {
-					imgui.PopID()
-				}
 			}
 		}
 		msIO = imgui.EndMultiSelect()
