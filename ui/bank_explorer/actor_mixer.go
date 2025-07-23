@@ -1,8 +1,10 @@
 package bank_explorer
 
 import (
+	"fmt"
 	"slices"
 	"strconv"
+
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/wwise"
 	"github.com/lithammer/fuzzysearch/fuzzy"
@@ -15,6 +17,7 @@ type ActorMixerViewer struct {
 
 	// Storage
 	LinearStorage         *imgui.SelectionBasicStorage
+	SelectionHash          map[uint32]uint32
 	CntrStorage           *imgui.SelectionBasicStorage
 	RanSeqPlaylistStorage *imgui.SelectionBasicStorage
 }
@@ -24,6 +27,34 @@ type ActorMixerHircFilter struct {
 	Sid   uint32
 	Type  wwise.HircType
 	Hircs []wwise.HircObj
+}
+
+func (v *ActorMixerViewer) SetSelected(id uint32, set bool) {
+	selectionHash, in := v.SelectionHash[id]
+	if !in {
+		panic(fmt.Sprintf("Actor mixer hierarchy %d does not have a selection hash!", id))
+	}
+	v.LinearStorage.SetItemSelected(imgui.ID(selectionHash), set)
+}
+
+func (v *ActorMixerViewer) Selected(id uint32) bool {
+	selectionHash, in := v.SelectionHash[id]
+	if !in {
+		panic(fmt.Sprintf("Actor mixer hierarchy %d does not have a selection hash!", id))
+	}
+	return v.LinearStorage.Contains(imgui.ID(selectionHash))
+}
+
+func (v *ActorMixerViewer) GetSelectionHash(id uint32) uint32 {
+	selectionHash, in := v.SelectionHash[id]
+	if !in {
+		panic(fmt.Sprintf("Actor mixer hierarchy %d does not have a selection hash!", id))
+	}
+	return selectionHash
+}
+
+func (v *ActorMixerViewer) Clear() {
+	v.LinearStorage.Clear()
 }
 
 func (f *ActorMixerHircFilter) Filter(objs []wwise.HircObj) {
