@@ -154,11 +154,6 @@ func renderActorMixerHircCtx(
 		}
 	})
 
-	Disabled(!GlobalCtx.CopyEnable, func() {
-		if imgui.SelectableBool("Search For A Event and An Action") {
-		}
-	})
-
 	if imgui.SelectableBool("Search For Events and Actions") {
 		if t.SearchNearestEventAction(id) {
 			t.Focus = be.BankTabEvents
