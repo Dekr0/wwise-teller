@@ -13,6 +13,20 @@ type FxChunk struct {
 	FxChunkItems []FxChunkItem
 }
 
+func (f *FxChunk) BypassFx(set bool) {
+	if set {
+		f.BitsFxByPass = 1
+		for i := range f.FxChunkItems {
+			f.FxChunkItems[i].BitVector = 1
+		}
+	} else {
+		f.BitsFxByPass = 0
+		for i := range f.FxChunkItems {
+			f.FxChunkItems[i].BitVector = 0
+		}
+	}
+}
+
 func (f *FxChunk) Clone() FxChunk {
 	return FxChunk{f.BitsFxByPass, slices.Clone(f.FxChunkItems)}
 }
@@ -61,6 +75,13 @@ type FxChunkItem struct {
 	BitVector     uint8
 }
 
+func (f *FxChunkItem) Bypass(set bool) {
+	if set {
+		f.BitVector = 1
+	} else {
+		f.BitVector = 0
+	}
+}
 
 type FxChunkMetadata struct {
 	BitIsOverrideParentMetadata uint8
