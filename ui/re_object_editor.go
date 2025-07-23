@@ -39,7 +39,10 @@ func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTa
 			if err != nil {
 				continue
 			}
-			if t.ActorMixerViewer.LinearStorage.Contains(imgui.ID(id)) {
+			if !wwise.ActorMixerHircType(h) {
+				continue
+			}
+			if t.ActorMixerViewer.Selected(id) {
 				s = append(s, h)
 			}
 		}
@@ -81,7 +84,7 @@ func renderActorMixerTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h w
 		imgui.EndTabItem()
 	}
 	if !open {
-		viewer.LinearStorage.SetItemSelected(imgui.ID(id), false)
+		viewer.SetSelected(id, false)
 		viewer.CntrStorage.Clear()
 		viewer.RanSeqPlaylistStorage.Clear()
 	}
@@ -260,7 +263,7 @@ func renderContainer(t *be.BankTab, id uint32, cntr *wwise.Container, actorMixer
 				imgui.BeginDisabledV(!ok)
 				if imgui.ArrowButton("CntrGoTo" + strconv.FormatUint(uint64(i), 10), imgui.DirRight) {
 					if actorMixer {
-						t.ActorMixerViewer.LinearStorage.SetItemSelected(imgui.ID(i), true)
+						t.ActorMixerViewer.SetSelected(i, true)
 					} else {
 						t.MusicHircViewer.LinearStorage.SetItemSelected(imgui.ID(i), true)
 					}
