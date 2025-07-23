@@ -32,6 +32,7 @@ const (
 	TypeReplaceAudioSources 
 	TypeRanSeqModifiers
 	TypeNewSoundToRanSeqCntr
+	TypeBulkProcessBaseProp
 	ProcessScriptTypeCount
 )
 
@@ -352,6 +353,8 @@ func RunProcessScripts(ctx context.Context, bank string, p *ProcessPipeline) *ww
 			err = ProcessRanSeq(bnk, script.Script)
 		case TypeNewSoundToRanSeqCntr:
 			err = NewSoundToRanSeqCntr(ctx, bnk, script.Script)
+		case TypeBulkProcessBaseProp:
+			err = BulkProcessBaseProp(bnk, script.Script)
 		default:
 			panic(fmt.Sprintf("Unsupport process script type %d.", script.Type))
 		}

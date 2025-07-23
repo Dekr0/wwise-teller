@@ -13,8 +13,9 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-const BasePropModifierSpecVersion = 0
-const RanSeqModifierSpecVersion = 0
+const BasePropModifierSpecVersion    = 0
+const RanSeqModifierSpecVersion      = 0
+const BulkProcessBasePropSpecVersion = 0
 
 type BasePropModifierSpec struct {
 	Version     uint8           `json:"version"`
@@ -32,6 +33,17 @@ type BasePropModifer struct {
 	HDRActiveRange         float32         `json:"HDRActiveRange"`
 	MaxNumInstances        int16           `json:"maxNumInstances"`
 	Id                     uint32          `json:"id"`
+}
+
+// Mainly for normalizing sound
+type BulkBasePropModifierSpec struct {
+	Version                uint8          `json:"version"`
+	IDs                  []uint32         `json:"ids"`
+	RequirePropIds       []wwise.PropType `json:"requirePropIds"`
+	RequirePropVals      []float32        `json:"requirePropVals"`
+	RequireRangePropIds  []wwise.PropType `json:"requireRangePropIds"`
+	RequireRangePropVals []BaseRangeProp  `json:"requireRangePropVals"`
+	MaxNumInstances      int16
 }
 
 type RanSeqModifierSpec struct {
@@ -196,6 +208,123 @@ func ProcessBaseProps(bnk *wwise.Bank, fspec string) error {
 
 	close(sem)
 
+	return nil
+}
+
+func BulkProcessBaseProp(bnk *wwise.Bank, fspec string) error {
+	h := bnk.HIRC()
+	if h == nil {
+		return wwise.NoHIRC
+	}
+
+	var spec BulkBasePropModifierSpec
+	err := ParseBulkBasePropModifierSpec(&spec, fspec)
+	if err != nil {
+		return err
+	}
+
+	if len(spec.IDs) <= 0 {
+		slog.Warn("No hierarchy IDs are provided. Do nothing")
+		return nil
+	}
+
+	var w sync.WaitGroup
+	sem := make(chan struct{}, 4)
+
+	ver := int(bnk.BKHD().BankGenerationVersion)
+
+	proc := func(id uint32, main bool) {
+		if !main {
+			defer func() {
+				<- sem
+				w.Done()
+			}()
+		}
+
+		v, in := h.ActorMixerHirc.Load(id)
+		if !in {
+			slog.Error(fmt.Sprintf("No hierarchy object has ID %d", id))
+			return
+		}
+
+		o := v.(wwise.HircObj)
+		b := o.BaseParameter()
+		if b == nil {
+			slog.Error(fmt.Sprintf("Cannot modifiy common property of hierarchy object %d (type %s)", id, wwise.HircTypeName[o.HircType()]))
+			return
+		}
+
+		buf := make([]byte, 4, 4)
+		dbuf := make([]byte, 4, 4)
+
+		for j := range spec.RequirePropIds {
+			pid, p := spec.RequireRangePropIds[j], spec.RequireRangePropVals[j]
+			if err := wwise.CheckBaseRangeProp(pid, p.Min, p.Max); err != nil {
+				slog.Error(err.Error())
+				continue
+			}
+			if idx, in := b.RangePropBundle.HasPid(pid, ver); !in {
+				binary.Encode(buf, wio.ByteOrder, &p.Min)
+				binary.Encode(dbuf, wio.ByteOrder, &p.Max)
+				b.RangePropBundle.AddWithVal(pid, [4]byte(buf), [4]byte(dbuf), ver)
+			} else {
+				b.RangePropBundle.SetPropMinByIdxF32(idx, p.Min)
+				b.RangePropBundle.SetPropMinByIdxF32(idx, p.Max)
+			}
+		}
+
+		for j := range spec.RequireRangePropIds {
+			pid, p := spec.RequireRangePropIds[j], spec.RequireRangePropVals[j]
+			if err := wwise.CheckBaseRangeProp(pid, p.Min, p.Max); err != nil {
+				slog.Error(err.Error())
+				continue
+			}
+			if idx, in := b.RangePropBundle.HasPid(pid, ver); !in {
+				binary.Encode(buf, wio.ByteOrder, &p.Min)
+				binary.Encode(dbuf, wio.ByteOrder, &p.Max)
+				b.RangePropBundle.AddWithVal(pid, [4]byte(buf), [4]byte(dbuf), ver)
+			} else {
+				b.RangePropBundle.SetPropMinByIdxF32(idx, p.Min)
+				b.RangePropBundle.SetPropMinByIdxF32(idx, p.Max)
+			}
+		}
+	}
+
+	unique := make([]uint32, 0, len(spec.IDs))
+	for _, id := range spec.IDs {
+		in := slices.Contains(unique, id)
+		if in {
+			continue
+		}
+		unique = append(unique, id)
+		select {
+		case sem <- struct{}{}:
+			w.Add(1)
+			go proc(id, false)
+		default:
+			proc(id, true)
+		}
+	}
+
+	w.Wait()
+
+	close(sem)
+
+	return nil
+}
+
+func ParseBulkBasePropModifierSpec(spec *BulkBasePropModifierSpec, fspec string) error {
+	blob, err := os.ReadFile(fspec)
+	if err != nil {
+		return fmt.Errorf("Failed to open bulk process base property script %s: %w", fspec, err)
+	}
+	err = json.Unmarshal(blob, spec)
+	if err != nil {
+		return fmt.Errorf("Failed to decode bulk process base property script %s: %w", fspec, err)
+	}
+	if spec.Version != BulkProcessBasePropSpecVersion {
+		return fmt.Errorf("Version spec should be %d!", BulkProcessBasePropSpecVersion)
+	}
 	return nil
 }
 
