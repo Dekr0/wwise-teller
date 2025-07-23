@@ -25,7 +25,7 @@ type ImportAsRanSeqCntrScript struct {
 	Format         waapi.ConversionFormatType `json:"format"`
 	PlaybackLimit  uint16                     `json:"playbackLimit"`
 	MakeUpGain     float32                    `json:"makeUpGain"`
-	InitialDelay   float32                    `json:"initalDelay"`
+	InitialDelay   float32                    `json:"initialDelay"`
 	HDRActiveRange float32                    `json:"HDRActiveRange"` // Set this to any negative value if it's unused
 	Parent         uint32                     `json:"parent"`
 	// Set either Event or RefContainer to zero for creating a container without 
@@ -371,7 +371,7 @@ func NewSoundToRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) e
 
 	// Fetch one reference sound
 	var refSound *wwise.Sound
-	for lid := range parent.Leafs() {
+	for _, lid := range parent.Leafs() {
 		v, in := h.ActorMixerHirc.Load(lid)
 		if !in {
 			continue
