@@ -293,7 +293,7 @@ func (b *BankTab) OpenBusHircNode(id uint32) {
 	h.OpenBusHircNode(id)
 }
 
-func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
+func (b *BankTab) Encode(ctx context.Context, excludeMeta bool) ([]byte, error) {
 	b.SounBankLock.Store(true)
 	defer b.SounBankLock.Store(false)
 	type result struct {
@@ -302,7 +302,7 @@ func (b *BankTab) Encode(ctx context.Context) ([]byte, error) {
 	}
 	c := make(chan *result)
 	go func() {
-		data, err := b.Bank.Encode(ctx, true, false)
+		data, err := b.Bank.Encode(ctx, excludeMeta, false)
 		c <- &result{data, err}
 	}()
 

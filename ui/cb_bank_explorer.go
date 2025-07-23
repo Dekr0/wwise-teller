@@ -56,6 +56,7 @@ func saveSoundBankFunc(
 	bnkMngr *be.BankManager,
 	saveTab *be.BankTab,
 	saveName string,
+	excludeMeta bool,
 ) func(string) {
 	return func(path string) {
 		timeout, cancel := context.WithTimeout(
@@ -72,7 +73,7 @@ func saveSoundBankFunc(
 
 				bnkMngr.WriteLock.Store(true)
 
-				if data, err := saveTab.Encode(ctx); err != nil {
+				if data, err := saveTab.Encode(ctx, excludeMeta); err != nil {
 					slog.Error(
 						fmt.Sprintf("Failed to encode sound bank %s", saveName),
 						"error", err,
@@ -121,7 +122,7 @@ func HD2PatchFunc(
 				slog.Info(onProcMsg)
 				bnkMngr.WriteLock.Store(true)
 				defer bnkMngr.WriteLock.Store(false)
-				bnkData, err := saveTab.Encode(ctx)
+				bnkData, err := saveTab.Encode(ctx, true)
 				if err != nil {
 					slog.Error(
 						fmt.Sprintf("Failed to encode sound bank %s", saveName),

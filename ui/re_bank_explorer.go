@@ -152,10 +152,20 @@ func renderBankExplorerTab(path string, t *be.BankTab) {
 func renderBankExplorerMenu(bnkMngr *be.BankManager) {
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("File") {
-			if imgui.BeginMenuV("Save", !bnkMngr.WriteLock.Load()) {
+			if imgui.BeginMenuV("Save (With Metadata)", !bnkMngr.WriteLock.Load()) {
 				bnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
-						pushSaveSoundBankModal(bnkMngr, value.(*be.BankTab), key.(string))
+						pushSaveSoundBankModal(bnkMngr, value.(*be.BankTab), key.(string), false)
+						return false
+					}
+					return true
+				})
+				imgui.EndMenu()
+			}
+			if imgui.BeginMenuV("Save (Without Metadata)", !bnkMngr.WriteLock.Load()) {
+				bnkMngr.Banks.Range(func(key, value any) bool {
+					if imgui.MenuItemBool(key.(string)) {
+						pushSaveSoundBankModal(bnkMngr, value.(*be.BankTab), key.(string), true)
 						return false
 					}
 					return true
