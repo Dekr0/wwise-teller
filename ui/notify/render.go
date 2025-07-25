@@ -3,11 +3,13 @@ package notify
 import (
 	"fmt"
 	"slices"
+
 	"github.com/AllenDang/cimgui-go/imgui"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 )
 
 func RenderNotify(nQ *NotifyQ) {
-	imgui.BeginV("Notifications", 
+	imgui.BeginV(dockmanager.DockWindowNames[dockmanager.NotificationTag], 
 		nil,
 		imgui.WindowFlagsNoMove |
 		imgui.WindowFlagsNoResize |

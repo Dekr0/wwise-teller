@@ -13,6 +13,7 @@ import (
 	"github.com/Dekr0/wwise-teller/aio"
 	"github.com/Dekr0/wwise-teller/ui/audio"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/waapi"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
@@ -21,7 +22,7 @@ func RenderTransportControl(t *be.BankTab, open *bool) {
 	if !*open {
 		return
 	}
-	imgui.BeginV("Transport Control", open, imgui.WindowFlagsNone)
+	imgui.BeginV(dockmanager.DockWindowNames[dockmanager.TransportControlTag], open, imgui.WindowFlagsNone)
 	defer imgui.End()
 	if !*open {
 		return

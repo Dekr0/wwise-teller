@@ -10,6 +10,7 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/wwise"
 	"golang.design/x/clipboard"
 )
@@ -18,7 +19,7 @@ func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTa
 	if !*open {
 		return
 	}
-	imgui.BeginV("Object Editor (Actor Mixer)", open, imgui.WindowFlagsNone)
+	imgui.BeginV(dockmanager.DockWindowNames[dockmanager.ObjectEditorActorMixerTag], open, imgui.WindowFlagsNone)
 	defer imgui.End()
 	if !*open {
 		return
@@ -94,7 +95,7 @@ func renderObjEditorMusic(m *be.BankManager, t *be.BankTab, init *be.BankTab, op
 	if !*open {
 		return
 	}
-	imgui.BeginV("Object Editor (Music)", open, imgui.WindowFlagsNone)
+	imgui.BeginV(dockmanager.DockWindowNames[dockmanager.ObjectEditorMusicTag], open, imgui.WindowFlagsNone)
 	defer imgui.End()
 	if !*open {
 		return

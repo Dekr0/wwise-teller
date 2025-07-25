@@ -10,12 +10,13 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/wwise"
 	"golang.design/x/clipboard"
 )
 
 func renderBankExplorer(bnkMngr *be.BankManager) {
-	imgui.BeginV("Bank Explorer", nil, imgui.WindowFlagsMenuBar)
+	imgui.BeginV(dockmanager.DockWindowNames[dockmanager.BankExplorerTag], nil, imgui.WindowFlagsMenuBar)
 	renderBankExplorerMenu(bnkMngr)
 	if imgui.BeginTabBarV("BankExplorerTabBar", DefaultTabFlags) {
 		paths := []string{}

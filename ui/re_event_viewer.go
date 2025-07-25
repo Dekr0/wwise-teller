@@ -11,6 +11,7 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/wwise"
 	"golang.design/x/clipboard"
 )
@@ -19,7 +20,7 @@ func renderEventsViewer(t *be.BankTab, open *bool) {
 	if !*open {
 		return
 	}
-	imgui.BeginV("Events", open, imgui.WindowFlagsNone)
+	imgui.BeginV(dockmanager.DockWindowNames[dockmanager.EventsTag], open, imgui.WindowFlagsNone)
 	defer imgui.End()
 	if !*open {
 		return

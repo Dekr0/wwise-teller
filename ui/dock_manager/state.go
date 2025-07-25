@@ -22,22 +22,23 @@ var LayoutName []string = []string{
 type DockWindowTag uint8
 
 const (
-	AttenuationsTag           DockWindowTag = 0
-	ActorMixerHierarchyTag    DockWindowTag = 1
-	BankExplorerTag           DockWindowTag = 2
-	BusesTag                  DockWindowTag = 3
-	DebugTag                  DockWindowTag = 4
-	EventsTag                 DockWindowTag = 5
-	FileExplorerTag           DockWindowTag = 6
-	FXTag                     DockWindowTag = 7
-	GameSyncTag               DockWindowTag = 8
-	LogTag                    DockWindowTag = 9
-	MasterMixerHierarchyTag   DockWindowTag = 10
-	MusicHierarchyTag         DockWindowTag = 11
-	ObjectEditorActorMixerTag DockWindowTag = 12
-	ObjectEditorMusicTag      DockWindowTag = 13
-	NotificationTag           DockWindowTag = 14
-	TransportControlTag       DockWindowTag = 15
+	AttenuationsTag           DockWindowTag = iota
+	ActorMixerHierarchyTag
+	BankExplorerTag
+	BusesTag
+	DebugTag
+	EventsTag
+	FileExplorerTag
+	FXTag
+	GameSyncTag
+	LogTag
+	MasterMixerHierarchyTag
+	MusicHierarchyTag
+	ObjectEditorActorMixerTag
+	ObjectEditorMusicTag
+	NotificationTag
+	TransportControlTag
+	ScriptEditorTag           
 )
 
 var DockWindowNames []string = []string{
@@ -57,6 +58,7 @@ var DockWindowNames []string = []string{
 	"Object Editor (Music)",
 	"Notifications",
 	"Transport Control",
+	"Script Editor",
 }
 
 type DockManager struct {
@@ -145,16 +147,17 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 			d.Opens[tag] = true
 		}
 
-		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
-		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
-		imgui.InternalDockBuilderDockWindow("Notifications", notificationDock)
-		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", hierarchyDock)
-		imgui.InternalDockBuilderDockWindow("Music Hierarchy", hierarchyDock)
-		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", hierarchyDock)
-		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", editorDock)
-		imgui.InternalDockBuilderDockWindow("Transport Control", transportDock)
-		imgui.InternalDockBuilderDockWindow("Events", eventDock)
-		imgui.InternalDockBuilderDockWindow("Game Sync", eventDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[FileExplorerTag], explorerDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[BankExplorerTag], explorerDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[NotificationTag], notificationDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[ActorMixerHierarchyTag], hierarchyDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[MusicHierarchyTag], hierarchyDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[MasterMixerHierarchyTag], hierarchyDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[ObjectEditorActorMixerTag], editorDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[ScriptEditorTag], editorDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[TransportControlTag], transportDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[EventsTag], eventDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[GameSyncTag], eventDock)
 
 		imgui.InternalDockBuilderFinish(eventDock)
 		d.Rebuild = false
@@ -196,12 +199,13 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 			d.Opens[tag] = true
 		}
 
-		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
-		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
-		imgui.InternalDockBuilderDockWindow("Notifications", notificationDock)
-		imgui.InternalDockBuilderDockWindow("Actor Mixer Hierarchy", hierarchyDock)
-		imgui.InternalDockBuilderDockWindow("Transport Control", transportDock)
-		imgui.InternalDockBuilderDockWindow("Object Editor (Actor Mixer)", editorDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[FileExplorerTag], explorerDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[BankExplorerTag], explorerDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[NotificationTag], notificationDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[ActorMixerHierarchyTag], hierarchyDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[TransportControlTag], transportDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[ObjectEditorActorMixerTag], editorDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[ScriptEditorTag], editorDock)
 
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.Rebuild = false
@@ -243,12 +247,12 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 			d.Opens[tag] = true
 		}
 
-		imgui.InternalDockBuilderDockWindow("File Explorer", explorerDock)
-		imgui.InternalDockBuilderDockWindow("Bank Explorer", explorerDock)
-		imgui.InternalDockBuilderDockWindow("Notifications", notificationDock)
-		imgui.InternalDockBuilderDockWindow("Master Mixer Hierarchy", hierarchyDock)
-		imgui.InternalDockBuilderDockWindow("Buses", busDock)
-		imgui.InternalDockBuilderDockWindow("FX", fxDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[FileExplorerTag], explorerDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[BankExplorerTag], explorerDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[NotificationTag], notificationDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[MasterMixerHierarchyTag], hierarchyDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[BusesTag], busDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[FXTag], fxDock)
 
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.Rebuild = false

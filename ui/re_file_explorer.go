@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/ui/fs"
 	"github.com/Dekr0/wwise-teller/utils"
 )
@@ -18,7 +19,7 @@ func renderFileExplorer(fe *fs.FileExplorer, open *bool) {
 	if !*open {
 		return
 	}
-	imgui.BeginV("File Explorer", open, imgui.WindowFlagsNone)
+	imgui.BeginV(dockmanager.DockWindowNames[dockmanager.FileExplorerTag], open, imgui.WindowFlagsNone)
 	defer imgui.End()
 	if !*open {
 		return
