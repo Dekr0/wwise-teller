@@ -173,7 +173,7 @@ var HircTypeName []string = []string{
 	"Switch Container",
 	"Actor Mixer",
 	"Bus",
-	"Layer Container",
+	"Layer / Blend Container",
 	"Music Segment",
 	"Music Track",
 	"Music Switch Container",
