@@ -93,6 +93,7 @@ func Run() error {
 
 	dockMngr := dockmanager.NewDockManager()
 
+
 	fileExplorer, err := fs.NewFileExplorer(
 		openSoundBankFunc(bnkMngr), GlobalCtx.Config.Home,
 	)
