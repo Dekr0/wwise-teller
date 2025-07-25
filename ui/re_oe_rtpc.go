@@ -7,8 +7,8 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderRTPC(hid uint32, r *wwise.RTPC) {
-	if imgui.TreeNodeExStr("RTPC") {
+func renderRTPC(hid uint32, r *wwise.RTPC, title string) {
+	if imgui.TreeNodeExStr(title) {
 		var removeRTPC func() = nil
 		for i := range r.RTPCItems {
 			ri := &r.RTPCItems[i]
