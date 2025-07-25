@@ -164,6 +164,8 @@ func renderActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwi
 
 func renderLayerCntr(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.LayerCntr) {
 	renderBaseParam(m, t, init, o)
+	renderContainer(t, o.Id, &o.Container, wwise.ActorMixerHircType(o))
+	renderLayer(o)
 }
 
 func renderRanSeqCntr(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.RanSeqCntr) {
