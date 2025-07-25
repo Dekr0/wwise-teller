@@ -34,7 +34,7 @@ func renderBaseParam(m *be.BankManager, t *be.BankTab, init *be.BankTab, o wwise
 		renderBaseRangeProp(&b.RangePropBundle, v)
 		renderAllProp(&b.PropBundle, &b.RangePropBundle, v)
 		renderAdvSetting(b, &b.AdvanceSetting, t.Version())
-		renderRTPC(hid, &b.RTPC)
+		renderRTPC(hid, &b.RTPC, "RTPC (Property)")
 		imgui.TreePop()
 	}
 }
