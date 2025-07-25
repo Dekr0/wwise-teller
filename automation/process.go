@@ -41,6 +41,17 @@ type Processor struct {
 	Pipelines []ProcessPipeline `json:"pipelines"`
 }
 
+func (p *Processor) NewPipeline() {
+	p.Pipelines = append(p.Pipelines, ProcessPipeline{
+		BanksWorkspace: "",
+		ScriptsWorkspace: "",
+		Banks: make([]string, 0, 1),
+		Scripts: make([]ProcessScript, 0, 4),
+		Integration: integration.IntegrationTypeDefault,
+		Output: "",
+	})
+}
+
 type ProcessPipeline struct {
 	BanksWorkspace   string                      `json:"banksWorkspace"`
 	ScriptsWorkspace string                      `json:"scriptsWorkspace"`
@@ -48,6 +59,22 @@ type ProcessPipeline struct {
 	Scripts        []ProcessScript               `json:"scripts"`
 	Integration      integration.IntegrationType `json:"integration"`
 	Output           string                      `json:"output"`
+}
+
+func (p *ProcessPipeline) Script(name string) bool {
+	return slices.ContainsFunc(p.Scripts, func(script ProcessScript) bool {
+		return script.Script == name
+	})
+}
+
+func (p *ProcessPipeline) NewScript(name string, t ProcessScriptType) {
+	if p.Script(name) {
+		return
+	}
+	p.Scripts = append(p.Scripts, ProcessScript{
+		Script: name,
+		Type: t,
+	})
 }
 
 type ProcessScript struct {
