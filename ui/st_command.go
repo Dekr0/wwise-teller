@@ -24,73 +24,72 @@ type RankCmdPalette struct {
 
 type CmdPaletteMngr struct {
 	query      string
-	cmdPalette []*CmdPalette
-	filtered   []*RankCmdPalette
+	cmdPalette []CmdPalette
+	filtered   []RankCmdPalette
 	selected   int
 }
 
-func NewCmdPaletteMngr(dockMngr *dockmanager.DockManager) *CmdPaletteMngr {
+func NewCmdPaletteMngrP(c *CmdPaletteMngr, dockMngr *dockmanager.DockManager) {
 	mngr := &CmdPaletteMngr{
 		"",
-		make([]*CmdPalette, 0, 16),
-		[]*RankCmdPalette{},
+		make([]CmdPalette, 0, 16),
+		[]RankCmdPalette{},
 		0,
 	}
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+	mngr.cmdPalette = append(mngr.cmdPalette, CmdPalette{
 		"config",
 		func() { pushConfigModalFunc() },
 	})
 	for _, name := range dockmanager.DockWindowNames {
 		c := name
-		mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+		mngr.cmdPalette = append(mngr.cmdPalette, CmdPalette{
 			fmt.Sprintf("focus %s", name),
 			func() { dockMngr.SetFocus(c) },
 		})
 	}
 	for i := range dockmanager.LayoutCount {
 		li := i
-		mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+		mngr.cmdPalette = append(mngr.cmdPalette, CmdPalette{
 			dockmanager.LayoutName[i],
 			func() { dockMngr.SetLayout(li) },
 		})
 	}
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+	mngr.cmdPalette = append(mngr.cmdPalette, CmdPalette{
 		"integration: extract sound banks from Helldivers 2 game archives",
 		func() { pushSelectGameArchiveModal() },
 	})
 
-	mngr.cmdPalette = append(mngr.cmdPalette, &CmdPalette{
+	mngr.cmdPalette = append(mngr.cmdPalette, CmdPalette{
 		"Disable All Guard Rails",
 		func() { ModifiyEverything = !ModifiyEverything },
 	})
-	mngr.filtered = make([]*RankCmdPalette, len(mngr.cmdPalette))
-	for i, c := range mngr.cmdPalette {
-		mngr.filtered[i] = &RankCmdPalette{-1, c}
+	mngr.filtered = make([]RankCmdPalette, len(mngr.cmdPalette))
+	for i := range mngr.cmdPalette {
+		mngr.filtered[i] = RankCmdPalette{-1, &mngr.cmdPalette[i]}
 	}
-	
-	return mngr
 }
 
-func (c *CmdPaletteMngr) filter() {
+func (c *CmdPaletteMngr) Filter() {
 	i := 0
 	old := len(c.filtered)
-	for _, cmd := range c.cmdPalette {
-		rank := fuzzy.RankMatch(c.query, cmd.name)
+	for i := range c.cmdPalette {
+		cmd := &c.cmdPalette[i]
+		rank := fuzzy.RankMatch(c.query, c.cmdPalette[i].name)
 		if rank == -1 {
 			continue
 		}
 		if i < len(c.filtered) {
 			c.filtered[i].rank = rank
-			c.filtered[i].cmd = cmd
+			c.filtered[i].cmd = cmd 
 		} else {
-			c.filtered = append(c.filtered, &RankCmdPalette{rank, cmd})
+			c.filtered = append(c.filtered, RankCmdPalette{rank, cmd})
 		}
 		i += 1
 	}
 	if i < old {
 		c.filtered = slices.Delete(c.filtered, i, old)
 	}
-	slices.SortFunc(c.filtered, func(a *RankCmdPalette, b *RankCmdPalette) int {
+	slices.SortFunc(c.filtered, func(a RankCmdPalette, b RankCmdPalette) int {
 		if a.rank < b.rank {
 			return -1
 		}
