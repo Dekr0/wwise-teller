@@ -36,6 +36,10 @@ const (
 	ProcessScriptTypeCount
 )
 
+type IProcessScript interface {
+	Encode(string) error
+}
+
 type Processor struct {
 	Veriosn     uint8           `json:"version"`
 	Pipelines []ProcessPipeline `json:"pipelines"`
