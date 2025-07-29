@@ -1,4 +1,4 @@
-package ui
+package modal
 
 import (
 	"slices"
@@ -8,11 +8,11 @@ import (
 )
 
 type Modal struct {
-	done *bool
-	flag imgui.WindowFlags
-	name string
-	loop func()
-	onClose func()
+	Done *bool
+	Flag imgui.WindowFlags
+	Name string
+	Loop func()
+	OnClose func()
 }
 
 type ModalQ struct {
@@ -31,7 +31,7 @@ func (m *ModalQ) QModal(
 	onClose func(),
 ) {
 	if slices.ContainsFunc(m.Modals, func(modal *Modal) bool {
-		return strings.Compare(modal.name, name) == 0
+		return strings.Compare(modal.Name, name) == 0
 	}) {
 		return
 	}
