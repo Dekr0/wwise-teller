@@ -30,7 +30,7 @@ func renderRanSeqPlayList(t *be.BankTab, r *wwise.RanSeqCntr) {
 }
 
 func renderRanSeqPlayListTableSet(t *be.BankTab, r *wwise.RanSeqCntr) {
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
+	imgui.BeginDisabledV(!GCtx.CopyEnable)
 	if imgui.Button("Copy IDs") {
 		var builder strings.Builder
 		var err error
@@ -46,7 +46,7 @@ func renderRanSeqPlayListTableSet(t *be.BankTab, r *wwise.RanSeqCntr) {
 
 	imgui.SameLine()
 
-	imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
+	imgui.BeginDisabledV(!GCtx.CopyEnable)
 	if imgui.Button("Copy Source IDs") {
 		h := t.Bank.HIRC()
 		if h == nil {

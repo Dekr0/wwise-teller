@@ -97,7 +97,7 @@ func renderBusTable(t *be.BankTab) {
 
 				if imgui.BeginPopupContextItem() {
 					cloneId := idA
-					Disabled(!GlobalCtx.CopyEnable, func() {
+					Disabled(!GCtx.CopyEnable, func() {
 						if imgui.SelectableBool("Copy ID") {
 							clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(cloneId), 10)))
 						}
@@ -181,7 +181,7 @@ func renderMasterMixerHierarchyNode(t *be.BankTab, node *wwise.BusHircNode) {
 	}
 	node.Open = open
 	if imgui.BeginPopupContextItem() {
-		Disabled(!GlobalCtx.CopyEnable, func() {
+		Disabled(!GCtx.CopyEnable, func() {
 			if imgui.SelectableBool("Copy ID") {
 				clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
 			}

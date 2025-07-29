@@ -83,7 +83,7 @@ func renderPlaySound(bnkTab *be.BankTab, data *wwise.DATA, sound *wwise.Sound) {
 		}
 		proc := fmt.Sprintf("Exporting audio source %d", sid)
 		done := fmt.Sprintf("Exported audio source %d", sid)
-		if err := GlobalCtx.Loop.QTask(ctx, cancel, proc, done, callback); err != nil {
+		if err := GCtx.Loop.QTask(ctx, cancel, proc, done, callback); err != nil {
 			slog.Error(fmt.Sprintf("Failed to create background task to export audio source %d", sid), "error", err)
 		} else {
 			bnkTab.LockWEMExport()
@@ -117,7 +117,7 @@ func renderPlaySound(bnkTab *be.BankTab, data *wwise.DATA, sound *wwise.Sound) {
 		}
 		proc := fmt.Sprintf("Initializing new sound streamer for sound %d", soundId)
 		done := fmt.Sprintf("Initialized new sound streamer for sound %d", soundId)
-		if err := GlobalCtx.Loop.QTask(ctx, cancel, proc, done, callback); err != nil {
+		if err := GCtx.Loop.QTask(ctx, cancel, proc, done, callback); err != nil {
 			slog.Error(fmt.Sprintf("Failed to create background task to initialize sound streamer for sound %d", soundId), "error", err)
 		} else {
 			bnkTab.Session.Lock()

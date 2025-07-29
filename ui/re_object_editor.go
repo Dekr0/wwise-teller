@@ -203,7 +203,7 @@ func renderContainer(t *be.BankTab, id uint32, cntr *wwise.Container, actorMixer
 		imgui.EndDisabled()
 
 		imgui.SameLine()
-		imgui.BeginDisabledV(!GlobalCtx.CopyEnable)
+		imgui.BeginDisabledV(!GCtx.CopyEnable)
 		if imgui.Button("Copy IDs") {
 			var builder strings.Builder
 			var err error

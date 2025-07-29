@@ -76,7 +76,7 @@ func renderAttenuationTable(t *be.BankTab) {
 }
 
 func renderAttenuationTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy ID") {
 			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
 		}

@@ -132,12 +132,12 @@ func renderAction(t *be.BankTab, a *wwise.Action) {
 }
 
 func renderActionCtxMenu(t *be.BankTab, action *wwise.Action, actionID uint32) {
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy ID") {
 			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(actionID), 10)))
 		}
 	})
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy Action Target ID") {
 			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(action.IdExt), 10)))
 		}
@@ -145,12 +145,12 @@ func renderActionCtxMenu(t *be.BankTab, action *wwise.Action, actionID uint32) {
 }
 
 func renderEventCtxMenu(t *be.BankTab, event *wwise.Event) {
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy ID") {
 			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(event.Id), 10)))
 		}
 	})
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy Action IDs") {
 
 		}

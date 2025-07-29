@@ -35,7 +35,7 @@ func renderDebug(bnkMngr *be.BankManager, open *bool) {
 	})
 
 	imgui.SeparatorText("Clipboard")
-	imgui.Text(fmt.Sprintf("Clipboard enabled: %v", GlobalCtx.CopyEnable))
+	imgui.Text(fmt.Sprintf("Clipboard enabled: %v", GCtx.CopyEnable))
 
 	imgui.SeparatorText("Bank Manager")
 	imgui.Text(fmt.Sprintf("# of bank tabs: %d", numBnks))
@@ -64,11 +64,11 @@ func renderDebug(bnkMngr *be.BankManager, open *bool) {
 	}
 	imgui.Text(fmt.Sprintf("Mounted Init.bnk: %s", mountedBnk))
 	imgui.SeparatorText("Modal")
-	imgui.Text(fmt.Sprintf("# of modals: %d", len(GlobalCtx.ModalQ.Modals)))
+	imgui.Text(fmt.Sprintf("# of modals: %d", len(GCtx.ModalQ.Modals)))
 	imgui.SeparatorText("Event Loop")
-	stat := GlobalCtx.Loop.TaskStatus()
-	imgui.Text(fmt.Sprintf("Sync task counter: %d", GlobalCtx.Loop.SyncTaskCounter))
-	imgui.Text(fmt.Sprintf("Async task counter: %d", GlobalCtx.Loop.AsyncTaskCounter))
+	stat := GCtx.Loop.TaskStatus()
+	imgui.Text(fmt.Sprintf("Sync task counter: %d", GCtx.Loop.SyncTaskCounter))
+	imgui.Text(fmt.Sprintf("Async task counter: %d", GCtx.Loop.AsyncTaskCounter))
 	imgui.Text(fmt.Sprintf("# of sync tasks: %d", stat.TotalNumSyncTask))
 	imgui.Text(fmt.Sprintf("# of async tasks: %d", stat.TotalNumAsyncTask))
 	imgui.Text(fmt.Sprintf("# of running async tasks: %d", stat.NumRunningAsyncTask))
