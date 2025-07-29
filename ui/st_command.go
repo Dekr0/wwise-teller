@@ -1,5 +1,4 @@
 // TODO:
-// - Switch to "Events", "Attenuations", "Game Sync", "FX", ...
 // - File saving
 // - Enable "Modifying Everything"
 package ui
