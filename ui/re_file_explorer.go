@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -8,8 +9,10 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/ui/fs"
 	"github.com/Dekr0/wwise-teller/utils"
@@ -55,7 +58,7 @@ func renderFileExplorerTab(fe *fs.FileExplorer) {
 
 	imgui.SetNextItemShortcut(imgui.KeyChord(ModCtrlShift) | imgui.KeyChord(imgui.KeyN))
 	if imgui.Button("+") {
-		onOK := func(name string) {
+		callback := func(name string) {
 			if name == "" { return }
 			path := filepath.Join(fe.Pwd(), name)
 			if err := os.MkdirAll(filepath.Join(fe.Pwd(), name), os.ModePerm); err != nil {
@@ -71,7 +74,7 @@ func renderFileExplorerTab(fe *fs.FileExplorer) {
 				)
 			}
 		}
-		pushSimpleTextModal("Make directory", onOK)
+		PushSimpleTextModal("Make directory", "Directory Name", "Create", callback)
 	}
 	imgui.SameLine()
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyR))
@@ -244,18 +247,17 @@ func renderFileExplorerTable(fe *fs.FileExplorer, focusTable bool) {
 }
 
 func bindCdFoucs(fe *fs.FileExplorer, n int32) func() {
-	return func() {
-		if err := fe.CD(int(n)); err != nil {
-			slog.Error(
-				"Failed to change current directory to selective directory",
-				"error", err,
-				)
-		}
+return func() {
+	if err := fe.CD(int(n)); err != nil {
+		slog.Error(
+			"Failed to change current directory to selective directory",
+			"error", err,
+			)
 	}
-}
+}}
 
 func bindOpenFoucs(fe *fs.FileExplorer, n int32) func() {
-	return func() {
-		fe.OpenFocus(int(n))
-	}
-}
+return func() {
+	fe.OpenFocus(int(n))
+}}
+
