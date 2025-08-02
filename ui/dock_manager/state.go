@@ -38,7 +38,8 @@ const (
 	ObjectEditorMusicTag
 	NotificationTag
 	TransportControlTag
-	ScriptEditorTag           
+	ProcessorEditorTag           
+	DockWindowTagCount
 )
 
 var DockWindowNames []string = []string{
@@ -58,7 +59,7 @@ var DockWindowNames []string = []string{
 	"Object Editor (Music)",
 	"Notifications",
 	"Transport Control",
-	"Script Editor",
+	"Processor Editor",
 }
 
 type DockManager struct {
@@ -73,13 +74,24 @@ const DockSpaceFlags imgui.DockNodeFlags =
 	imgui.DockNodeFlagsNone |
 	imgui.DockNodeFlags(imgui.DockNodeFlagsNoWindowMenuButton)
 
-func NewDockManager() *DockManager {
-	open := make([]bool, len(DockWindowNames))
+func NewDockManagerP(d *DockManager) {
+	open := make([]bool, DockWindowTagCount)
+	for i := range DockWindowNames {
+		open[i] = false
+	}
+	d.Opens = open
+	d.Layout = ActorMixerEventLayout
+	d.Rebuild = true
+	d.Init = true
+}
+
+func NewDockManager() DockManager {
+	open := make([]bool, DockWindowTagCount)
 	for i := range DockWindowNames {
 		open[i] = false
 	}
 
-	return &DockManager{
+	return DockManager{
 		Opens: open,
 		Layout: ActorMixerEventLayout,
 		Rebuild: true,
@@ -154,7 +166,7 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[MusicHierarchyTag], hierarchyDock)
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[MasterMixerHierarchyTag], hierarchyDock)
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[ObjectEditorActorMixerTag], editorDock)
-		imgui.InternalDockBuilderDockWindow(DockWindowNames[ScriptEditorTag], editorDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[ProcessorEditorTag], editorDock)
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[TransportControlTag], transportDock)
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[EventsTag], eventDock)
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[GameSyncTag], eventDock)
@@ -205,7 +217,7 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[ActorMixerHierarchyTag], hierarchyDock)
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[TransportControlTag], transportDock)
 		imgui.InternalDockBuilderDockWindow(DockWindowNames[ObjectEditorActorMixerTag], editorDock)
-		imgui.InternalDockBuilderDockWindow(DockWindowNames[ScriptEditorTag], editorDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[ProcessorEditorTag], editorDock)
 
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.Rebuild = false
