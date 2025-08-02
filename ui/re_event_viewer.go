@@ -16,7 +16,7 @@ import (
 	"golang.design/x/clipboard"
 )
 
-func renderEventsViewer(t *be.BankTab, open *bool) {
+func renderEventsViewer(open *bool) {
 	if !*open {
 		return
 	}
@@ -25,21 +25,22 @@ func renderEventsViewer(t *be.BankTab, open *bool) {
 	if !*open {
 		return
 	}
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.SounBankLock.Load() {
+	activeBank, valid := BnkMngr.ActiveBankV()
+	if !valid || activeBank.SounBankLock.Load() {
 		return
 	}
-	if t.EventViewer.ActiveEvent != nil {
+	if activeBank.EventViewer.ActiveEvent != nil {
 		size := imgui.NewVec2(0, 0)
 
 		size.Y = imgui.ContentRegionAvail().Y * 0.5
 		imgui.BeginChildStrV("EventActionTableChild", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
-		renderActionsTable(t)
+		renderActionsTable(activeBank)
 		imgui.EndChild()
 
-		if t.EventViewer.ActiveAction != nil {
+		if activeBank.EventViewer.ActiveAction != nil {
 			size.X, size.Y = 0, 0
 			imgui.BeginChildStrV("EventActionParameter", size, imgui.ChildFlagsBorders, imgui.WindowFlagsNone)
-			renderAction(t, t.EventViewer.ActiveAction)
+			renderAction(activeBank, activeBank.EventViewer.ActiveAction)
 			imgui.EndChild()
 		}
 	}

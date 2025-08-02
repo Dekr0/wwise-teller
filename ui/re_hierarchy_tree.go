@@ -15,7 +15,7 @@ import (
 	"golang.design/x/clipboard"
 )
 
-func renderActorMixerHircTree(t *be.BankTab, open *bool) {
+func renderActorMixerHircTree(open *bool) {
 	if !*open {
 		return 
 	}
@@ -24,10 +24,11 @@ func renderActorMixerHircTree(t *be.BankTab, open *bool) {
 	if !*open {
 		return
 	}
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil {
+	activeBank, valid := BnkMngr.ActiveBankV()
+	if !valid {
 		return
 	}
-	renderActorMixerHircTreeTable(t)
+	renderActorMixerHircTreeTable(activeBank)
 }
 
 func renderActorMixerHircTreeTable(t *be.BankTab) {
@@ -103,7 +104,7 @@ func renderActorMixerHircCtx(
 	o wwise.HircObj,
 	id uint32,
 ) {
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy ID") {
 			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
 		}
@@ -111,7 +112,7 @@ func renderActorMixerHircCtx(
 
 	switch sound := node.Obj.(type) {
 	case *wwise.Sound:
-		Disabled(!GlobalCtx.CopyEnable, func() {
+		Disabled(!GCtx.CopyEnable, func() {
 			if imgui.SelectableBool("Copy Source ID") {
 				clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
 			}
@@ -122,7 +123,7 @@ func renderActorMixerHircCtx(
 		return
 	}
 
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy Leafs' IDs") {
 			l := len(node.Leafs)
 			var builder strings.Builder
@@ -139,7 +140,7 @@ func renderActorMixerHircCtx(
 		}
 	})
 
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy Leafs' Source IDs") {
 			l := len(node.Leafs)
 			var builder strings.Builder
@@ -163,7 +164,7 @@ func renderActorMixerHircCtx(
 	}
 }
 
-func renderMusicHircTree(t *be.BankTab, open *bool) {
+func renderMusicHircTree(open *bool) {
 	if !*open {
 		return
 	}

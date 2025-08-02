@@ -119,7 +119,7 @@ func renderFxTable(t *be.BankTab) {
 	}
 }
 
-func renderFXViewer(t *be.BankTab, open *bool) {
+func renderFXViewer(open *bool) {
 	if !*open {
 		return
 	}
@@ -128,11 +128,13 @@ func renderFXViewer(t *be.BankTab, open *bool) {
 	if !*open {
 		return
 	}
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.SounBankLock.Load() {
+
+	activeBank, valid := BnkMngr.ActiveBankV()
+	if !valid || activeBank.SounBankLock.Load() {
 		return
 	}
-	if t.FxViewer.ActiveFx != nil {
-		switch f := t.FxViewer.ActiveFx.(type) {
+	if activeBank.FxViewer.ActiveFx != nil {
+		switch f := activeBank.FxViewer.ActiveFx.(type) {
 		case *wwise.FxShareSet:
 			renderFxShareSet(f)
 		case *wwise.FxCustom:
