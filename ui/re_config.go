@@ -11,14 +11,14 @@ func configModalFunc() (func(), *bool) {
 	done := false
 	return func() {
 		imgui.Checkbox("Disable All Guard Rails", &ModifiyEverything)
-		imgui.Text(fmt.Sprintf("Home: %s", GlobalCtx.Config.Home))
+		imgui.Text(fmt.Sprintf("Home: %s", GCtx.Config.Home))
 		imgui.SameLine()
 		if imgui.ArrowButton("SetHome", imgui.DirRight) {
 			pushSetHomeModal()
 		}
 
 		if imgui.Button("Apply") {
-			if err := GlobalCtx.Config.Save(); err != nil {
+			if err := GCtx.Config.Save(); err != nil {
 				slog.Error("Failed to save configuration")
 			}
 		}
@@ -27,4 +27,9 @@ func configModalFunc() (func(), *bool) {
 			done = true
 		}
 	}, &done
+}
+
+func pushConfigModalFunc() {
+	renderF, done := configModalFunc()
+	Modal(done, imgui.WindowFlagsAlwaysAutoResize, "Config", renderF, nil)
 }
