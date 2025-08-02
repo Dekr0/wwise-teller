@@ -72,6 +72,7 @@ func (e *EventLoop) MustRun(taskFunc func(context.Context)) {
 }
 
 // Event loop will call cancel function
+// TODO: it should be queue as many tasks as it can
 func (e *EventLoop) QTask(
 	ctx       context.Context,
 	cancel    context.CancelFunc,
