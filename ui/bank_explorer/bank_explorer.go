@@ -29,6 +29,19 @@ type BankManager struct {
 	WriteLock    atomic.Bool
 }
 
+func (b *BankManager) ActiveBankV() (*BankTab, bool) {
+	if b.ActiveBank == nil {
+		return nil, false
+	}
+	if b.ActiveBank.Bank == nil {
+		return nil, false
+	}
+	if b.ActiveBank.Bank.HIRC() == nil {
+		return nil, false
+	}
+	return b.ActiveBank, true
+}
+
 type BankTabEnum int8
 
 const (
