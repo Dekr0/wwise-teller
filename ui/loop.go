@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
-	"sync/atomic"
 	"time"
 
 	"github.com/AllenDang/cimgui-go/backend"
@@ -19,7 +18,7 @@ import (
 	"github.com/Dekr0/wwise-teller/config"
 	"github.com/Dekr0/wwise-teller/log"
 	"github.com/Dekr0/wwise-teller/ui/async"
-	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	uctx "github.com/Dekr0/wwise-teller/ui/context"
 	"github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/ui/fs"
 	glog "github.com/Dekr0/wwise-teller/ui/log"
@@ -28,8 +27,6 @@ import (
 	"github.com/Dekr0/wwise-teller/waapi"
 	"golang.design/x/clipboard"
 )
-
-var ModifiyEverything = false
 
 const MainDockFlags imgui.WindowFlags = 
 	imgui.WindowFlagsNoDocking |
@@ -64,12 +61,14 @@ func Run() error {
 	utils.InitTmp()
 	waapi.InitWEMCache()
 
+	uctx.Init()
+
 	err = clipboard.Init()
 	if err != nil {
 		slog.Error("Failed to initialized clipboard. Copying is disabled.")
-		GlobalCtx.CopyEnable = false
+		GCtx.CopyEnable = false
 	}
-	GlobalCtx.CopyEnable = true
+	GCtx.CopyEnable = true
 
 	err = aio.InitBeep()
 	if err != nil {
@@ -81,22 +80,13 @@ func Run() error {
 		return err
 	}
 
-	err = config.Load(&GlobalCtx.Config)
+	err = config.Load(Config)
 	if err != nil {
 		return err
 	}
 	slog.Info("Loaded configuration file")
 
-	bnkMngr := &be.BankManager{WriteLock: atomic.Bool{}}
-	bnkMngr.WriteLock.Store(false)
-	slog.Info("Created bank manager")
-
-	dockMngr := dockmanager.NewDockManager()
-
-
-	fileExplorer, err := fs.NewFileExplorer(
-		openSoundBankFunc(bnkMngr), GlobalCtx.Config.Home,
-	)
+	fileExplorer, err := fs.NewFileExplorer(fileExplorerCallback, GCtx.Config.Home)
 	if err != nil {
 		return err
 	}
@@ -111,7 +101,7 @@ func Run() error {
 	}
 	backend.SetAfterRenderHook(createAfterRenderHook(nQ))
 	backend.SetBeforeDestroyContextHook(func() {
-		if err := GlobalCtx.Config.Save(); err != nil {
+		if err := GCtx.Config.Save(); err != nil {
 			slog.Error("Failed to save configuration file", "error", err)
 		}
 		logF.Close()
@@ -123,14 +113,10 @@ func Run() error {
 	}
 	slog.Info("Setup ImGUI context and configuration")
 
-	backend.Run(createLoop(
-		dockMngr,
-		fileExplorer,
-		NewCmdPaletteMngr(dockMngr),
-		bnkMngr, 
-		nQ,
-		gLog,
-	))
+	c := CmdPaletteMngr{}
+	NewCmdPaletteMngrP(&c, DockMngr)
+
+	backend.Run(createLoop(fileExplorer, &c, nQ, gLog))
 
 	return nil
 }
@@ -160,7 +146,7 @@ func setupImGUI() error {
 
 func createAfterRenderHook(nQ *notify.NotifyQ) func() {
 	return func() {
-		for _, onDone := range GlobalCtx.Loop.Update() {
+		for _, onDone := range GCtx.Loop.Update() {
 			nQ.Q(onDone, time.Second * 8)
 		}
 	}
@@ -171,10 +157,8 @@ func createAfterRenderHook(nQ *notify.NotifyQ) func() {
 // 2. If point 1 cannot be done, a render function only accept the state it needs 
 // to use
 func createLoop(
-	dockMngr *dockmanager.DockManager,
 	fileExplorer *fs.FileExplorer,
 	cmdPaletteMngr *CmdPaletteMngr,
-	bnkMngr *be.BankManager,
 	nQ *notify.NotifyQ,
 	gLog *glog.GuiLog,
 ) func() {
@@ -183,18 +167,18 @@ func createLoop(
 		imguizmo.BeginFrame()
 
 		if imgui.ShortcutNilV(imgui.KeyChord(imgui.KeyF1), imgui.InputFlagsRouteGlobal) {
-			dockMngr.SetLayout(dockmanager.ActorMixerObjEditorLayout)
+			DockMngr.SetLayout(dockmanager.ActorMixerObjEditorLayout)
 		}
 		if imgui.ShortcutNilV(imgui.KeyChord(imgui.KeyF2), imgui.InputFlagsRouteGlobal) {
-			dockMngr.SetLayout(dockmanager.ActorMixerEventLayout)
+			DockMngr.SetLayout(dockmanager.ActorMixerEventLayout)
 		}
 		if imgui.ShortcutNilV(imgui.KeyChord(imgui.KeyF3), imgui.InputFlagsRouteGlobal) {
-			dockMngr.SetLayout(dockmanager.MasterMixerLayout)
+			DockMngr.SetLayout(dockmanager.MasterMixerLayout)
 		}
 
 		viewport := imgui.MainViewport()
 
-		renderStatusBar(GlobalCtx.Loop.AsyncTasks)
+		renderStatusBar(GCtx.Loop.AsyncTasks)
 
 		imgui.SetNextWindowPos(viewport.WorkPos())
 		imgui.SetNextWindowSize(viewport.WorkSize())
@@ -202,7 +186,7 @@ func createLoop(
 
 		imgui.BeginV("MainDock", nil, MainDockFlags)
 
-		dockSpaceID := dockMngr.BuildDockSpace()
+		dockSpaceID := DockMngr.BuildDockSpace()
 		imgui.DockSpaceV(
 			dockSpaceID,
 			DefaultSize,
@@ -210,23 +194,24 @@ func createLoop(
 			imgui.NewEmptyWindowClass(),
 		)
 
-		renderMainMenuBar(dockMngr, cmdPaletteMngr)
-		GlobalCtx.ModalQ.renderModal()
+		renderMainMenuBar(DockMngr, cmdPaletteMngr)
+		renderModal(&GCtx.ModalQ)
 
-		glog.RenderLog(gLog, &dockMngr.Opens[dockmanager.LogTag])
+		glog.RenderLog(gLog, &DockMngr.Opens[dockmanager.LogTag])
 
-		renderDebug(bnkMngr, &dockMngr.Opens[dockmanager.DebugTag])
-		renderFileExplorer(fileExplorer, &dockMngr.Opens[dockmanager.FileExplorerTag])
-		renderBankExplorer(bnkMngr)
-		renderActorMixerHircTree(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.ActorMixerHierarchyTag])
-		renderMusicHircTree(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.MusicHierarchyTag])
-		renderMasterMixerHierarchy(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.MasterMixerHierarchyTag])
-		renderObjEditorActorMixer(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank, &dockMngr.Opens[dockmanager.ObjectEditorActorMixerTag])
-		renderObjEditorMusic(bnkMngr, bnkMngr.ActiveBank, bnkMngr.InitBank, &dockMngr.Opens[dockmanager.ObjectEditorMusicTag])
-		renderBusViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.BusesTag])
-		renderFXViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.FXTag])
-		renderEventsViewer(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.EventsTag])
-		RenderTransportControl(bnkMngr.ActiveBank, &dockMngr.Opens[dockmanager.TransportControlTag])
+		renderDebug(&DockMngr.Opens[dockmanager.DebugTag])
+		renderFileExplorer(fileExplorer, &DockMngr.Opens[dockmanager.FileExplorerTag])
+		renderBankExplorer()
+		renderActorMixerHircTree(&DockMngr.Opens[dockmanager.ActorMixerHierarchyTag])
+		renderMusicHircTree(&DockMngr.Opens[dockmanager.MusicHierarchyTag])
+		renderMasterMixerHierarchy(&DockMngr.Opens[dockmanager.MasterMixerHierarchyTag])
+		renderObjEditorActorMixer(&DockMngr.Opens[dockmanager.ObjectEditorActorMixerTag])
+		renderObjEditorMusic(&DockMngr.Opens[dockmanager.ObjectEditorMusicTag])
+		renderBusViewer(&DockMngr.Opens[dockmanager.BusesTag])
+		renderFXViewer(&DockMngr.Opens[dockmanager.FXTag])
+		renderEventsViewer(&DockMngr.Opens[dockmanager.EventsTag])
+		RenderTransportControl(&DockMngr.Opens[dockmanager.TransportControlTag])
+		// processor.RenderProcessorEditor(&GCtx.Editor, &DockMngr.Opens[dockmanager.ProcessorEditorTag])
 
 		notify.RenderNotify(nQ)
 		imgui.End()
