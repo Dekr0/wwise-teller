@@ -1,10 +1,14 @@
 package ui
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
+	"time"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Dekr0/wwise-teller/ui/async"
+	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 )
 
@@ -69,6 +73,50 @@ func renderMainMenuBar(
 		imgui.EndMenuBar()
 	}
 }
+
+// Push Select Game Archive Modal
+func pushSelectGameArchiveModal() {
+	initialDir, err := helldivers.GetHelldivers2Data()
+	if err != nil {
+		initialDir = GCtx.Config.Home
+	}
+	renderF, done, err := openFileDialogFunc(
+		onGameArchiveOpen, false, initialDir, []string{},
+	)
+	if err != nil {
+		slog.Error("Failed to create open file dialog for opening Helldivers 2 game archives", "error", err)
+	} else {
+		Modal(done, 0, "Select Helldivers 2 game archives", renderF, nil)
+	}
+}
+
+func onGameArchiveOpen(paths []string) {
+	onSave := onSaveSoundBankFromGameArchives(paths)
+	renderF, done, err := saveFileDialogFunc(onSave, GCtx.Config.Home)
+	if err != nil {
+		slog.Error("Failed create save file dialog for saving extracted sound banks", "error", err)
+	}
+	Modal(done, 0, "Save extracted sound banks to ...", renderF, nil)
+}
+
+func onSaveSoundBankFromGameArchives(paths []string) func(string) {
+return func(dest string) {
+	for _, path := range paths {
+		onProcMsg := fmt.Sprintf("Extract sound banks from Helldivers 2 game archive %s", path)
+		onDoneMsg := fmt.Sprintf("Extracted sound banks from Helldivers 2 game archive %s", path)
+		f := extractSoundBankStable(path, dest)
+		BG(time.Second * 8, onProcMsg, onDoneMsg, f)
+	}
+}}
+
+func extractSoundBankStable(path string, dest string) func(context.Context) {
+return func(ctx context.Context) {
+	if err := helldivers.ExtractSoundBankStable(path, dest, false); err != nil {
+		msg := fmt.Sprintf("Failed to extract sound bank from game archive %s", path)
+		slog.Error(msg, "error", err,)
+	}
+}}
+// End of Push Select Game Archive Modal
 
 func renderStatusBar(asyncTasks []*async.Task) {
 	renderTaskPopup := false
