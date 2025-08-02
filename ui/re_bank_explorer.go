@@ -1,54 +1,58 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/AllenDang/cimgui-go/utils"
+	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
+	wutils "github.com/Dekr0/wwise-teller/utils"
 	"github.com/Dekr0/wwise-teller/wwise"
 	"golang.design/x/clipboard"
 )
 
-func renderBankExplorer(bnkMngr *be.BankManager) {
+func renderBankExplorer() {
 	imgui.BeginV(dockmanager.DockWindowNames[dockmanager.BankExplorerTag], nil, imgui.WindowFlagsMenuBar)
-	renderBankExplorerMenu(bnkMngr)
+	renderBankExplorerMenu()
 	if imgui.BeginTabBarV("BankExplorerTabBar", DefaultTabFlags) {
 		paths := []string{}
-		bnkMngr.Banks.Range(func(key any, value any) bool {
+		BnkMngr.Banks.Range(func(key any, value any) bool {
 			open := true
 			path := key.(string)
 			tab := value.(*be.BankTab)
 
 			imgui.PushIDStr(path)
 			selected := imgui.TabItemFlagsNone
-			if bnkMngr.SetNextBank != nil && bnkMngr.SetNextBank == tab {
+			if BnkMngr.SetNextBank != nil && BnkMngr.SetNextBank == tab {
 				selected = imgui.TabItemFlagsSetSelected
-				bnkMngr.SetNextBank = nil
+				BnkMngr.SetNextBank = nil
 			}
 			if imgui.BeginTabItemV(filepath.Base(path), &open, selected) {
 				renderBankExplorerTab(path, value.(*be.BankTab))
-				bnkMngr.ActiveBank = tab
-				bnkMngr.ActivePath = path
+				BnkMngr.ActiveBank = tab
+				BnkMngr.ActivePath = path
 				imgui.EndTabItem()
 			}
 			imgui.PopID()
 
 			if !open {
-				if bnkMngr.ActiveBank == tab {
-					bnkMngr.ActiveBank = nil
-					bnkMngr.ActivePath = ""
+				if BnkMngr.ActiveBank == tab {
+					BnkMngr.ActiveBank = nil
+					BnkMngr.ActivePath = ""
 				}
-				if bnkMngr.InitBank == tab {
-					bnkMngr.InitBank = nil
+				if BnkMngr.InitBank == tab {
+					BnkMngr.InitBank = nil
 				}
-				if bnkMngr.SetNextBank == tab {
-					bnkMngr.SetNextBank = nil
+				if BnkMngr.SetNextBank == tab {
+					BnkMngr.SetNextBank = nil
 				}
 				paths = append(paths, path)
 			}
@@ -57,7 +61,7 @@ func renderBankExplorer(bnkMngr *be.BankManager) {
 		})
 		imgui.EndTabBar()
 		for _, path := range paths {
-			bnkMngr.CloseBank(path)
+			BnkMngr.CloseBank(path)
 		}
 	}
 	imgui.End()
@@ -150,23 +154,23 @@ func renderBankExplorerTab(path string, t *be.BankTab) {
 	}
 }
 
-func renderBankExplorerMenu(bnkMngr *be.BankManager) {
+func renderBankExplorerMenu() {
 	if imgui.BeginMenuBar() {
 		if imgui.BeginMenu("File") {
-			if imgui.BeginMenuV("Save (With Metadata)", !bnkMngr.WriteLock.Load()) {
-				bnkMngr.Banks.Range(func(key, value any) bool {
+			if imgui.BeginMenuV("Save (With Metadata)", !BnkMngr.WriteLock.Load()) {
+				BnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
-						pushSaveSoundBankModal(bnkMngr, value.(*be.BankTab), key.(string), false)
+						pushSaveSoundBankModal(value.(*be.BankTab), key.(string), false)
 						return false
 					}
 					return true
 				})
 				imgui.EndMenu()
 			}
-			if imgui.BeginMenuV("Save (Without Metadata)", !bnkMngr.WriteLock.Load()) {
-				bnkMngr.Banks.Range(func(key, value any) bool {
+			if imgui.BeginMenuV("Save (Without Metadata)", !BnkMngr.WriteLock.Load()) {
+				BnkMngr.Banks.Range(func(key, value any) bool {
 					if imgui.MenuItemBool(key.(string)) {
-						pushSaveSoundBankModal(bnkMngr, value.(*be.BankTab), key.(string), true)
+						pushSaveSoundBankModal(value.(*be.BankTab), key.(string), true)
 						return false
 					}
 					return true
@@ -175,15 +179,15 @@ func renderBankExplorerMenu(bnkMngr *be.BankManager) {
 			}
 
 			if imgui.BeginMenu("Project") {
-				Disabled(bnkMngr.ActiveBank == nil, func() {
+				Disabled(BnkMngr.ActiveBank == nil, func() {
 					if imgui.MenuItemBool("Set Selected Bank As Init.bnk") {
-						bnkMngr.InitBank = bnkMngr.ActiveBank
+						BnkMngr.InitBank = BnkMngr.ActiveBank
 					}
 				})
 				if imgui.BeginMenu("Set Init.bnk Using Existed Banks") {
-					bnkMngr.Banks.Range(func(key, value any) bool {
+					BnkMngr.Banks.Range(func(key, value any) bool {
 						if imgui.MenuItemBool(key.(string)) {
-							bnkMngr.InitBank = value.(*be.BankTab)
+							BnkMngr.InitBank = value.(*be.BankTab)
 							return false
 						}
 						return true
@@ -191,16 +195,16 @@ func renderBankExplorerMenu(bnkMngr *be.BankManager) {
 					imgui.EndMenu()
 				}
 				if imgui.MenuItemBool("Unmount Init.bnk") {
-					bnkMngr.InitBank = nil
+					BnkMngr.InitBank = nil
 				}
 				imgui.EndMenu()
 			}
 
 			if imgui.BeginMenu("Integration") {
-				if imgui.BeginMenuV("Helldivers 2", !bnkMngr.WriteLock.Load()) {
-					bnkMngr.Banks.Range(func(key, value any) bool {
+				if imgui.BeginMenuV("Helldivers 2", !BnkMngr.WriteLock.Load()) {
+					BnkMngr.Banks.Range(func(key, value any) bool {
 						if imgui.MenuItemBool(key.(string)) {
-							pushHD2PatchModal(bnkMngr, value.(*be.BankTab), key.(string))
+							pushHD2PatchModal(value.(*be.BankTab), key.(string))
 							return false
 						}
 						return true
@@ -209,12 +213,120 @@ func renderBankExplorerMenu(bnkMngr *be.BankManager) {
 				}
 				imgui.EndMenu()
 			}
-
 			imgui.EndMenu()
 		}
 		imgui.EndMenuBar()
 	}
 }
+
+// Save sound bank modal
+func pushSaveSoundBankModal(saveTab *be.BankTab, saveName string, excludeMeta bool) {
+	onSave := onSaveSoundBankModal(saveTab, saveName, excludeMeta)
+	renderF, done, err := saveFileDialogFunc(onSave, GCtx.Config.Home)
+	if err != nil {
+		msg := fmt.Sprintf("Failed create save file dialog for saving sound bank %s", saveName)
+		slog.Error(msg, "error", err)
+	} else {
+		Modal(done, 0, fmt.Sprintf("Save sound bank %s to ...", saveName), renderF, nil)
+	}
+}
+
+func onSaveSoundBankModal(
+	saveTab *be.BankTab,
+	saveName string,
+	excludeMeta bool,
+) func(string) {
+return func(path string) {
+	onProcMsg := fmt.Sprintf("Saving sound bank %s to %s", saveName, path)
+	onDoneMsg := fmt.Sprintf("Saved sound bank %s to %s", saveName, path)
+	f := saveSoundBank(path, saveTab, saveName, excludeMeta)
+	BG(time.Second * 8, onProcMsg, onDoneMsg, f)
+}}
+
+func saveSoundBank(
+	path string,
+	saveTab *be.BankTab,
+	saveName string,
+	excludeMeta bool,
+) func(context.Context) {
+return func(ctx context.Context) {
+	BnkMngr.WriteLock.Store(true)
+	data, err := saveTab.Encode(ctx, excludeMeta)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to encode sound bank %s", saveName)
+		slog.Error(msg, "error", err)
+		BnkMngr.WriteLock.Store(false)
+		return
+	}
+	dest := filepath.Join(path, filepath.Base(saveName))
+	if err := wutils.SaveFileWithRetry(data, dest); err != nil {
+		msg := fmt.Sprintf("Failed to save sound bank %s to %s", saveName, path)
+		slog.Error(msg, "error", err)
+	}
+	BnkMngr.WriteLock.Store(false)
+}}
+// End of save sound bank modal
+
+
+// Start of push HD2 Patch Modal
+func pushHD2PatchModal(saveTab *be.BankTab, saveName string) {
+	onSave := func(path string) {
+		timeout, cancel := context.WithTimeout(
+			context.Background(), time.Second * 4,
+		)
+		
+		onProcMsg := fmt.Sprintf("Saving sound bank %s to HD2 patch %s",
+			saveName, path)
+		onDoneMsg := fmt.Sprintf("Saved sound bank %s to HD2 patch %s",
+			saveName, path)
+
+		if err := GCtx.Loop.QTask(timeout, cancel, onProcMsg, onDoneMsg, 
+			func(ctx context.Context) {
+				slog.Info(onProcMsg)
+				BnkMngr.WriteLock.Store(true)
+				defer BnkMngr.WriteLock.Store(false)
+				bnkData, err := saveTab.Encode(ctx, true)
+				if err != nil {
+					slog.Error(
+						fmt.Sprintf("Failed to encode sound bank %s", saveName),
+						"error", err,
+					)
+					return
+				}
+				meta := saveTab.Bank.META()
+				if meta == nil {
+					slog.Error(
+						fmt.Sprintf("Sound bank %s is missing integration data.",
+							saveName),
+					)
+					return
+				}
+				if err := helldivers.GenHelldiversPatchStable(
+					bnkData, meta.B, path,
+				); err != nil {
+					slog.Error(fmt.Sprintf("Failed to write HD2 patch to %s", path))
+				} else {
+					slog.Info(onDoneMsg)
+				}
+			},
+		);
+		   err != nil {
+			slog.Error(fmt.Sprintf("Failed to save HD2 patch to %s", path),
+				"error", err,
+			)
+		}
+	}
+
+	if renderF, done, err := saveFileDialogFunc(onSave, GCtx.Config.Home);
+	   err != nil {
+		msg := fmt.Sprintf("Failed create save file dialog for saving sound bank %s to HD2 patch", saveName)
+		slog.Error(msg, "error", err)
+	} else {
+		Modal(done, 0, fmt.Sprintf("Save sound bank %s to HD2 patch ...", saveName), renderF, nil)
+	}
+}
+
+// End of push HD2 Patch Modal
 
 func renderActorMixerHircTable(t *be.BankTab) {
 	focusTable := false
@@ -345,7 +457,7 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 		return
 	}
 
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy ID") {
 			clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(id), 10)))
 		}
@@ -353,7 +465,7 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 
 	switch sound := o.(type) {
 	case *wwise.Sound:
-		Disabled(!GlobalCtx.CopyEnable, func() {
+		Disabled(!GCtx.CopyEnable, func() {
 			if imgui.SelectableBool("Copy Source ID") {
 				clipboard.Write(clipboard.FmtText, []byte(strconv.FormatUint(uint64(sound.BankSourceData.SourceID), 10)))
 			}
@@ -365,7 +477,7 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 		return
 	}
 
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy Leafs' IDs") {
 			var builder strings.Builder
 			for _, l := range leafs {
@@ -378,7 +490,7 @@ func renderActorMixerHircTableCtx(t *be.BankTab, o wwise.HircObj, id uint32) {
 		}
 	})
 	
-	Disabled(!GlobalCtx.CopyEnable, func() {
+	Disabled(!GCtx.CopyEnable, func() {
 		if imgui.SelectableBool("Copy Leafs' Source IDs") {
 			h := t.Bank.HIRC()
 			if h == nil {
