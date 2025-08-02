@@ -12,7 +12,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderAuxParam(m *be.BankManager, init *be.BankTab, o wwise.HircObj, v int) {
+func renderAuxParam(o wwise.HircObj, v int) {
 	if imgui.TreeNodeExStr("User-Defined Auxiliary Send") {
 		b := o.BaseParameter()
 		a := &o.BaseParameter().AuxParam
@@ -29,15 +29,13 @@ func renderAuxParam(m *be.BankManager, init *be.BankTab, o wwise.HircObj, v int)
 			b.SetOverrideAuxSends(overrideAuxSend, v)
 		}
 		imgui.EndDisabled()
-		renderUserAuxSendTable(m, init, root, p, a, v)
+		renderUserAuxSendTable(root, p, a, v)
 
 		imgui.TreePop()
 	}
 }
 
 func renderUserAuxSendTable(
-	m *be.BankManager,
-	init *be.BankTab,
 	root bool,
 	p *wwise.PropBundle,
 	a *wwise.AuxParam,
@@ -54,6 +52,8 @@ func renderUserAuxSendTable(
 		imgui.TableSetupColumn("")
 		imgui.TableSetupScrollFreeze(0, 1)
 		imgui.TableHeadersRow()
+
+		init := BnkMngr.InitBank
 
 		i := wwise.TUserAuxSendVolume0
 		for j, aid := range a.AuxIds {
@@ -137,7 +137,7 @@ func renderUserAuxSendTable(
 				if imgui.ArrowButton(fmt.Sprintf("##GoToUserAuxSend%d", i), imgui.DirRight) {
 					init.SetActiveBus(aid)
 					init.Focus = be.BankTabBuses
-					m.SetNextBank = init
+					BnkMngr.SetNextBank = init
 					imgui.SetWindowFocusStr("Buses")
 				}
 				imgui.EndDisabled()
@@ -203,7 +203,7 @@ func renderUserAuxSendTable(
 	DefaultSize.X = 0
 }
 
-func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj, v int) {
+func renderEarlyReflection(o wwise.HircObj, v int) {
 	if imgui.TreeNodeExStr("Early Reflections") {
 		b := o.BaseParameter()
 		a := &o.BaseParameter().AuxParam
@@ -220,6 +220,8 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj,
 			b.SetOverrideReflectionAuxBus(overrideReflectionAuxBus, v)
 		}
 		imgui.EndDisabled()
+
+		init := BnkMngr.InitBank
 
 		imgui.Text("Auxiliary Bus")
 		{
@@ -295,7 +297,7 @@ func renderEarlyReflection(m *be.BankManager, init *be.BankTab, o wwise.HircObj,
 			if imgui.ArrowButton("##GoToReflectionAuxBus", imgui.DirRight) {
 				init.SetActiveBus(a.ReflectionAuxBus)
 				init.Focus = be.BankTabBuses
-				m.SetNextBank = init
+				BnkMngr.SetNextBank = init
 				imgui.SetWindowFocusStr("Buses")
 			}
 			imgui.EndDisabled()

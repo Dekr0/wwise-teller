@@ -15,7 +15,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func renderBaseParam(m *be.BankManager, t *be.BankTab, init *be.BankTab, o wwise.HircObj) {
+func renderBaseParam(t *be.BankTab, o wwise.HircObj) {
 	imgui.SetNextItemShortcut(imgui.KeyChord(imgui.ModCtrl) | imgui.KeyChord(imgui.KeyB))
 	if imgui.TreeNodeExStr("Base Parameter") {
 		v := t.Version()
@@ -28,8 +28,8 @@ func renderBaseParam(m *be.BankManager, t *be.BankTab, init *be.BankTab, o wwise
 		imgui.SameLine()
 		renderChangeParentListing(t, wwise.ActorMixerHircType(o))
 		renderByBitVec(b, t.Version())
-		renderAuxParam(m, init, o, v)
-		renderEarlyReflection(m, init, o, v)
+		renderAuxParam(o, v)
+		renderEarlyReflection(o, v)
 		renderBaseProp(&b.PropBundle, v)
 		renderBaseRangeProp(&b.RangePropBundle, v)
 		renderAllProp(&b.PropBundle, &b.RangePropBundle, v)
