@@ -7,7 +7,7 @@ import (
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
 )
 
-func renderDebug(bnkMngr *be.BankManager, open *bool) {
+func renderDebug(open *bool) {
 	if !*open {
 		return
 	}
@@ -20,14 +20,14 @@ func renderDebug(bnkMngr *be.BankManager, open *bool) {
 	imgui.PushTextWrapPos()
 
 	numBnks := 0
-	bnkMngr.Banks.Range(func(key, value any) bool {
+	BnkMngr.Banks.Range(func(key, value any) bool {
 		numBnks += 1
 		return true
 	})
 
 	activeBankName := ""
-	bnkMngr.Banks.Range(func(key, value any) bool {
-		if value.(*be.BankTab) == bnkMngr.ActiveBank {
+	BnkMngr.Banks.Range(func(key, value any) bool {
+		if value.(*be.BankTab) == BnkMngr.ActiveBank {
 			activeBankName = key.(string)
 			return false
 		}
@@ -42,20 +42,20 @@ func renderDebug(bnkMngr *be.BankManager, open *bool) {
 	imgui.Text(fmt.Sprintf("Active bank: %s", activeBankName))
 	
 	nextBankName := ""
-	bnkMngr.Banks.Range(func(key, value any) bool {
-		if value.(*be.BankTab) == bnkMngr.SetNextBank {
+	BnkMngr.Banks.Range(func(key, value any) bool {
+		if value.(*be.BankTab) == BnkMngr.SetNextBank {
 			nextBankName = key.(string)
 			return false
 		}
 		return true
 	})
-	imgui.Text(fmt.Sprintf("Next Bank nil? %v", bnkMngr.SetNextBank == nil))
+	imgui.Text(fmt.Sprintf("Next Bank nil? %v", BnkMngr.SetNextBank == nil))
 	imgui.Text(fmt.Sprintf("Next Bank: %s", nextBankName))
 
 	mountedBnk := "None"
-	if bnkMngr.InitBank != nil {
-		bnkMngr.Banks.Range(func(key, value any) bool {
-			if value.(*be.BankTab) == bnkMngr.InitBank {
+	if BnkMngr.InitBank != nil {
+		BnkMngr.Banks.Range(func(key, value any) bool {
+			if value.(*be.BankTab) == BnkMngr.InitBank {
 				mountedBnk = key.(string)
 				return false
 			}
@@ -73,14 +73,14 @@ func renderDebug(bnkMngr *be.BankManager, open *bool) {
 	imgui.Text(fmt.Sprintf("# of async tasks: %d", stat.TotalNumAsyncTask))
 	imgui.Text(fmt.Sprintf("# of running async tasks: %d", stat.NumRunningAsyncTask))
 	imgui.Text(fmt.Sprintf("# of pending async tasks: %d", stat.NumRunningAsyncTask))
-	if bnkMngr.ActiveBank != nil {
+	if BnkMngr.ActiveBank != nil {
 		imgui.SeparatorText("Active Sound Bank Session")
-		bnkMngr.ActiveBank.Session.Mutex.Lock()
-		imgui.Text(fmt.Sprintf("# of Streamers: %d", len(bnkMngr.ActiveBank.Session.Streamers)))
-		for _, streamer := range bnkMngr.ActiveBank.Session.Streamers {
+		BnkMngr.ActiveBank.Session.Mutex.Lock()
+		imgui.Text(fmt.Sprintf("# of Streamers: %d", len(BnkMngr.ActiveBank.Session.Streamers)))
+		for _, streamer := range BnkMngr.ActiveBank.Session.Streamers {
 			imgui.Text(fmt.Sprintf("%d - Is Nil: %v", streamer.Id(), streamer.UWStreamer() == nil))
 		}
-		bnkMngr.ActiveBank.Session.Mutex.Unlock()
+		BnkMngr.ActiveBank.Session.Mutex.Unlock()
 	}
 	imgui.SeparatorText("Memory")
 	imgui.PopTextWrapPos()
