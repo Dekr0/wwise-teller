@@ -15,7 +15,7 @@ import (
 	"golang.design/x/clipboard"
 )
 
-func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTab, open *bool) {
+func renderObjEditorActorMixer(open *bool) {
 	if !*open {
 		return
 	}
@@ -24,10 +24,11 @@ func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTa
 	if !*open {
 		return
 	}
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.SounBankLock.Load() {
+
+	activeBank, valid := BnkMngr.ActiveBankV()
+	if !valid || activeBank.SounBankLock.Load() {
 		return
 	}
-
 	// Display loading screen for write lock
 
 	useViUp()
@@ -35,7 +36,7 @@ func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTa
 
 	if imgui.BeginTabBarV("ObjectEditorTabBar", DefaultTabFlags) {
 		s := []wwise.HircObj{}
-		for _, h := range t.Bank.HIRC().HircObjs {
+		for _, h := range activeBank.Bank.HIRC().HircObjs {
 			id, err := h.HircID()
 			if err != nil {
 				continue
@@ -43,18 +44,18 @@ func renderObjEditorActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTa
 			if !wwise.ActorMixerHircType(h) {
 				continue
 			}
-			if t.ActorMixerViewer.Selected(id) {
+			if activeBank.ActorMixerViewer.Selected(id) {
 				s = append(s, h)
 			}
 		}
 		for _, h := range s {
-			renderActorMixerTab(m, t, init, h)
+			renderActorMixerTab(activeBank, h)
 		}
 		imgui.EndTabBar()
 	}
 }
 
-func renderActorMixerTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h wwise.HircObj) {
+func renderActorMixerTab(t *be.BankTab, h wwise.HircObj) {
 	viewer := &t.ActorMixerViewer
 	id, err := h.HircID()
 	if err != nil {
@@ -70,15 +71,15 @@ func renderActorMixerTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h w
 		viewer.ActiveHirc = h
 		switch ah := h.(type) {
 		case *wwise.ActorMixer:
-			renderActorMixer(m, t, init, ah)
+			renderActorMixer(t, ah)
 		case *wwise.LayerCntr:
-			renderLayerCntr(m, t, init, ah)
+			renderLayerCntr(t, ah)
 		case *wwise.RanSeqCntr:
-			renderRanSeqCntr(m, t, init, ah)
+			renderRanSeqCntr(t, ah)
 		case *wwise.SwitchCntr:
-			renderSwitchCntr(m, t, init, ah)
+			renderSwitchCntr(t, ah)
 		case *wwise.Sound:
-			renderSound(m, t, init, ah)
+			renderSound(t, ah)
 		default:
 			panic("Panic Trap")
 		}
@@ -91,7 +92,7 @@ func renderActorMixerTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h w
 	}
 }
 
-func renderObjEditorMusic(m *be.BankManager, t *be.BankTab, init *be.BankTab, open *bool) {
+func renderObjEditorMusic(open *bool) {
 	if !*open {
 		return
 	}
@@ -100,7 +101,9 @@ func renderObjEditorMusic(m *be.BankManager, t *be.BankTab, init *be.BankTab, op
 	if !*open {
 		return
 	}
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.SounBankLock.Load() {
+
+	activeBank, valid := BnkMngr.ActiveBankV()
+	if !valid || activeBank.SounBankLock.Load() {
 		return
 	}
 
@@ -109,23 +112,24 @@ func renderObjEditorMusic(m *be.BankManager, t *be.BankTab, init *be.BankTab, op
 
 	if imgui.BeginTabBarV("ObjectEditorTabBar", DefaultTabFlags) {
 		s := []wwise.HircObj{}
-		for _, h := range t.Bank.HIRC().HircObjs {
+		hirc := activeBank.Bank.HIRC()
+		for _, h := range hirc.HircObjs {
 			id, err := h.HircID()
 			if err != nil {
 				continue
 			}
-			if t.MusicHircViewer.LinearStorage.Contains(imgui.ID(id)) {
+			if activeBank.MusicHircViewer.LinearStorage.Contains(imgui.ID(id)) {
 				s = append(s, h)
 			}
 		}
 		for _, h := range s {
-			renderMusicTab(m, t, init, h)
+			renderMusicTab(activeBank, h)
 		}
 		imgui.EndTabBar()
 	}
 }
 
-func renderMusicTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h wwise.HircObj) {
+func renderMusicTab(t *be.BankTab, h wwise.HircObj) {
 	viewer := &t.MusicHircViewer
 	id, err := h.HircID()
 	if err != nil {
@@ -140,7 +144,7 @@ func renderMusicTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h wwise.
 		viewer.ActiveMusicHirc = h
 		switch mh := h.(type) {
 		case *wwise.MusicTrack:
-			renderMusicTrack(m, t, init, mh)
+			renderMusicTrack(t, mh)
 		case *wwise.MusicSegment:
 			renderMusicSegment(t, mh)
 		case *wwise.MusicRanSeqCntr:
@@ -158,30 +162,30 @@ func renderMusicTab(m *be.BankManager, t *be.BankTab, init *be.BankTab, h wwise.
 	}
 }
 
-func renderActorMixer(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.ActorMixer) {
-	renderBaseParam(m, t, init, o)
+func renderActorMixer(t *be.BankTab, o *wwise.ActorMixer) {
+	renderBaseParam(t, o)
 	renderContainer(t, o.Id, &o.Container, wwise.ActorMixerHircType(o))
 }
 
-func renderLayerCntr(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.LayerCntr) {
-	renderBaseParam(m, t, init, o)
+func renderLayerCntr(t *be.BankTab, o *wwise.LayerCntr) {
+	renderBaseParam(t, o)
 	renderContainer(t, o.Id, &o.Container, wwise.ActorMixerHircType(o))
 	renderLayer(o)
 }
 
-func renderRanSeqCntr(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.RanSeqCntr) {
-	renderBaseParam(m, t, init, o)
+func renderRanSeqCntr(t *be.BankTab, o *wwise.RanSeqCntr) {
+	renderBaseParam(t, o)
 	renderContainer(t, o.Id, &o.Container, wwise.ActorMixerHircType(o))
 	renderRanSeqPlayList(t, o)
 }
 
-func renderSwitchCntr(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.SwitchCntr) {
-	renderBaseParam(m, t, init, o)
+func renderSwitchCntr(t *be.BankTab, o *wwise.SwitchCntr) {
+	renderBaseParam(t, o)
 }
 
-func renderSound(m *be.BankManager, t *be.BankTab, init *be.BankTab, o *wwise.Sound) {
+func renderSound(t *be.BankTab, o *wwise.Sound) {
 	renderBankSourceData(t, o)
-	renderBaseParam(m, t, init, o)
+	renderBaseParam(t, o)
 }
 
 func renderMusicSegment(t *be.BankTab, o *wwise.MusicSegment) {
