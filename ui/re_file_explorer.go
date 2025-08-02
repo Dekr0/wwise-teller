@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/AllenDang/cimgui-go/imgui"
-	"github.com/Dekr0/wwise-teller/integration/helldivers"
 	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/ui/fs"
 	"github.com/Dekr0/wwise-teller/utils"
@@ -261,3 +260,22 @@ return func() {
 	fe.OpenFocus(int(n))
 }}
 
+// File Explorer Callback
+func fileExplorerCallback(paths []string) {
+	for _, path := range paths {
+		base := filepath.Base(path)
+		onProcMsg := fmt.Sprintf("Loading sound bank %s", base)
+		onDoneMsg := fmt.Sprintf("Loaded sound bank %s", base)
+		f := fileExplorerCallbackPerFile(path, base)
+		BG(time.Second * 30, onProcMsg, onDoneMsg, f)
+	}
+}
+
+func fileExplorerCallbackPerFile(path string, base string) func(context.Context) {
+return func(ctx context.Context) {
+	err := BnkMngr.OpenBank(ctx, path)
+	if err != nil {
+		slog.Error(fmt.Sprintf("Failed to load sound bank %s", base), "error", err)
+	}
+}}
+// End of File Explorer Callback
