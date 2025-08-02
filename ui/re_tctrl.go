@@ -18,7 +18,7 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
-func RenderTransportControl(t *be.BankTab, open *bool) {
+func RenderTransportControl(open *bool) {
 	if !*open {
 		return
 	}
@@ -28,25 +28,26 @@ func RenderTransportControl(t *be.BankTab, open *bool) {
 		return
 	}
 
-	if t == nil || t.Bank == nil || t.Bank.HIRC() == nil || t.SounBankLock.Load() {
+	activeBank, valid := BnkMngr.ActiveBankV()
+	if !valid || activeBank.SounBankLock.Load() {
 		return
 	}
 
-	didx := t.Bank.DIDX()
+	didx := activeBank.Bank.DIDX()
 	if didx == nil {
 		imgui.Text("This sound bank does not DIDX chunk.")
 		return
 	}
 
-	data := t.Bank.DATA()
+	data := activeBank.Bank.DATA()
 	if data == nil {
 		imgui.Text("This sound bank does not have DATA chunk.")
 		return
 	}
 
-	switch ah := t.ActorMixerViewer.ActiveHirc.(type) {
+	switch ah := activeBank.ActorMixerViewer.ActiveHirc.(type) {
 	case *wwise.Sound:
-		renderPlaySound(t, data, ah)
+		renderPlaySound(activeBank, data, ah)
 	}
 }
 
