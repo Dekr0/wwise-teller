@@ -56,5 +56,5 @@ func commandPaletteModal(cmdMngr *CmdPaletteMngr) (func(), *bool) {
 
 func pushCommandPaletteModal(cmdPaletteMngr *CmdPaletteMngr) {
 	renderF, done := commandPaletteModal(cmdPaletteMngr)
-	GCtx.ModalQ.QModal(done, 0, "Command Palette", renderF, nil)
+	Modal(done, 0, "Command Palette", renderF, nil)
 }
