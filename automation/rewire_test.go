@@ -41,7 +41,7 @@ func TestParseRewireHeaderOk(t *testing.T) {
 		}
 		b = filepath.Base(p)
 		reader := csv.NewReader(f)
-		header := FilesToSoundsHeader{Workspace: b, Type: 0}
+		header := WavSoundMapHeader{Workspace: b, Type: 0}
 		row := uint16(0)
 		if err = ParseFilesToSoundsHeader(&header, reader, &row); err != nil {
 			t.Fatal(err)
@@ -68,7 +68,7 @@ func TestParseRewireHeaderFail(t *testing.T) {
 		}
 		b = filepath.Base(p)
 		reader := csv.NewReader(f)
-		header := FilesToSoundsHeader{Workspace: b, Type: 0}
+		header := WavSoundMapHeader{Workspace: b, Type: 0}
 		row := uint16(0)
 		if err = ParseFilesToSoundsHeader(&header, reader, &row); err == nil {
 			t.Fatalf("Expecting test case %s to fail", p)

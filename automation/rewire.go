@@ -16,14 +16,13 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
+type FilesToSoundsType uint8;
 const (
 	FilesToSoundsTypeGrain FilesToSoundsType = 0
 	FilesToSoundsTypeGroup FilesToSoundsType = 1
 )
 
-type FilesToSoundsType uint8;
-
-type FilesToSoundsHeader struct {
+type WavSoundMapHeader struct {
 	Workspace  string
 	Conversion string
 	Type       FilesToSoundsType
@@ -63,7 +62,7 @@ func RewireWithNewSources(
 
 	reader := csv.NewReader(f)
 	iniDir := filepath.Base(mappingFile)
-	header := FilesToSoundsHeader{
+	header := WavSoundMapHeader{
 		Workspace: iniDir,
 		Type: 0,
 	}
@@ -197,7 +196,7 @@ func RewireWithNewSources(
 // type,0
 // workspace,workspace_relative_path_or_absolute_path
 func ParseFilesToSoundsHeader(
-	header *FilesToSoundsHeader,
+	header *WavSoundMapHeader,
 	reader *csv.Reader,
 	row *uint16,
 ) error {
@@ -243,7 +242,7 @@ func ParseFilesToSoundsHeader(
 // Merge duplicate input
 func ParseSoundMapping(
 	reader *csv.Reader,
-	header *FilesToSoundsHeader,
+	header *WavSoundMapHeader,
 	h *wwise.HIRC,
 	wavsMapping map[string][]*wwise.Sound,
 	rowNum *uint16,
@@ -303,9 +302,8 @@ func ParseSoundMapping(
 			continue
 		}
 
+		columnNum := 3
 		if sounds, in := wavsMapping[input]; !in {
-			// Parse IDs
-			columnNum := 3
 			targets := make([]*wwise.Sound, 0, count)
 			for _, i := range row[2:] {
 				id, err := strconv.ParseUint(i, 10, 32)
@@ -326,8 +324,6 @@ func ParseSoundMapping(
 			wavsMapping[input] = targets
 		} else {
 			slog.Warn(fmt.Sprintf("Duplicated input file %s at row %d, column 1", input, rowNum))
-			// Parse IDs
-			columnNum := 3
 			for _, i := range row[2:] {
 				id, err := strconv.ParseUint(i, 10, 32)
 				if err != nil {
