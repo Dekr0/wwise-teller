@@ -3,7 +3,6 @@
 package wwise
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/Dekr0/wwise-teller/wio"
@@ -271,84 +270,9 @@ type RTPCItem struct {
 	RTPCCurveID uint32 // sid
 	Scaling     CurveScalingType // U8x
 	// NumRTPCGraphPoints / ulSize uint16 // u16
-	RTPCGraphPoints []RTPCGraphPoint 
-	SamplePointsX   [][]float32
-	SamplePointsY   [][]float32
-}
-
-const ConstDelta     = 2
-const LinearDelta    = 8
-const NonLinearDelta = 32
-func (r *RTPCItem) Sample() {
-	if len(r.RTPCGraphPoints) <= 1 {
-		return
-	}
-	// Can be run in concurrent!!!
-	if r.SamplePointsX == nil {
-		if r.SamplePointsY != nil {
-			panic("Sample Point X is nil but Sample Point Y is not nil")
-		}
-		r.SamplePointsX = make([][]float32, 0, len(r.RTPCGraphPoints) - 1)
-		r.SamplePointsY = make([][]float32, 0, len(r.RTPCGraphPoints) - 1)
-		for i, p := range r.RTPCGraphPoints {
-			if i == len(r.RTPCGraphPoints) - 1 {
-				continue
-			}
-			switch p.Interp {
-			case uint32(InterpCurveTypeConst):
-				r.SamplePointsX = append(r.SamplePointsX, make([]float32, 0, ConstDelta)) 
-				r.SamplePointsY = append(r.SamplePointsY, make([]float32, 0, ConstDelta))
-			case uint32(InterpCurveTypeLinear):
-				r.SamplePointsX = append(r.SamplePointsX, make([]float32, 0, LinearDelta))
-				r.SamplePointsY = append(r.SamplePointsY, make([]float32, 0, LinearDelta))
-			default:
-				r.SamplePointsX = append(r.SamplePointsX, make([]float32, 0, NonLinearDelta))
-				r.SamplePointsY = append(r.SamplePointsY, make([]float32, 0, NonLinearDelta))
-			}
-		}
-	}
-	for i := range r.RTPCGraphPoints {
-		r.SampleRegion(i)
-	}
-}
-
-func (r *RTPCItem) SampleRegion(i int) {
-	if i < 0 || i >= len(r.RTPCGraphPoints) - 1 {
-		return
-	}
-	if r.SamplePointsX == nil {
-		r.Sample()
-		return
-	}
-	p := r.RTPCGraphPoints[i]
-	np := r.RTPCGraphPoints[i + 1]
-	r.SamplePointsX[i] = slices.Delete(r.SamplePointsX[i], 0, len(r.SamplePointsX[i]))
-	r.SamplePointsY[i] = slices.Delete(r.SamplePointsY[i], 0, len(r.SamplePointsY[i]))
-	switch p.Interp {
-	case uint32(InterpCurveTypeConst):
-		r.SamplePointsX[i] = append(r.SamplePointsX[i], p.From)
-		r.SamplePointsY[i] = append(r.SamplePointsY[i], p.To)
-		r.SamplePointsX[i] = append(r.SamplePointsX[i], np.From)
-		r.SamplePointsY[i] = append(r.SamplePointsY[i], np.To)
-		if len(r.SamplePointsX[i]) != ConstDelta || len(r.SamplePointsY[i]) != ConstDelta {
-			panic(fmt.Sprintf("Const Lerp should have only %d sample points", ConstDelta))
-		}
-	case uint32(InterpCurveTypeLinear):
-		r.SamplePointsX[i] = append(r.SamplePointsX[i], p.From)
-		r.SamplePointsY[i] = append(r.SamplePointsY[i], p.To)
-		delta := (np.From - p.From) / (LinearDelta - 2)
-		x := p.From + delta
-		a := (np.To - p.To) / (np.From - p.From)
-		for range LinearDelta - 2 {
-			r.SamplePointsX[i] = append(r.SamplePointsX[i], x)
-			r.SamplePointsY[i] = append(r.SamplePointsY[i], p.To + (x - p.From) * a)
-		}
-		r.SamplePointsX[i] = append(r.SamplePointsX[i], np.From)
-		r.SamplePointsY[i] = append(r.SamplePointsY[i], np.To)
-		if len(r.SamplePointsX[i]) != LinearDelta || len(r.SamplePointsY[i]) != LinearDelta {
-			panic(fmt.Sprintf("Const Lerp should have only %d sample points", LinearDelta))
-		}
-	}
+	RTPCGraphPointsX      []float32
+	RTPCGraphPointsY      []float32
+	RTPCGraphPointsInterp []uint32
 }
 
 func (r *RTPCItem) Clone() RTPCItem {
@@ -359,14 +283,10 @@ func (r *RTPCItem) Clone() RTPCItem {
 		r.ParamID,
 		r.RTPCCurveID,
 		r.Scaling,
-		slices.Clone(r.RTPCGraphPoints),
-		nil,
-		nil,
+		slices.Clone(r.RTPCGraphPointsX),
+		slices.Clone(r.RTPCGraphPointsY),
+		slices.Clone(r.RTPCGraphPointsInterp),
 	}
-}
-
-func NewRTPCItem() RTPCItem {
-	return RTPCItem{0, 0, 0, wio.Var{}, 0, 0, []RTPCGraphPoint{}, nil, nil}
 }
 
 func (r *RTPCItem) Encode(v int) []byte {
@@ -378,15 +298,17 @@ func (r *RTPCItem) Encode(v int) []byte {
 	w.AppendBytes(r.ParamID.Bytes)
 	w.Append(r.RTPCCurveID)
 	w.Append(r.Scaling)
-	w.Append(uint16(len(r.RTPCGraphPoints)))
-	for _, i := range r.RTPCGraphPoints {
-		w.AppendBytes(i.Encode(v))
+	w.Append(uint16(len(r.RTPCGraphPointsX)))
+	for i := range r.RTPCGraphPointsX {
+		w.Append(r.RTPCGraphPointsX[i])
+		w.Append(r.RTPCGraphPointsY[i])
+		w.Append(r.RTPCGraphPointsInterp[i])
 	}
 	return w.BytesAssert(int(size))
 }
 
 func (r *RTPCItem) Size(int) uint32 {
-	return uint32(4 + 1 + 1 + len(r.ParamID.Bytes) + 4 + 1 + 2 + len(r.RTPCGraphPoints) * SizeOfRTPCGraphPoint)
+	return uint32(4 + 1 + 1 + len(r.ParamID.Bytes) + 4 + 1 + 2 + len(r.RTPCGraphPointsX) * SizeOfRTPCGraphPoint)
 }
 
 const RTPCInterpSampleRate = 64

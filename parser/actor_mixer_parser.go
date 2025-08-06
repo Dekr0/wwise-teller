@@ -218,7 +218,16 @@ func ParseAttenuation(size uint32, r *wio.Reader, v int) *wwise.Attenuation {
 func ParseAttenuationConversionTables(r *wio.Reader, t []wwise.AttenuationConversionTable, v int) {
 	for i := range t {
 		t[i].EnumScaling = r.U8Unsafe()
-		t[i].RTPCGraphPoints = make([]wwise.RTPCGraphPoint, r.U16Unsafe())
-		ParseRTPCGraphPoints(r, t[i].RTPCGraphPoints, v)
+		NumRTPCGraphPoints := r.U16Unsafe()
+		t[i].RTPCGraphPointsX = make([]float32, NumRTPCGraphPoints, NumRTPCGraphPoints)
+		t[i].RTPCGraphPointsY = make([]float32, NumRTPCGraphPoints, NumRTPCGraphPoints)
+		t[i].RTPCGraphPointsInterp = make([]uint32, NumRTPCGraphPoints, NumRTPCGraphPoints)
+		ParseRTPCGraphPoints(
+			r,
+			t[i].RTPCGraphPointsX,
+			t[i].RTPCGraphPointsY,
+			t[i].RTPCGraphPointsInterp,
+			v,
+		)
 	}
 }

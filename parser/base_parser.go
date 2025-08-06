@@ -160,15 +160,29 @@ func ParseRTPC(r *wio.Reader, rtpc *wwise.RTPC, v int) {
 		item.RTPCCurveID = r.U32Unsafe()
 		item.Scaling = wwise.CurveScalingType(r.U8Unsafe())
 		NumRTPCGraphPoints := r.U16Unsafe()
-		item.RTPCGraphPoints = make([]wwise.RTPCGraphPoint, NumRTPCGraphPoints, NumRTPCGraphPoints)
-		ParseRTPCGraphPoints(r, item.RTPCGraphPoints, v)
+		item.RTPCGraphPointsX = make([]float32, NumRTPCGraphPoints, NumRTPCGraphPoints)
+		item.RTPCGraphPointsY = make([]float32, NumRTPCGraphPoints, NumRTPCGraphPoints)
+		item.RTPCGraphPointsInterp = make([]uint32, NumRTPCGraphPoints, NumRTPCGraphPoints)
+		ParseRTPCGraphPoints(
+			r,
+			item.RTPCGraphPointsX,
+			item.RTPCGraphPointsY,
+			item.RTPCGraphPointsInterp,
+			v,
+		)
 	}
 }
 
-func ParseRTPCGraphPoints(r *wio.Reader, pts []wwise.RTPCGraphPoint, v int) {
-	for i := range pts {
-		pts[i].From = r.F32Unsafe()
-		pts[i].To = r.F32Unsafe()
-		pts[i].Interp = r.U32Unsafe()
+func ParseRTPCGraphPoints(
+	r *wio.Reader,
+	xs []float32,
+	ys []float32,
+	interps []uint32,
+	v int,
+) {
+	for i := range xs {
+		xs[i] = r.F32Unsafe()
+		ys[i] = r.F32Unsafe()
+		interps[i] = r.U32Unsafe()
 	}
 }

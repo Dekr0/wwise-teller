@@ -99,20 +99,24 @@ func (h *Attenuation) Size(v int) uint32 {
 type AttenuationConversionTable struct {
 	EnumScaling     uint8
 	// Size         uint16
-	RTPCGraphPoints []RTPCGraphPoint
+	RTPCGraphPointsX      []float32
+	RTPCGraphPointsY      []float32
+	RTPCGraphPointsInterp []uint32
 }
 
 func (a *AttenuationConversionTable) Size(v int) uint32 {
-	return 1 + 2 + uint32(len(a.RTPCGraphPoints)) * SizeOfRTPCGraphPoint
+	return 1 + 2 + uint32(len(a.RTPCGraphPointsX)) * SizeOfRTPCGraphPoint
 }
 
 func (a *AttenuationConversionTable) Encode(v int) []byte {
 	size := a.Size(v)
 	w := wio.NewWriter(uint64(size))
 	w.Append(a.EnumScaling)
-	w.Append(uint16(len(a.RTPCGraphPoints)))
-	for _, p := range a.RTPCGraphPoints {
-		w.AppendBytes(p.Encode(v))
+	w.Append(uint16(len(a.RTPCGraphPointsX)))
+	for i := range a.RTPCGraphPointsX {
+		w.Append(a.RTPCGraphPointsX[i])
+		w.Append(a.RTPCGraphPointsY[i])
+		w.Append(a.RTPCGraphPointsInterp[i])
 	}
 	return w.BytesAssert(int(size))
 }
