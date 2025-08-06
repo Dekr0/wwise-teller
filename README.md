@@ -17,7 +17,7 @@ on the current state of Wwise Teller
 
 - Wwise Teller is still at its very eariler stage of development. The current 
 goal of Wwise Teller is to have the abilities to edit encoded sound bank file 
-with version 141.
+with version 141 and version 154.
 - Games that make use of sound bank version 141:
   - Helldivers 2,
   - Overwatch ?
