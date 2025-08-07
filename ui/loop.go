@@ -175,6 +175,9 @@ func createLoop(
 		if imgui.ShortcutNilV(imgui.KeyChord(imgui.KeyF3), imgui.InputFlagsRouteGlobal) {
 			DockMngr.SetLayout(dockmanager.MasterMixerLayout)
 		}
+		if imgui.ShortcutNilV(imgui.KeyChord(imgui.KeyF4), imgui.InputFlagsRouteGlobal) {
+			DockMngr.SetLayout(dockmanager.AttenuationLayout)
+		}
 
 		viewport := imgui.MainViewport()
 
@@ -210,6 +213,7 @@ func createLoop(
 		renderBusViewer(&DockMngr.Opens[dockmanager.BusesTag])
 		renderFXViewer(&DockMngr.Opens[dockmanager.FXTag])
 		renderEventsViewer(&DockMngr.Opens[dockmanager.EventsTag])
+		renderAttenuationViewer(&DockMngr.Opens[dockmanager.AttenuationsTag])
 		RenderTransportControl(&DockMngr.Opens[dockmanager.TransportControlTag])
 		// processor.RenderProcessorEditor(&GCtx.Editor, &DockMngr.Opens[dockmanager.ProcessorEditorTag])
 
