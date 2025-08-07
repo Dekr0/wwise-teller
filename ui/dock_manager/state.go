@@ -7,16 +7,18 @@ import (
 type Layout uint8
 
 const (
-	ActorMixerObjEditorLayout    Layout = 0
+	ActorMixerObjEditorLayout    Layout = iota
 	ActorMixerEventLayout        Layout = 1
 	MasterMixerLayout            Layout = 2
-	LayoutCount                  Layout = 3
+	AttenuationLayout            Layout = 3
+	LayoutCount                  Layout = 4
 )
 
 var LayoutName []string = []string{
 	"Editor Layout (Actor Mixer)",
 	"Event Layout (Actor Mixer)",
 	"Master Mixer Layout",
+	"Attenuation Layout",
 }
 
 type DockWindowTag uint8
@@ -268,8 +270,44 @@ func (d *DockManager) BuildDockSpace() imgui.ID {
 
 		imgui.InternalDockBuilderFinish(mainDock)
 		d.Rebuild = false
+	} else if d.Layout == AttenuationLayout {
+		imgui.InternalDockBuilderRemoveNode(dockSpaceID)
+		imgui.InternalDockBuilderAddNodeV(dockSpaceID, DockSpaceFlags)
+		
+		mainDock := dockSpaceID
+		explorerDock := imgui.ID(0)
+		notificationDock := imgui.ID(0)
+		attenuationDock := imgui.ID(0)
 
-	}
+		explorerDock = imgui.InternalDockBuilderSplitNode(
+			mainDock, imgui.DirLeft, 0.30, nil, &attenuationDock,
+		)
+		explorerDock = imgui.InternalDockBuilderSplitNode(
+			explorerDock, imgui.DirUp, 0.85, nil, &notificationDock,
+		)
+
+		opens := []DockWindowTag{
+			BankExplorerTag,
+			AttenuationsTag,
+		}
+
+		if d.Init {
+			opens = append(opens, FileExplorerTag)
+			d.Init = false
+		}
+
+		for _, tag := range opens {
+			d.Opens[tag] = true
+		}
+
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[FileExplorerTag], explorerDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[BankExplorerTag], explorerDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[NotificationTag], notificationDock)
+		imgui.InternalDockBuilderDockWindow(DockWindowNames[AttenuationsTag], attenuationDock)
+
+		imgui.InternalDockBuilderFinish(mainDock)
+		d.Rebuild = false
+	} 
 	return dockSpaceID
 }
 
