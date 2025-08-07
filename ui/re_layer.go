@@ -8,7 +8,6 @@ import (
 )
 
 func renderLayer(layerCntr *wwise.LayerCntr) {
-	fmt.Println(len(layerCntr.Layers))
 	if imgui.TreeNodeExStr("Layer / Blend Tracks") {
 		if imgui.BeginTabBarV("LayerTabBar", DefaultTabFlags) {
 			for _, layer := range layerCntr.Layers  {
