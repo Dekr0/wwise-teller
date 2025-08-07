@@ -45,8 +45,20 @@ func (h *Attenuation) Encode(v int) []byte {
 	return w.BytesAssert(int(size))
 }
 
+func (h *Attenuation) HeightSpreadEnabled() bool {
+	return wio.GetBit(h.IsHeightSpreadEnabled, 0)
+}
+
+func (h *Attenuation) SetHeightSpreadEnabled(set bool) {
+	h.IsHeightSpreadEnabled = wio.SetBit(h.IsHeightSpreadEnabled, 0, set)
+}
+
 func (h *Attenuation) ConeEnabled() bool {
 	return h.IsConeEnabled & 1 != 0
+}
+
+func (h *Attenuation) SetConeEnabled(set bool) {
+	h.IsConeEnabled = wio.SetBit(h.IsConeEnabled, 0, set)
 }
 
 func (h *Attenuation) BaseParameter() *BaseParameter { return nil }
