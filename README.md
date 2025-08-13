@@ -57,6 +57,8 @@ with version 141 and version 154.
 
 - Feel free to leave suggestions or PRs (especially on performance and state 
 management / pattern in the UI part)
+- Wwise Teller is undergoing a architecture redesign while the main branch continue
+to serve as a prototype / proofing ground to explore the problem scope. 
 - Wwise Teller might undergo a direct port to Zig or Odin if it needs to start 
 doing any sort operations that performance intensive such as real time audio 
 processing, audio simulation etc.
