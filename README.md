@@ -10,8 +10,23 @@
 from Wwise Authoring Tool. 
 - Wwise teller makes an attempt to replicate common features sound designer can 
 do in Wwise Authoring Tool
-- A quick [sneak peek](https://youtu.be/36MphHqG2ks](https://youtu.be/36MphHqG2ks)) 
-on the current state of Wwise Teller
+- The current capability of Wwise Teller (Most are done by scripting / automation at the current state):
+    - Add new Audio Sources with new audio data (with completely new Audio Source 32-bit IDs)
+    - Replace Audio Sources Data
+    - Swap Audio source IDs in Sound objects
+    - Add new Actions with specified targets, and append them to a given Event (Not fully complete)
+    - Add any types of hierarchy in the Actor Mixer Hierarchy Categories, and wire them up with a
+    new Action (Not fully complete)
+    - Modify different properties commonly seen in Wwise Authoring Tool (Not fully complete)
+        - Volume, Make Up Gain, Initial Delay, ...
+        - User-Defined Auxiliary Send (Send Volume and the Auxiliary Send being used)
+        - Playback Limit
+        - Virtual Behavior
+        - ...
+    - Modify RTPC Curve
+    - Modify Bus (Not fully complete)
+    - Modify Attenuation (Not fully complete)
+    - ...
 
 ## Limitation
 
