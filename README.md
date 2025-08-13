@@ -17,9 +17,10 @@ do in Wwise Authoring Tool
     - Add new Audio Sources with new audio data (with completely new Audio Source 32-bit IDs)
     - Replace Audio Sources Data
     - Swap Audio source IDs in Sound objects
-    - Add new Actions with specified targets, and append them to a given Event (Not fully complete)
-    - Add any types of hierarchy in the Actor Mixer Hierarchy Categories, and wire them up with a
-    new Action (Not fully complete)
+    - Add new Actions (with completely new Hierarchy 32-bit IDs) with specified targets, and append them to a
+    given Event (Not fully complete)
+    - Add any types of new hierarchy (with completely new Hierarchy 32-bit IDs) in the Actor Mixer Hierarchy Categories,
+    and wire them up with a new Action (Not fully complete)
     - Modify different properties commonly seen in Wwise Authoring Tool (Not fully complete)
         - Volume, Make Up Gain, Initial Delay, ...
         - User-Defined Auxiliary Send (Send Volume and the Auxiliary Send being used)
