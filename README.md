@@ -10,7 +10,10 @@
 from Wwise Authoring Tool. 
 - Wwise teller makes an attempt to replicate common features sound designer can 
 do in Wwise Authoring Tool
-- The current capability of Wwise Teller (Most are done by scripting / automation at the current state):
+
+## Capabilities
+
+- The current capability of Wwise Teller (Most are done by scripting / automation at the current state) include the following:
     - Add new Audio Sources with new audio data (with completely new Audio Source 32-bit IDs)
     - Replace Audio Sources Data
     - Swap Audio source IDs in Sound objects
@@ -27,6 +30,7 @@ do in Wwise Authoring Tool
     - Modify Bus (Not fully complete)
     - Modify Attenuation (Not fully complete)
     - ...
+- Notice that the above is proven to be working in Helldivers 2.
 
 ## Limitation
 
