@@ -35,7 +35,7 @@ do in Wwise Authoring Tool
     - Alter Hierarchy Structure (deletion and creation) (Not fully complete)
     - Modify RTPC Curve
     - Modify Bus (Not fully complete)
-    - Modify Attenuation (Not fully complete)
+    - [Modify Attenuation](https://youtu.be/Gb2qdMVpG-U) (Not fully complete)
     - ...
 - Notice that the above is proven to be working in Helldivers 2.
 
