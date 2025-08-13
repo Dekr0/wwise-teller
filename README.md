@@ -26,6 +26,12 @@ do in Wwise Authoring Tool
         - Playback Limit
         - Virtual Behavior
         - ...
+    - Modification of specific type of Hierarchys (Only Random / Sequence Container is fully complete)
+        - Random / Sequence Container
+            - Change random (sequence) to sequence (random) mode
+            - Alter play list item (# of play list item, probability, order, etc.)
+            - ...
+    - Alter Hierarchy Structure (deletion and creation) (Not fully complete)
     - Modify RTPC Curve
     - Modify Bus (Not fully complete)
     - Modify Attenuation (Not fully complete)
