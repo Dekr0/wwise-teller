@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"slices"
+
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
@@ -63,15 +65,19 @@ func ParseRangePropBundle(r *wio.Reader, p *wwise.RangePropBundle, v int) {
 
 func ParsePositioningParam(r *wio.Reader, p *wwise.PositioningParam, v int) {
 	p.BitsPositioning = r.U8Unsafe()
-	if !p.HasPositioningAnd3D() {
+	p.FallbackBitsPositioning = p.BitsPositioning
+	if !p.OverrideParentAndHasListenerRelativeRouting() {
 		return
 	}
 	p.Bits3D = r.U8Unsafe()
-	if !p.HasAutomation() {
+	p.FallbackBits3D = p.Bits3D
+	if !p.Has3DAutomation() {
 		return
 	}
 	p.PathMode = r.U8Unsafe()
+	p.FallbackPathMode = p.PathMode
 	p.TransitionTime = r.I32Unsafe()
+	p.FallbackTransitionTime = p.TransitionTime
 	NumPositionVertices := r.U32Unsafe()
 	p.PositionVertices = make([]wwise.PositionVertex, NumPositionVertices)
 	for i := range p.PositionVertices {
@@ -80,18 +86,21 @@ func ParsePositioningParam(r *wio.Reader, p *wwise.PositioningParam, v int) {
 		p.PositionVertices[i].Z = r.F32Unsafe()
 		p.PositionVertices[i].Duration = r.I32Unsafe()
 	}
+	p.FallbackPositionVertices = slices.Clone(p.PositionVertices)
 	NumPositionPlayListItem := r.U32Unsafe()
 	p.PositionPlayListItems = make([]wwise.PositionPlayListItem, NumPositionPlayListItem)
 	for i := range p.PositionPlayListItems {
 		p.PositionPlayListItems[i].UniqueVerticesOffset = r.U32Unsafe()
 		p.PositionPlayListItems[i].INumVertices =  r.U32Unsafe()
 	}
+	p.FallbackPositionPlayListItems = slices.Clone(p.FallbackPositionPlayListItems)
 	p.Ak3DAutomationParams = make([]wwise.Ak3DAutomationParam, NumPositionPlayListItem)
 	for i := range p.Ak3DAutomationParams {
 		p.Ak3DAutomationParams[i].XRange = r.F32Unsafe()
 		p.Ak3DAutomationParams[i].YRange = r.F32Unsafe()
 		p.Ak3DAutomationParams[i].ZRange = r.F32Unsafe()
 	}
+	p.FallbackAk3DAutomationParams = slices.Clone(p.Ak3DAutomationParams)
 }
 
 func ParseAuxParam(r *wio.Reader, a *wwise.AuxParam, v int) {
