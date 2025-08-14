@@ -92,7 +92,7 @@ func renderRTPC(hid uint32, r *wwise.RTPC, title string) {
 				
 				if implot.BeginPlotV(fmt.Sprintf("%dRTPCGraph%dPlot", hid, i), imgui.Vec2{X: -1, Y: 128}, plotFlags) {
 					implot.SetupAxesV("", "", axisFlags, axisFlags)
-					implot.PlotScatterFloatPtrFloatPtr(
+					implot.PlotLineFloatPtrFloatPtr(
 						fmt.Sprintf("%dRTPCGraph%dScatter", hid, i),
 						utils.SliceToPtr(ri.RTPCGraphPointsX),
 						utils.SliceToPtr(ri.RTPCGraphPointsY),
