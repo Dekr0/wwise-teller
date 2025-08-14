@@ -463,3 +463,21 @@ func (h *HIRC) AppendNewActionToEvent(a *Action, eventID uint32) error {
 	}
 	return event.NumActionIDs.Set(uint64(len(event.ActionIDs)))
 }
+
+// Prototyping
+func (h *HIRC) AppendNewAttenuation(a *Attenuation) {
+	firstAttenuation := slices.IndexFunc(h.HircObjs, func(o HircObj) bool {
+		if o.HircType() == HircTypeAttenuation {
+			return true
+		}
+		return false
+	})
+	if firstAttenuation == -1 {
+		firstAttenuation = 0
+	}
+	h.HircObjs = slices.Insert(h.HircObjs, firstAttenuation, HircObj(a))
+	_, in := h.Attenuations.LoadOrStore(a.Id, a)
+	if in {
+		panic(fmt.Sprintf("Attenuation object %d already exist!", a.Id))
+	}
+}
