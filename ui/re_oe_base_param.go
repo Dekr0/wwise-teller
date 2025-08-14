@@ -29,6 +29,7 @@ func renderBaseParam(t *be.BankTab, o wwise.HircObj) {
 		renderChangeParentListing(t, wwise.ActorMixerHircType(o))
 		renderByBitVec(b, t.Version())
 		renderAuxParam(o, v)
+		RenderPositioningParam(b)
 		renderEarlyReflection(o, v)
 		renderBaseProp(&b.PropBundle, v)
 		renderBaseRangeProp(&b.RangePropBundle, v)
