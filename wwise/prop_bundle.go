@@ -101,6 +101,13 @@ func (p *PropBundle) SetPropByIdxF32(idx int, v float32) {
 	binary.Encode(p.PropValues[idx].V, wio.ByteOrder, v)
 }
 
+func (p *PropBundle) SetPropByIdxU32(idx int, v uint32) {
+	if len(p.PropValues) <= 0 || idx >= len(p.PropValues) {
+		return
+	}
+	binary.Encode(p.PropValues[idx].V, wio.ByteOrder, v)
+}
+
 func (p *PropBundle) Sort() {
 	slices.SortFunc(p.PropValues, 
 		func(a PropValue, b PropValue) int {
