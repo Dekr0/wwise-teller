@@ -1,6 +1,44 @@
 package wwise
 
-import "github.com/Dekr0/wwise-teller/wio"
+import (
+	"slices"
+
+	"github.com/Dekr0/wwise-teller/wio"
+)
+
+var AttenuationDistancePropertyG141 []string = []string {
+	"Volume",
+	"Auxiliary Send Volumes (Game-defined)",
+	"Auxiliary Send Volumes (User-defined)",
+	"LPF",
+	"HPF",
+	"Spread",
+	"Focus",
+}
+
+var AttenuationObstructionPropertyG141 []string = []string {
+	"Volume",
+	"LPF",
+	"HPF",
+}
+
+var AttenuationOcculsionPropertyG141 []string = []string {
+	"Volume",
+	"LPF",
+	"HPF",
+}
+
+var AttenuationDiffractionPropertyG141 []string = []string {
+	"Volume",
+	"LPF",
+	"HPF",
+}
+
+var AttenuationTransmissionPropertyG141 []string = []string {
+	"Volume",
+	"LPF",
+	"HPF",
+}
 
 type Attenuation struct {
 	HircObj
@@ -16,6 +54,20 @@ type Attenuation struct {
 	// NumCurves                  uint8
 	AttenuationConversionTables   []AttenuationConversionTable
 	RTPC                          RTPC
+}
+
+func (h *Attenuation) Clone(id uint32, out *Attenuation) {
+	out.Id = id
+	out.IsHeightSpreadEnabled = h.IsHeightSpreadEnabled
+	out.IsConeEnabled = h.IsConeEnabled
+	out.InsideDegrees = h.InsideDegrees
+	out.OutsideDegrees = h.OutsideDegrees
+	out.OutsideVolume = h.OutsideVolume
+	out.LoPass = h.LoPass
+	out.HiPass = h.HiPass
+	out.Curves = slices.Clone(h.Curves)
+	out.AttenuationConversionTables = slices.Clone(h.AttenuationConversionTables)
+	out.RTPC = h.RTPC.Clone()
 }
 
 func (h *Attenuation) Encode(v int) []byte {
@@ -97,8 +149,8 @@ func (h *Attenuation) Size(v int) uint32 {
 }
 
 type AttenuationConversionTable struct {
-	EnumScaling     uint8
-	// Size         uint16
+	EnumScaling             uint8
+	// Size                 uint16
 	RTPCGraphPointsX      []float32
 	RTPCGraphPointsY      []float32
 	RTPCGraphPointsInterp []uint32
