@@ -11,6 +11,7 @@ import (
 	"github.com/AllenDang/cimgui-go/utils"
 
 	be "github.com/Dekr0/wwise-teller/ui/bank_explorer"
+	dockmanager "github.com/Dekr0/wwise-teller/ui/dock_manager"
 	"github.com/Dekr0/wwise-teller/wio"
 	"github.com/Dekr0/wwise-teller/wwise"
 )
@@ -24,12 +25,26 @@ func renderBaseParam(t *be.BankTab, o wwise.HircObj) {
 			panic(err)
 		}
 		b := o.BaseParameter()
+
+		imgui.SetNextItemWidth(128)
+		if imgui.BeginCombo("##OverrideBusId", strconv.FormatUint(uint64(b.OverrideBusId), 10)) {
+			imgui.EndCombo()
+		}
+		imgui.SameLine()
+		if imgui.ArrowButton("##GoToOverrideBusId", imgui.DirRight) {
+			if b.OverrideBusId != 0 && BnkMngr.InitBank != nil {
+				BnkMngr.ActiveBank = BnkMngr.InitBank
+				BnkMngr.InitBank.SetActiveBus(b.OverrideBusId)
+				DockMngr.SetLayout(dockmanager.MasterMixerLayout)
+			}
+		}
+
 		renderChangeParentQuery(t, b, hid, wwise.ActorMixerHircType(o), o.HircType() != wwise.HircTypeSound)
 		imgui.SameLine()
 		renderChangeParentListing(t, wwise.ActorMixerHircType(o))
 		renderByBitVec(b, t.Version())
 		renderAuxParam(o, v)
-		RenderPositioningParam(b)
+		RenderPositioningParam(t, b, v)
 		renderEarlyReflection(o, v)
 		renderBaseProp(&b.PropBundle, v)
 		renderBaseRangeProp(&b.RangePropBundle, v)
