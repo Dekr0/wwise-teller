@@ -181,6 +181,7 @@ func renderRanSeqCntr(t *be.BankTab, o *wwise.RanSeqCntr) {
 
 func renderSwitchCntr(t *be.BankTab, o *wwise.SwitchCntr) {
 	renderBaseParam(t, o)
+	RenderSwitchSetting(t, o)
 }
 
 func renderSound(t *be.BankTab, o *wwise.Sound) {
