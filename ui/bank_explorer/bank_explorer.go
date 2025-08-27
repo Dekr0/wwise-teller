@@ -233,6 +233,19 @@ func (b *BankTab) SetActiveFX(id uint32) {
 	}
 }
 
+func (b *BankTab) SetActiveAttenuation(id uint32) {
+	if b.Bank.HIRC() == nil {
+		return
+	}
+	hirc := b.Bank.HIRC()
+	if v, ok := hirc.Attenuations.Load(id); !ok {
+		return
+	} else {
+		b.AttenuationViewer.ActiveAttenuation = v.(*wwise.Attenuation)
+		b.Focus = BankTabAttenuation
+	}
+}
+
 func (b *BankTab) SetActiveActorMixerHirc(id uint32) {
 	hirc := b.Bank.HIRC()
 	if hirc == nil {
