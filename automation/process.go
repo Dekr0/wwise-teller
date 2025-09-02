@@ -24,6 +24,8 @@ type ProcessScriptType uint8
 
 // TODO: this will cause migration problem on the user side since they use 
 // number to tag type
+// No need to add placeholder creation because this can be achive by rewiring 
+// with new sources, and then use type 1 integration
 const (
 	TypeRewireWithNewSources ProcessScriptType = iota
 	TypeRewireWithOldSources
@@ -31,8 +33,9 @@ const (
 	TypeImportAsRanSeqCntr
 	TypeReplaceAudioSources 
 	TypeRanSeqModifiers
-	TypeNewSoundToRanSeqCntr
-	TypeBulkProcessBaseProp
+	TypeNewSoundToRanSeqCntr // Add new sound objects to a random / sequence container
+	TypeBulkProcessBaseProp  // Apply one base property to all listed hierarchies
+	TypeStreamTypeModifiers  // Change stream type of a sound object
 	ProcessScriptTypeCount
 )
 
@@ -386,6 +389,8 @@ func RunProcessScripts(ctx context.Context, bank string, p *ProcessPipeline) *ww
 			err = NewSoundToRanSeqCntr(ctx, bnk, script.Script)
 		case TypeBulkProcessBaseProp:
 			err = BulkProcessBaseProp(bnk, script.Script)
+		case TypeStreamTypeModifiers:
+			err = ToStreamTypeBnk(bnk, script.Script)
 		default:
 			panic(fmt.Sprintf("Unsupport process script type %d.", script.Type))
 		}
