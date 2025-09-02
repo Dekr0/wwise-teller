@@ -36,6 +36,7 @@ const (
 	TypeNewSoundToRanSeqCntr // Add new sound objects to a random / sequence container
 	TypeBulkProcessBaseProp  // Apply one base property to all listed hierarchies
 	TypeStreamTypeModifiers  // Change stream type of a sound object
+	TypeCreateActionRef
 	ProcessScriptTypeCount
 )
 
@@ -391,6 +392,8 @@ func RunProcessScripts(ctx context.Context, bank string, p *ProcessPipeline) *ww
 			err = BulkProcessBaseProp(bnk, script.Script)
 		case TypeStreamTypeModifiers:
 			err = ToStreamTypeBnk(bnk, script.Script)
+		case TypeCreateActionRef:
+			err = CreateActionRef(ctx, bnk, script.Script)
 		default:
 			panic(fmt.Sprintf("Unsupport process script type %d.", script.Type))
 		}

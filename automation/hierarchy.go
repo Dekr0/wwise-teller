@@ -2,6 +2,7 @@
 package automation
 
 import (
+	"bufio"
 	"context"
 	"encoding/binary"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/Dekr0/wwise-teller/db"
@@ -20,6 +22,7 @@ import (
 type EventActionPair struct {
 	Event  uint32
 	Action uint32
+	Target uint32
 }
 
 type ImportAsRanSeqCntrScript struct {
@@ -40,6 +43,10 @@ type ImportAsRanSeqCntrScript struct {
 	RefContainer   uint32                     `json:"refContainer"`
 	RefAction      uint32                     `json:"refAction"`
 	DupActions     []EventActionPair          `json:"dupActions"`
+}
+
+type CreateActionRefSpec struct {
+	Pairs []EventActionPair `json:"pairs"`
 }
 
 // Handle validation 
@@ -341,7 +348,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 			slog.Error(fmt.Sprintf("No action has ID %d. Not duplicating action %d", pair.Action, pair.Action))
 			continue
 		}
-		validDupActions = append(validDupActions, EventActionPair{pair.Event, pair.Action})
+		validDupActions = append(validDupActions, EventActionPair{pair.Event, pair.Action, 0})
 	}
 
 	for _, pair := range validDupActions {
@@ -578,4 +585,86 @@ func ImportRanSeqCntrModifer(r *wwise.RanSeqCntr, s *ImportAsRanSeqCntrScript, v
 			p.SetPropByIdxF32(i, s.HDRActiveRange)
 		}
 	}
+}
+
+func CreateActionRef(ctx context.Context, bnk *wwise.Bank, script string) (err error) {
+	h := bnk.HIRC()
+	if h == nil {
+		return wwise.NoHIRC
+	}
+
+	f, err := os.Open(script)
+	if err != nil {
+		return err
+	}
+	reader := bufio.NewReader(f)
+	decoder := json.NewDecoder(reader)
+
+	var s CreateActionRefSpec
+	if err = decoder.Decode(&s); err != nil {
+		return err
+	}
+
+	q, closeConn, commit, rollback, err := db.CreateConnWithTxQuery(ctx)
+	if err != nil {
+		return err
+	}
+	defer closeConn()
+
+	validPairs := make([]EventActionPair, 0, len(s.Pairs))
+	for _, p := range s.Pairs {
+		if _, in := h.Actions.Load(p.Action); !in {
+			slog.Error(fmt.Sprintf("No action has id %d", p.Action))
+			continue
+		}
+		if _, in := h.Events.Load(p.Event); !in {
+			slog.Error(fmt.Sprintf("No event has id %d", p.Event))
+			continue
+		}
+		in := slices.ContainsFunc(h.HircObjs, func(o wwise.HircObj) bool {
+			id, err := o.HircID()
+			if err != nil {
+				return false
+			}
+			return id == p.Target
+		})
+		if !in {
+			slog.Error(fmt.Sprintf("No target has id %d", p.Target))
+			continue
+		}
+		validPairs = append(validPairs, p)
+	}
+
+	newActionIds := make([]uint32, 0, len(validPairs))
+	for _, p := range validPairs {
+		v, in := h.Actions.Load(p.Action)
+		if !in {
+			slog.Error(fmt.Sprintf("No action has id %d", p.Action))
+			continue
+		}
+		refAction := v.(*wwise.Action)
+		newActionId, err := db.TryHid(ctx, q)
+		if err != nil {
+			rollback()
+			return err
+		}
+		newAction := refAction.Clone(newActionId, p.Target)
+		if err := h.AppendNewActionToEvent(&newAction, p.Event); err != nil {
+			rollback()
+			return err
+		}
+		newActionIds = append(newActionIds, newActionId)
+	}
+
+	if err = commit(); err != nil {
+		rollback()
+		return err
+	}
+
+	slog.Info("Here's a list of newly generated action id")
+	for i, newActionId := range newActionIds {
+		slog.Info(fmt.Sprintf("Action %d -> Target %d", newActionId, validPairs[i].Target))
+	}
+
+	return nil
 }
