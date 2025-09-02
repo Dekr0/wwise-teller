@@ -14,12 +14,51 @@ import (
 func renderBankSourceData(t *be.BankTab, o *wwise.Sound) {
 	if imgui.TreeNodeExStr("Bank Source Data") {
 		bsd := &o.BankSourceData
-		imgui.Text(fmt.Sprintf("Plugin Type ID: %d", bsd.PluginType()))
-		imgui.Text(fmt.Sprintf("Plugin Company ID: %d", bsd.Company()))
+
+		{
+			pluginID := bsd.PluginID
+			pluginType := bsd.PluginType()
+			pluginCompany := bsd.Company()
+			pluginIDFmt, in := wwise.PluginTypeCodecFmt[pluginID]
+			if !in {
+				pluginIDFmt, in = wwise.PluginTypeFXFmt[pluginID]
+				if !in {
+					pluginIDFmt = "Unknown"
+				}
+			}
+			pluginTypeFmt := "Unknown"
+			if pluginType < uint32(len(wwise.PluginTypeNames)) {
+				pluginTypeFmt = wwise.PluginTypeNames[pluginType]
+			}
+			pluginCompanyFmt, in := wwise.PluginCompanyNames[wwise.PluginCompanyType(pluginCompany)]
+			if !in {
+				pluginCompanyFmt = "Unknown"
+			}
+			imgui.SeparatorText("Audio Source Plugin Information")
+			imgui.Text(fmt.Sprintf("Plugin Full ID: %d", pluginID))
+			imgui.Text(fmt.Sprintf("Plugin Full ID Translation: %s", pluginIDFmt))
+			imgui.Text(fmt.Sprintf("Plugin Type ID: %d", pluginType))
+			imgui.Text(fmt.Sprintf("Plugin Type ID Translation: %s", pluginTypeFmt))
+			if imgui.IsItemHovered() {
+				imgui.SetTooltip(
+					"If a plugin type ID translation is not \"Codec\", " + 
+					"this indicates audio source ID of this sound object might" + 
+					" point to a FX hierarchy object",
+				)
+			}
+			imgui.Text(fmt.Sprintf("Plugin Company ID: %d", pluginCompany))
+			imgui.Text(fmt.Sprintf("Plugin Company ID Translation: %s", pluginCompanyFmt))
+			imgui.Separator()
+		}
 
 		curr := int32(bsd.StreamType)
-		imgui.SetNextItemWidth(96)
-		if imgui.ComboStrarr("Stream Type: ", &curr, wwise.SourceTypeNames, int32(len(wwise.SourceTypeNames))) {
+		imgui.Text("Stream Type: ")
+		if imgui.IsItemHovered() {
+			imgui.SetTooltip("DATA means audio data is stored in the sound bank. Prefetch streams means audio data is completely stored as a separate file in the hard disk. Streaming means a very small amount of audio data is stored in the sound bank, the rest of it is stored as a separate file in the hard disk.")
+		}
+		imgui.SameLine()
+		imgui.SetNextItemWidth(160)
+		if imgui.ComboStrarr("##StreamType", &curr, wwise.SourceTypeNames, int32(len(wwise.SourceTypeNames))) {
 			bsd.StreamType = wwise.SourceType(curr)
 		}
 
