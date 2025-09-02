@@ -106,7 +106,7 @@ func TestAppendAudioAndSound(t *testing.T) {
 		Id: 415678546,
 		BankSourceData: wwise.BankSourceData{
 			PluginID: wwise.VORBIS,
-			StreamType: wwise.STREAM_TYPE_BNK,
+			StreamType: wwise.SourceTypeDATA,
 			SourceID: 568558003,
 			InMemoryMediaSize: uint32(len(audioDataUrban0)),
 			SourceBits: 0,
@@ -120,7 +120,7 @@ func TestAppendAudioAndSound(t *testing.T) {
 		Id: 234198813,
 		BankSourceData: wwise.BankSourceData{
 			PluginID: wwise.VORBIS,
-			StreamType: wwise.STREAM_TYPE_BNK,
+			StreamType: wwise.SourceTypeDATA,
 			SourceID: 107266693,
 			InMemoryMediaSize: uint32(len(audioDataUrban1)),
 			SourceBits: 0,

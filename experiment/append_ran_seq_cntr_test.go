@@ -67,7 +67,7 @@ func TestAppendRanSeqCntr(t *testing.T) {
 		Id: newSoundID,
 		BankSourceData: wwise.BankSourceData{
 			PluginID: wwise.VORBIS,
-			StreamType: wwise.STREAM_TYPE_BNK,
+			StreamType: wwise.SourceTypeDATA,
 			SourceID: newSourceID,
 			InMemoryMediaSize: uint32(len(audioData)),
 			SourceBits: 0,

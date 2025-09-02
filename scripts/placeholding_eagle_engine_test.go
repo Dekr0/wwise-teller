@@ -52,7 +52,7 @@ func TestPlaceholdingEagleEngine(t *testing.T) {
 			Id: soundId,
 			BankSourceData: wwise.BankSourceData{
 				PluginID: wwise.VORBIS,
-				StreamType: wwise.STREAM_TYPE_BNK,
+				StreamType: wwise.SourceTypeDATA,
 				SourceID: newEngineSourceIds[i],
 				InMemoryMediaSize: 0,
 				SourceBits: 0,

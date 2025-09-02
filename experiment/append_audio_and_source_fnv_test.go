@@ -135,7 +135,7 @@ func TestAppendAudioAndSoundUsingFNV(t *testing.T) {
 		Id: soundAId,
 		BankSourceData: wwise.BankSourceData{
 			PluginID: wwise.VORBIS,
-			StreamType: wwise.STREAM_TYPE_BNK,
+			StreamType: wwise.SourceTypeDATA,
 			SourceID: urban0Sid,
 			InMemoryMediaSize: uint32(len(audioDataUrban0)),
 			SourceBits: 0,
@@ -161,7 +161,7 @@ func TestAppendAudioAndSoundUsingFNV(t *testing.T) {
 		Id: soundBId,
 		BankSourceData: wwise.BankSourceData{
 			PluginID: wwise.VORBIS,
-			StreamType: wwise.STREAM_TYPE_BNK,
+			StreamType: wwise.SourceTypeDATA,
 			SourceID: urban1Sid,
 			InMemoryMediaSize: uint32(len(audioDataUrban1)),
 			SourceBits: 0,

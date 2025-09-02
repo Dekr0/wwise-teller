@@ -12,10 +12,6 @@ const (
 	WEM_OPUS =  0x00140001
 )
 
-const (
-	STREAM_TYPE_BNK = 0x00
-)
-
 type SourceType uint8
 
 const (
