@@ -26,6 +26,8 @@ func renderBaseParam(t *be.BankTab, o wwise.HircObj) {
 		}
 		b := o.BaseParameter()
 
+		imgui.Text("Override Bus ID: ")
+		imgui.SameLine()
 		imgui.SetNextItemWidth(128)
 		if imgui.BeginCombo("##OverrideBusId", strconv.FormatUint(uint64(b.OverrideBusId), 10)) {
 			imgui.EndCombo()
