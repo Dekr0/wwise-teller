@@ -186,6 +186,11 @@ func RewireWithNewSources(
 		}
 	}
 
+	slog.Info("Here's a list of newly generated audio sources' id:")
+	for _, sid := range sids {
+		slog.Info(strconv.FormatUint(uint64(sid), 10))
+	}
+
 	return nil
 }
 
@@ -295,10 +300,12 @@ func ParseSoundMapping(
 		count, err := strconv.ParseUint(row[1], 10, 8)
 		if err != nil {
 			slog.Error("Failed to parse # of targeting sound IDs", "error", err)
+			*rowNum += 1
 			continue
 		}
 		if count > uint64(len(row) - 2) {
 			slog.Error(fmt.Sprintf("Expecting %d of targeting sound IDs but receiving %d", count, len(row)- 2))
+			* rowNum += 1
 			continue
 		}
 
