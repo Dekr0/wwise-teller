@@ -328,6 +328,13 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 		return err
 	}
 
+	slog.Info("Here's a list of newly generated sound objects' id and audio sources' id")
+	for i, soundId := range newSoundIDs {
+		slog.Info(fmt.Sprintf("Sound object %d -> Audio Source %d", soundId, newSourceIDs[i]))
+	}
+	slog.Info("Newly generated random / sequence container id and action id")
+	slog.Info(fmt.Sprintf("Action %d -> Random / Sequence container %d", newActionId, newCntrId))
+
 	return nil
 }
 
@@ -482,6 +489,11 @@ func NewSoundToRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) e
 	if err := commit(); err != nil {
 		rollback()
 		return err
+	}
+
+	slog.Info("Here's a list of newly generated sound objects' id and audio sources' id")
+	for i, soundId := range newSoundIDs {
+		slog.Info(fmt.Sprintf("Sound object %d -> Audio Source %d", soundId, newSourceIDs[i]))
 	}
 
 	return nil
