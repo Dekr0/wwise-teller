@@ -302,7 +302,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 			Id: newSoundIDs[i],
 			BankSourceData: wwise.BankSourceData{
 				PluginID: pluginID,
-				StreamType: wwise.STREAM_TYPE_BNK,
+				StreamType: wwise.SourceTypeDATA,
 				SourceID: newSourceIDs[i],
 				InMemoryMediaSize: uint32(len(newAudioDatas[i])),
 				SourceBits: 0,
@@ -463,7 +463,7 @@ func NewSoundToRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) e
 			Id: newSoundIDs[i],
 			BankSourceData: wwise.BankSourceData{
 				PluginID: pluginID,
-				StreamType: wwise.STREAM_TYPE_BNK,
+				StreamType: wwise.SourceTypeDATA,
 				SourceID: newSourceIDs[i],
 				InMemoryMediaSize: uint32(len(newAudioDatas[i])),
 				SourceBits: 0,
