@@ -17,6 +17,11 @@ import (
 	"github.com/Dekr0/wwise-teller/wwise"
 )
 
+type EventActionPair struct {
+	Event  uint32
+	Action uint32
+}
+
 type ImportAsRanSeqCntrScript struct {
 	Workspace      string                     `json:"workspace"`
 	Conversion     string                     `json:"conversion"`
@@ -34,6 +39,7 @@ type ImportAsRanSeqCntrScript struct {
 	Event          uint32                     `json:"Event"` 
 	RefContainer   uint32                     `json:"refContainer"`
 	RefAction      uint32                     `json:"refAction"`
+	DupActions     []EventActionPair          `json:"dupActions"`
 }
 
 // Handle validation 
@@ -258,7 +264,7 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	}
 
 	var newActionId = uint32(0)
-	if s.RefAction != 0 && s.Event != 0 {
+	if s.RefAction != 0 && s.Event != 0 { // ???
 		newActionId, err = db.TryHid(ctx, q)
 		if err != nil {
 			rollback()
@@ -319,8 +325,43 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 		newAction := refAction.Clone(newActionId, newCntrId)
 		if err := h.AppendNewActionToEvent(&newAction, s.Event); err != nil {
 			rollback()
-			return fmt.Errorf("Failed to add a new action ot event %d: %w", s.Event, err)
+			return fmt.Errorf("Failed to add a new action to event %d: %w", s.Event, err)
 		}
+	}
+
+	newActionIds := make([]uint32, 0, len(s.DupActions))
+	validDupActions := make([]EventActionPair, 0, len(s.DupActions))
+	for _, pair := range s.DupActions {
+		_, in = h.Events.Load(pair.Event)
+		if !in {
+			slog.Error(fmt.Sprintf("No event has ID %d. Not duplication action %d", pair.Event, pair.Action))
+		}
+		_, in = h.Actions.Load(pair.Action)
+		if !in {
+			slog.Error(fmt.Sprintf("No action has ID %d. Not duplicating action %d", pair.Action, pair.Action))
+			continue
+		}
+		validDupActions = append(validDupActions, EventActionPair{pair.Event, pair.Action})
+	}
+
+	for _, pair := range validDupActions {
+		v, in := h.Actions.Load(pair.Action)
+		if !in {
+			slog.Error(fmt.Sprintf("No action has ID %d. Not duplicating action %d", pair.Action, pair.Action))
+			continue
+		}
+		refAction := v.(*wwise.Action)
+		newActionId, err := db.TryHid(ctx, q)
+		if err != nil {
+			rollback()
+			return err
+		}
+		newAction := refAction.Clone(newActionId, newCntrId)
+		if err := h.AppendNewActionToEvent(&newAction, s.Event); err != nil {
+			rollback()
+			return fmt.Errorf("Failed to add a new action to event %d: %w", s.Event, err)
+		}
+		newActionIds = append(newActionIds, newActionId)
 	}
 
 	if err := commit(); err != nil {
@@ -332,8 +373,11 @@ func ImportAsRanSeqCntr(ctx context.Context, bnk *wwise.Bank, script string) err
 	for i, soundId := range newSoundIDs {
 		slog.Info(fmt.Sprintf("Sound object %d -> Audio Source %d", soundId, newSourceIDs[i]))
 	}
-	slog.Info("Newly generated random / sequence container id and action id")
+	slog.Info("Newly generated actions' id that are associated with newly generated random / sequence container")
 	slog.Info(fmt.Sprintf("Action %d -> Random / Sequence container %d", newActionId, newCntrId))
+	for _, newActionId := range newActionIds {
+		slog.Info(fmt.Sprintf("Action %d -> Random / Sequence container %d", newActionId, newCntrId))
+	}
 
 	return nil
 }
