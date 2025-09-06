@@ -46,6 +46,10 @@ func HIRCNewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
 }
 
 func HIRCNewState(h *HIRC, id u32, data *StateProp) {
+	if data == nil {
+		panic("State property is nil")
+	}
+
 	internalId := HIRCNewHierarchy(h, id, HircTypeState)
 
 	s := &h.StateComponent
@@ -55,6 +59,10 @@ func HIRCNewState(h *HIRC, id u32, data *StateProp) {
 }
 
 func HIRCNewEvent(h *HIRC, id u32, data *EventData) {
+	if data == nil {
+		panic("Event data is nil")
+	}
+
 	internalId := HIRCNewHierarchy(h, id, HircTypeEvent)
 
 	e := &h.EventComponet
