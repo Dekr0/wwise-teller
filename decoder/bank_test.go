@@ -1,7 +1,6 @@
 package decoder_test
 
 import (
-	"bufio"
 	"encoding/binary"
 	"io"
 	"os"
