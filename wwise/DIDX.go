@@ -44,7 +44,7 @@ func AddNewMediaIndex(d *DIDX, sourceId u32, offset u32, size u32) error {
 	return nil
 }
 
-func HasSource(d *DIDX, sourceId u32) (in bool) {
+func HasMediaIndex(d *DIDX, sourceId u32) (in bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	_, in = d.SourceIds[sourceId]
