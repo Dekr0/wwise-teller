@@ -5,25 +5,51 @@ import (
 	"sync"
 )
 
+const SizeOfMediaIndex = 12
+
+type MediaIndexEntry struct {
+	SourceId u32
+	Offset   u32
+	Size     u32
+}
+
 type DIDX struct {
 	mu sync.Mutex
 	
 	SourceIds map[u32]struct{}
-	Offset    map[u32]u32
-	Size      map[u32]u32
+	Offsets   map[u32]u32
+	Sizes     map[u32]u32
 }
 
 func NewDIDX(size u32) *DIDX {
 	return &DIDX{
 		SourceIds: make(map[u32]struct{}, size),
-		Offset: make(map[u32]u32, size),
-		Size: make(map[u32]u32, size),
+		Offsets: make(map[u32]u32, size),
+		Sizes: make(map[u32]u32, size),
 	}
 }
 
-func AddNewMediaIndex(d *DIDX, sourceId u32, offset u32, size u32) error {
+// Use this if assuming there will be no duplicate in DIDX entry
+func AddNewMediaIndex(d *DIDX, m MediaIndexEntry) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+
+	sourceId := m.SourceId
+	offset := m.Offset
+	size := m.Size
+
+	d.SourceIds[sourceId] = struct{}{}
+	d.Offsets[sourceId] = offset
+	d.Sizes[size] = size
+}
+
+func AddNewMediaIndexCheck(d *DIDX, m MediaIndexEntry) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	sourceId := m.SourceId
+	offset := m.Offset
+	size := m.Size
 
 	if _, in := d.SourceIds[sourceId]; in {
 		return fmt.Errorf("Media index with %d already exist.", sourceId)
@@ -31,15 +57,15 @@ func AddNewMediaIndex(d *DIDX, sourceId u32, offset u32, size u32) error {
 
 	d.SourceIds[sourceId] = struct{}{}
 
-	if _, in := d.Offset[sourceId]; in {
+	if _, in := d.Offsets[sourceId]; in {
 		panic(fmt.Sprintf("Media index with %d does not exist but it has offset value", sourceId))
 	}
-	d.Offset[sourceId] = offset
+	d.Offsets[sourceId] = offset
 
-	if _, in := d.Size[sourceId]; in {
+	if _, in := d.Sizes[sourceId]; in {
 		panic(fmt.Sprintf("Media index with %d does not exist but it has size value", sourceId))
 	}
-	d.Size[sourceId] = size
+	d.Sizes[sourceId] = size
 
 	return nil
 }
@@ -60,12 +86,12 @@ func MediaIndex(d *DIDX, sourceId u32) (offset u32, size u32) {
 		panic(fmt.Sprintf("No media index with %d.", sourceId))
 	}
 
-	offset, in := d.Offset[sourceId]
+	offset, in := d.Offsets[sourceId]
 	if !in {
 		panic(fmt.Sprintf("No offset value associated with source id %d", sourceId))
 	}
 
-	size, in = d.Offset[sourceId]
+	size, in = d.Offsets[sourceId]
 	if !in {
 		panic(fmt.Sprintf("No size value associated with source id %d", sourceId))
 	}
@@ -81,12 +107,12 @@ func MediaIndexCheck(d *DIDX, sourceId u32) (offset u32, size u32, in bool) {
 		return offset, size, in
 	}
 
-	offset, in = d.Offset[sourceId]
+	offset, in = d.Offsets[sourceId]
 	if !in {
 		panic(fmt.Sprintf("No offset value associated with source id %d", sourceId))
 	}
 
-	size, in = d.Offset[sourceId]
+	size, in = d.Offsets[sourceId]
 	if !in {
 		panic(fmt.Sprintf("No size value associated with source id %d", sourceId))
 	}
