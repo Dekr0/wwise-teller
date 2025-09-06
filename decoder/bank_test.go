@@ -32,25 +32,31 @@ func TestDecodeBKHD(t *testing.T) {
 	}
 }
 
-func BenchmarkRawRead(b *testing.B) {
+func TestRawRead(t *testing.T) {
 	entries, err := os.ReadDir(SoundBanksDir)
 	if err != nil {
-		b.Fatal(err)
+		t.Fatal(err)
 	}
 	for _, entry := range entries {
 		f, err := os.Open(filepath.Join(SoundBanksDir, entry.Name()))
 		if err != nil {
-			b.Fatal(err)
+			t.Fatal(err)
 		}
 		defer f.Close()
 
+		buf := make([]byte, 4096, 4096)
 		r := bufio.NewReader(f)
 		for {
-			_, err = r.ReadByte()
+			_, err = r.Read(buf)
 			if err != nil {
 				if err == io.EOF {
 					break
 				}
+				t.Fatal(err)
+			}
+		}
+	}
+}
 				b.Fatal(err)
 			}
 		}
