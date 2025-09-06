@@ -41,10 +41,11 @@ func Decode(
 		return nil, WrongBKHDPosition(p)
 	}
 
-	b.BKHD, err = DecodeBKHD(p, reader, o)
+	bkhd, err := DecodeBKHD(p, reader, o)
 	if err != nil {
 		return nil, err
 	}
+	wwise.BankAddBKHD(b, bkhd)
 	
 	return b, nil
 }
