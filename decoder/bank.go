@@ -129,7 +129,7 @@ func DecodeMem(
 			if err != nil {
 				return nil, err
 			}
-			_, err = reader.Seek(1, int(size))
+			_, err = reader.Seek(int64(size), io.SeekCurrent)
 			if err != nil {
 				return nil, err
 			}
