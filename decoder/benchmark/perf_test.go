@@ -11,6 +11,19 @@ import (
 
 var SoundBanksDir string = os.Getenv("SOUNDBANKS")
 
+func BenchmarkReadOnceReadLargest(b *testing.B) {
+	const bank = "content_audio_weapons_superearth.st_bnk"
+	start := time.Now().UnixMilli()
+	data, err := os.ReadFile(filepath.Join(SoundBanksDir, bank))
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Log(time.Now().UnixMilli() - start)
+	for i := range data {
+		data[i] = 0
+	}
+}
+
 func BenchmarkUnbufferReadLargest(b *testing.B) {
 	const bank = "content_audio_weapons_superearth.st_bnk"
 	f, err := os.Open(filepath.Join(SoundBanksDir, bank))
