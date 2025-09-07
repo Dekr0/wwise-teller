@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log"
 	"os"
 
 	uio "github.com/Dekr0/unwise/io"
@@ -94,7 +95,7 @@ func DecodeMem(
 		return nil, err
 	}
 
-	reader := bytes.NewReader(mem)
+	reader := bytes.NewReader(mem) // len(mem) is equal to bytes.Reader.Size()
 
 	var chunkNameBytes []byte = make([]byte, 4, 4)
 	_, err = reader.Read(chunkNameBytes)
@@ -113,6 +114,7 @@ func DecodeMem(
 	}
 	wwise.BankAddBKHD(b, bkhd)
 
+	pos := u8(1)
 	for {
 		_, err = reader.Read(chunkNameBytes)
 		if err != nil {
@@ -129,11 +131,18 @@ func DecodeMem(
 			if err != nil {
 				return nil, err
 			}
-			_, err = reader.Seek(int64(size), io.SeekCurrent)
-			if err != nil {
+
+			// Use slicing to avoid copying
+			// Total size - bytes.Reader.Len() = current postion
+			// Slice the backing buffer from current position to 
+			// current position + chunk size
+			if _, err = reader.Seek(int64(size), io.SeekCurrent); err != nil {
 				return nil, err
 			}
 		}
+
+		pos += 1
 	}
+
 	return b, nil
 }
