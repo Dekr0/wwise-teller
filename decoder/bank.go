@@ -19,7 +19,10 @@ func Decode(
 	opt *DecoderOption,
 ) (b *wwise.Bank, err error) {
 	if opt == nil {
-		opt = &DecoderOption{DecoderBufferSize: DecodeBufferSize}
+		opt = &DecoderOption{
+			DecoderBufferSize: DecodeBufferSize,
+			DecodedChunkRoutine: 4,
+		}
 		opt.IncludeDATA()
 		opt.IncludeMETA()
 	}
@@ -53,7 +56,7 @@ func Decode(
 
 	slog.Info("Parsed BKHD")
 
-	pos := uint8(1)
+	pos := u8(1)
 	for {
 		_, err = reader.Read(chunkNameBytes)
 		if err != nil {
@@ -64,22 +67,33 @@ func Decode(
 		}
 		chunkName = wwise.ChunkName(chunkNameBytes)
 
-		size, err := uio.U32(reader, o)
+		chunkSize, err := uio.U32(reader, o)
 		if err != nil {
 			return nil, err
 		}
-		slog.Debug(fmt.Sprintf("Locate %s chunk (size %d)", chunkName, size))
+		slog.Debug(fmt.Sprintf("Locate %s chunk (size %d)", chunkName, chunkSize))
 		
 		switch chunkName {
+		case wwise.ChunkNameBKHD:
+			return nil, fmt.Errorf("Duplicated BKHD chunk")
+		case wwise.ChunkNameDIDX:
+			didx, err := DecodeDIDX(reader, chunkSize, o)
+			if err != nil {
+				return nil, err
+			}
+			if err = wwise.BankAddDIDX(b, didx, pos); err != nil {
+				return nil, err
+			}
+			slog.Info("Parsed DIDX")
 		default:
-			encoded := make([]byte, size, size)
+			encoded := make([]byte, chunkSize, chunkSize)
 			if _, err = io.ReadFull(reader, encoded); err != nil {
 				return nil, err
 			}
 			if err = wwise.BankAddEncodedChunk(b, chunkName, pos, encoded); err != nil {
 				return nil, err
 			}
-			slog.Warn(fmt.Sprintf("Skipping chunk %s (size = %d)", chunkName, size))
+			slog.Warn(fmt.Sprintf("Skipping chunk %s (size = %d)", chunkName, chunkSize))
 		}
 		pos += 1
 	}
