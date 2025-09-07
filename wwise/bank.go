@@ -18,6 +18,7 @@ type Bank struct {
 func NewBank() *Bank {
 	return &Bank{
 		ChunkPosition: make(map[string]u8, 11),
+		EncodedChunk: make(map[string][]byte, 7),
 	}
 }
 
