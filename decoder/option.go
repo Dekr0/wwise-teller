@@ -1,8 +1,9 @@
 package decoder
 
 type DecoderOption struct {
-	DecoderBufferSize u32
-	option            u8
+	option              u8
+	DecodedChunkRoutine u8
+	DecoderBufferSize   u32
 }
 
 const PageSize1k = 1024
