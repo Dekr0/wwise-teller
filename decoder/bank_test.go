@@ -11,9 +11,9 @@ import (
 
 var SoundBanksDir string = os.Getenv("SOUNDBANKS")
 
-func TestDecodeBKHD(t *testing.T) {
+func TestDecode(t *testing.T) {
 	const bank = "content_audio_weapons_superearth.st_bnk"
-	_, err := decoder.DecodeMem(
+	_, err := decoder.Decode(
 		t.Context(),
 		filepath.Join(SoundBanksDir, bank),
 		binary.LittleEndian,
