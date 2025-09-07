@@ -5,7 +5,16 @@ type DecoderOption struct {
 	option            u8
 }
 
-const DecodeBufferSize  = 4096
+const PageSize1k = 1024
+const PageSize2k = PageSize1k * 2
+const PageSize4k = PageSize2k * 2
+const PageSize8k = PageSize4k * 2
+const PageSize16k = PageSize8k * 2
+const PageSize32k = PageSize16k * 2
+const PageSize64k = PageSize32k * 2
+const PageSize128k = PageSize64k * 2
+
+const DecodeBufferSize = PageSize32k
 const MaskMETA u8 = 0b1000_0000
 const MaskDATA u8 = 0b0000_0100
 
