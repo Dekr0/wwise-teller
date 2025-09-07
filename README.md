@@ -32,8 +32,12 @@ for prototype and exploring different behavior in Wwise.
 
 ## Baseline Milestone
 
+- Delta is measured against raw read using matching receiving buffer and reader 
+buffer with size of 32k, 6.401 +/- 1%.
 - Milestone 1: parse BKHD and skip all other chunks after reading chunk tag and 
 chunk size.
-    - Buffer Read: 20.92 ms
-    - In Memory: 10.34 ms 
-- Milestone 2: parse BKHD and enable parallel skip
+    - Buffer size 32k: 6.741 ms +/- 3%
+    - Delta: 0.34 ms +/- 3%
+- Milestone 2: parse BKHD and store encoded chunk
+    - Buffer size 32k: 6.741 ms +/- 3%
+    - Delta: 

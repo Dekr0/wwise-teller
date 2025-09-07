@@ -49,6 +49,7 @@ func Decode(
 	}
 	wwise.BankAddBKHD(b, bkhd)
 
+	pos := uint8(1)
 	for {
 		_, err = reader.Read(chunkNameBytes)
 		if err != nil {
@@ -65,11 +66,15 @@ func Decode(
 			if err != nil {
 				return nil, err
 			}
-			_, err = reader.Discard(int(size))
-			if err != nil {
+			encoded := make([]byte, size, size)
+			if _, err = reader.Read(encoded); err != nil {
+				return nil, err
+			}
+			if err = wwise.BankAddEncodedChunk(b, chunkName, pos, encoded); err != nil {
 				return nil, err
 			}
 		}
+		pos += 1
 	}
 	return b, nil
 }
