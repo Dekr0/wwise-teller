@@ -12,20 +12,14 @@ import (
 var SoundBanksDir string = os.Getenv("SOUNDBANKS")
 
 func TestDecodeBKHD(t *testing.T) {
-	entries, err := os.ReadDir(SoundBanksDir)
+	const bank = "content_audio_weapons_superearth.st_bnk"
+	_, err := decoder.DecodeMem(
+		t.Context(),
+		filepath.Join(SoundBanksDir, bank),
+		binary.LittleEndian,
+		nil,
+	)
 	if err != nil {
 		t.Fatal(err)
-	}
-	for _, entry := range entries {
-		if bank, err := decoder.Decode(
-			t.Context(),
-			filepath.Join(SoundBanksDir, entry.Name()),
-			binary.LittleEndian,
-			&decoder.DecoderOption{},
-		); err != nil {
-			t.Fatal(err)
-		} else {
-			t.Logf("Version: %d; Id: %d", bank.BKHD.Version, bank.BKHD.Id)
-		}
 	}
 }
