@@ -3,7 +3,9 @@ package decoder
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
+	"log/slog"
 	"os"
 
 	uio "github.com/Dekr0/unwise/io"
@@ -49,6 +51,8 @@ func Decode(
 	}
 	wwise.BankAddBKHD(b, bkhd)
 
+	slog.Info("Parsed BKHD")
+
 	pos := uint8(1)
 	for {
 		_, err = reader.Read(chunkNameBytes)
@@ -59,20 +63,23 @@ func Decode(
 			return nil, err
 		}
 		chunkName = wwise.ChunkName(chunkNameBytes)
+
+		size, err := uio.U32(reader, o)
+		if err != nil {
+			return nil, err
+		}
+		slog.Debug(fmt.Sprintf("Locate %s chunk (size %d)", chunkName, size))
 		
 		switch chunkName {
 		default:
-			size, err := uio.U32(reader, o)
-			if err != nil {
-				return nil, err
-			}
 			encoded := make([]byte, size, size)
-			if _, err = reader.Read(encoded); err != nil {
+			if _, err = io.ReadFull(reader, encoded); err != nil {
 				return nil, err
 			}
 			if err = wwise.BankAddEncodedChunk(b, chunkName, pos, encoded); err != nil {
 				return nil, err
 			}
+			slog.Warn(fmt.Sprintf("Skipping chunk %s (size = %d)", chunkName, size))
 		}
 		pos += 1
 	}
