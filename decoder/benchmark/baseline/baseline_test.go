@@ -11,13 +11,13 @@ import (
 var SoundBanksDir string = os.Getenv("SOUNDBANKS")
 var BigFile string = os.Getenv("BIGFILE")
 
-func benchmarkReadOnceBigFile(b *testing.B) {
+func BenchmarkReadOnceBigFile(b *testing.B) {
 	for b.Loop() {
 		baseline.ReadOnce(BigFile)
 	}
 }
 
-func benchmarkBufferReadBigFile(b *testing.B) {
+func BenchmarkBufferReadBigFile(b *testing.B) {
 	const recvSize = 4096
 	const bufSize = 4096
 	for b.Loop() {
