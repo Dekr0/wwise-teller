@@ -1,105 +1,57 @@
-package perf_test
+package baseline_test
 
 import (
-	"bufio"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
+
+	"github.com/Dekr0/unwise/decoder/benchmark/baseline"
 )
 
 var SoundBanksDir string = os.Getenv("SOUNDBANKS")
 var BigFile string = os.Getenv("BIGFILE")
 
 func benchmarkReadOnceBigFile(b *testing.B) {
-	start := time.Now().UnixMilli()
-	data, err := os.ReadFile(BigFile)
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.Log(time.Now().UnixMilli() - start)
-	for i := range data {
-		data[i] = 0
+	for b.Loop() {
+		baseline.ReadOnce(BigFile)
 	}
 }
 
-func BenchmarkBufferReadBigFile(b *testing.B) {
-	f, err := os.Open(BigFile)
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer f.Close()
-
-	buf := make([]byte, 4096, 4096)
-	r := bufio.NewReaderSize(f, 4096)
-	start := time.Now().UnixMilli()
-	for {
-		_, err = r.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				b.Log(time.Now().UnixMilli() - start)
-				break
-			}
-			b.Fatal(err)
-		}
+func benchmarkBufferReadBigFile(b *testing.B) {
+	const recvSize = 4096
+	const bufSize = 4096
+	for b.Loop() {
+		baseline.BufferRead(recvSize, bufSize, BigFile)
 	}
 }
 
-func benchmarkReadOnceReadLargest(b *testing.B) {
-	const bank = "content_audio_weapons_superearth.st_bnk"
-	start := time.Now().UnixMilli()
-	data, err := os.ReadFile(filepath.Join(SoundBanksDir, bank))
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.Log(time.Now().UnixMilli() - start)
-	for i := range data {
-		data[i] = 0
+func BenchmarkReadOnceReadLargest(b *testing.B) {
+	const name = "content_audio_weapons_superearth.st_bnk"
+	path := filepath.Join(SoundBanksDir, name)
+	for b.Loop() {
+		baseline.ReadOnce(path)
 	}
 }
 
-func benchmarkUnbufferReadLargest(b *testing.B) {
-	const bank = "content_audio_weapons_superearth.st_bnk"
-	f, err := os.Open(filepath.Join(SoundBanksDir, bank))
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer f.Close()
+func BenchmarkUnbufferReadLargest(b *testing.B) {
+	const recvSize = 4096
 
-	buf := make([]byte, 4096, 4096)
-	start := time.Now().UnixMilli()
-	for {
-		_, err = f.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				b.Log(time.Now().UnixMilli() - start)
-				break
-			}
-			b.Fatal(err)
-		}
+	const name = "content_audio_weapons_superearth.st_bnk"
+	path := filepath.Join(SoundBanksDir, name)
+
+	for b.Loop() {
+		baseline.UnbufferRead(recvSize, path)
 	}
 }
 
-func benchmarkBufferReadLargest(b *testing.B) {
-	const bank = "content_audio_weapons_superearth.st_bnk"
-	f, err := os.Open(filepath.Join(SoundBanksDir, bank))
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer f.Close()
+func BenchmarkBufferReadLargest(b *testing.B) {
+	const recvSize = 4096
+	const bufSize = 4096
 
-	buf := make([]byte, 4096, 4096)
-	r := bufio.NewReaderSize(f, 4096)
-	start := time.Now().UnixMilli()
-	for {
-		_, err = r.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				b.Log(time.Now().UnixMilli() - start)
-				break
-			}
-			b.Fatal(err)
-		}
+	const name = "content_audio_weapons_superearth.st_bnk"
+	path := filepath.Join(SoundBanksDir, name)
+
+	for b.Loop() {
+		baseline.BufferRead(recvSize, bufSize, path)
 	}
 }
