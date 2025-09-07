@@ -8,16 +8,12 @@ import (
 )
 
 func DecodeDIDX(
-	inReader io.Reader,
-	o        order,
+	inReader  io.Reader,
+	chunkSize u32,
+	o         order,
 ) (
 	d *wwise.DIDX, err error,
 ) {
-	chunkSize, err := uio.U32(inReader, o)
-	if err != nil {
-		return nil, err
-	}
-
 	num := chunkSize / wwise.SizeOfMediaIndex
 
 	r := io.LimitReader(inReader, int64(chunkSize))
