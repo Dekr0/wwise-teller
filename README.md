@@ -24,41 +24,10 @@ for prototype and exploring different behavior in Wwise.
     - Establish performance and implementation baseline
     - DON'T LOST THE BASELINE. Try to keep it as close as possible
 
-### Baseline
+## Baseline Milestone
 
-#### IO Speed of Development Hard Disk
-
-- SN750 500 GB
-- Datasheet
-    - PCIe Gen4
-    - Sequential Read: 3.6GB/s
-    - Sequential Write: 3.6GB/s
-    - Random Read: 360k IOPS
-    - Random Write: 480k IOPS
-- CrystalDiskMark
-    - SEQ1M (Q8T1 | 4 Test Counts | 2Gib Test Size)
-        - 3.4925 GB/s Read 
-        - 2.60260 GB/s Write
-
-#### IO Speed of Average Consumer Hard Disk
-
-#### Fastest IO speed in Go
-
-- `weapon_superearth` (36282368 bytes) (Notes: it might contains a lot of hot load)
-    - Read All
-        - 11.37 ms -> 0.01137 second 
-        - 2.97 GB/s
-    - Unbuffer read
-        - 21.45 ms -> 0.02145 second
-        - 1.57 GB/s ???
-    - Buffer read
-        - 21.34 ms -> 0.02134 second
-        - 1.58 GB/s ???
-- Largest game archive in Helldivers 2 (1,758,597,120 bytes) (Notes: it might contains a lot of hot load)
-    - Cold load
-        - Read All
-            - 517 ms -> 0.5179 second
-            - 3.16 GB/s
-        - Buffer read
-            - 1.004 second
-            - 1.631 GB/s
+- Milestone 1: parse BKHD and skip all other chunks after reading chunk tag and 
+chunk size.
+    - Buffer Read: 20.92 ms
+    - In Memory: 10.34 ms 
+- Milestone 2: parse BKHD and enable parallel skip
