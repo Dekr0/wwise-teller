@@ -21,11 +21,17 @@ func NewBank() *Bank {
 	}
 }
 
+// No side effect
+// Thread safe
 func BankHasChunk(b *Bank, name string) (in bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	_, in = b.ChunkPosition[name]
 	return in 
 }
 
+// Has side effect
+// Thread safe
 func BankAddBKHD(bnk *Bank, bkhd *BKHD) {
 	if bkhd == nil {
 		panic("bkhd is nil")
@@ -42,6 +48,8 @@ func BankAddBKHD(bnk *Bank, bkhd *BKHD) {
 	bnk.BKHD = bkhd
 }
 
+// Has side effect
+// Thread safe
 func BankAddEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) error {
 	bnk.mu.Lock()
 	defer bnk.mu.Unlock()
