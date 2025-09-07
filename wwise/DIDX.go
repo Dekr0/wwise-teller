@@ -29,6 +29,8 @@ func NewDIDX(size u32) *DIDX {
 	}
 }
 
+// Has side effect
+// Thread safe
 // Use this if assuming there will be no duplicate in DIDX entry
 func AddNewMediaIndex(d *DIDX, m MediaIndexEntry) {
 	d.mu.Lock()
@@ -43,6 +45,8 @@ func AddNewMediaIndex(d *DIDX, m MediaIndexEntry) {
 	d.Sizes[size] = size
 }
 
+// Has side effect
+// Thread safe
 func AddNewMediaIndexCheck(d *DIDX, m MediaIndexEntry) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -70,6 +74,8 @@ func AddNewMediaIndexCheck(d *DIDX, m MediaIndexEntry) error {
 	return nil
 }
 
+// No side effect
+// Thread safe
 func HasMediaIndex(d *DIDX, sourceId u32) (in bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -77,7 +83,9 @@ func HasMediaIndex(d *DIDX, sourceId u32) (in bool) {
 	return in
 }
 
-// Use HasSource before MediaIndex
+// No side effect
+// Thread safe
+// Use HasMediaIndex before MediaIndex
 func MediaIndex(d *DIDX, sourceId u32) (offset u32, size u32) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -99,6 +107,8 @@ func MediaIndex(d *DIDX, sourceId u32) (offset u32, size u32) {
 	return offset, size
 }
 
+// No side effect
+// Thread safe
 func MediaIndexCheck(d *DIDX, sourceId u32) (offset u32, size u32, in bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
