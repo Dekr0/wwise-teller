@@ -44,23 +44,21 @@ for prototype and exploring different behavior in Wwise.
 
 #### Fastest IO speed in Go
 
-- `weapon_superearth` (36282368 bytes)
+- `weapon_superearth` (36282368 bytes) (Notes: it might contains a lot of hot load)
+    - Read All
+        - 11.37 ms -> 0.01137 second 
+        - 2.97 GB/s
+    - Unbuffer read
+        - 21.45 ms -> 0.02145 second
+        - 1.57 GB/s ???
+    - Buffer read
+        - 21.34 ms -> 0.02134 second
+        - 1.58 GB/s ???
+- Largest game archive in Helldivers 2 (1,758,597,120 bytes) (Notes: it might contains a lot of hot load)
     - Cold load
         - Read All
-            - 0.012 second
-            - 2.81 GB/s
-        - Unbuffer read
-            - 0.021 second.
-            - 1.25 GB/s ???
+            - 517 ms -> 0.5179 second
+            - 3.16 GB/s
         - Buffer read
-            - 0.021 second.
-            - 1.25 GB/s ???
-    - Hot load (OS optimization primitive such as file system cache is active)
-- Largest game archive in Helldivers 2 (1,758,597,120 bytes)
-    - Cold load
-        - Read All
-            - 1.155 second
-            - 1.418 GB/s
-        - Buffer read
-            - 0.972 second
-            - 1.685 GB/s
+            - 1.004 second
+            - 1.631 GB/s
