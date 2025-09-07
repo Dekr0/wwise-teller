@@ -23,6 +23,12 @@ for prototype and exploring different behavior in Wwise.
     - IO function and utility function rework
     - Establish performance and implementation baseline
     - DON'T LOST THE BASELINE. Try to keep it as close as possible
+- Step 02:
+    - Rethink about design:
+        - Establish boundary between different data,
+        - Completely separate data from behavior and logic, 
+        - Structure data based on access pattern, efficient memory layout, and 
+        boundary.
 
 ## Baseline Milestone
 
