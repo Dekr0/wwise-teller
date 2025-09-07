@@ -35,7 +35,8 @@ func NewHIRC(numHirc u32) *HIRC {
 	}
 }
 
-// Thread safe setter and getter
+// Has side effect
+// Thread safe
 func HIRCNewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
 	h.mu.Lock()
 	internalId = h.monoId
@@ -45,6 +46,8 @@ func HIRCNewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
 	return internalId
 }
 
+// Has side effect
+// Thread safe
 func HIRCNewState(h *HIRC, id u32, data *StateProp) {
 	if data == nil {
 		panic("State property is nil")
@@ -58,6 +61,8 @@ func HIRCNewState(h *HIRC, id u32, data *StateProp) {
 	s.mu.Unlock()
 }
 
+// Has side effect
+// Thread safe
 func HIRCNewEvent(h *HIRC, id u32, data *EventData) {
 	if data == nil {
 		panic("Event data is nil")
