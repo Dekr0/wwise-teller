@@ -14,7 +14,7 @@ var SoundBanksDir string = os.Getenv("SOUNDBANKS")
 func BenchmarkDecodeBaselineStreaming(b *testing.B) {
 	const bank = "content_audio_weapons_superearth.st_bnk"
 	for b.Loop() {
-		bank, err := decoder.DecodeStreaming(
+		_, err := decoder.DecodeStreaming(
 			b.Context(),
 			filepath.Join(SoundBanksDir, bank),
 			binary.LittleEndian,
@@ -24,7 +24,6 @@ func BenchmarkDecodeBaselineStreaming(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		b.Logf("Version: %d, Id: %d", bank.BKHD.Version, bank.BKHD.Id)
 		b.StartTimer()
 	}
 }
@@ -32,7 +31,7 @@ func BenchmarkDecodeBaselineStreaming(b *testing.B) {
 func BenchmarkDecodeBaselineMem(b *testing.B) {
 	const bank = "content_audio_weapons_superearth.st_bnk"
 	for b.Loop() {
-		bank, err := decoder.DecodeMem(
+		_, err := decoder.DecodeMem(
 			b.Context(),
 			filepath.Join(SoundBanksDir, bank),
 			binary.LittleEndian,
@@ -42,7 +41,6 @@ func BenchmarkDecodeBaselineMem(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		b.Logf("Version: %d, Id: %d", bank.BKHD.Version, bank.BKHD.Id)
 		b.StartTimer()
 	}
 }
