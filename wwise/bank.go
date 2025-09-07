@@ -12,6 +12,7 @@ type Bank struct {
 	EncodedChunk  map[string][]byte
 
 	BKHD *BKHD
+	DIDX *DIDX
 	HIRC *HIRC
 }
 
@@ -33,7 +34,7 @@ func BankHasChunk(b *Bank, name string) (in bool) {
 
 // Has side effect
 // Thread safe
-func BankAddBKHD(bnk *Bank, bkhd *BKHD) {
+func BankAddBKHD(bnk *Bank, bkhd *BKHD) error {
 	if bkhd == nil {
 		panic("bkhd is nil")
 	}
@@ -42,11 +43,33 @@ func BankAddBKHD(bnk *Bank, bkhd *BKHD) {
 	defer bnk.mu.Unlock()
 
 	if _, in := bnk.ChunkPosition["BKHD"]; in {
-		panic("Duplicated BKHD chunk")
+		return fmt.Errorf("Duplicated BKHD chunk")
 	}
 	bnk.ChunkPosition["BKHD"] = 0
 
 	bnk.BKHD = bkhd
+
+	return nil
+}
+
+// Has side effect
+// Thread safe
+func BankAddDIDX(bnk *Bank, didx *DIDX, pos u8) error {
+	if didx == nil {
+		panic("didx is nil")
+	}
+
+	bnk.mu.Lock()
+	defer bnk.mu.Unlock()
+
+	if _, in := bnk.ChunkPosition["DIDX"]; in {
+		return fmt.Errorf("Duplicated DIDX chunk")
+	}
+	bnk.ChunkPosition["DIDX"] = pos
+
+	bnk.DIDX = didx
+
+	return nil
 }
 
 // Has side effect
@@ -54,6 +77,10 @@ func BankAddBKHD(bnk *Bank, bkhd *BKHD) {
 func BankAddEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) error {
 	bnk.mu.Lock()
 	defer bnk.mu.Unlock()
+
+	if encoded == nil {
+		panic("Encoded slice is nil")
+	}
 
 	if _, in := bnk.ChunkPosition[chunkName]; in {
 		return fmt.Errorf("Duplicate %s chunk", chunkName)
