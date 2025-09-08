@@ -11,9 +11,9 @@ type Bank struct {
 	ChunkPosition map[string]u8
 	EncodedChunk  map[string][]byte
 
-	BKHD *BKHD
-	DIDX *DIDX
-	HIRC *HIRC
+	BKHD     *BKHD
+	DIDXDATA *DIDXDATA
+	HIRC     *HIRC
 }
 
 func NewBank() *Bank {
@@ -70,9 +70,9 @@ func RegBKHD(bnk *Bank, bkhd *BKHD) error {
 
 // Has side effect
 // Thread safe
-func RegDIDX(bnk *Bank, didx *DIDX, pos u8) error {
-	if didx == nil {
-		panic("didx is nil")
+func RegDIDXDATA(bnk *Bank, didxdata *DIDXDATA, pos u8) error {
+	if didxdata == nil {
+		panic("didxdata is nil")
 	}
 
 	bnk.mu.Lock()
@@ -83,7 +83,7 @@ func RegDIDX(bnk *Bank, didx *DIDX, pos u8) error {
 	}
 	bnk.ChunkPosition["DIDX"] = pos
 
-	bnk.DIDX = didx
+	bnk.DIDXDATA = didxdata
 
 	return nil
 }
@@ -115,8 +115,7 @@ func NewEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) error 
 // Has side effect
 // Thread safe
 func NewAudioSources(
-	didx *DIDX, 
-	data *DATA, 
+	didxdata *DIDXDATA, 
 	newSourceIds []u32, 
 	audioData [][]byte,
 ) (ok []u32, fail []u32, err error) {
