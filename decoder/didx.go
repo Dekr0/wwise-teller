@@ -26,7 +26,7 @@ func DecodeDIDX(
 		if err != nil {
 			return nil, err
 		}
-		wwise.AddNewMediaIndex(d, m)
+		wwise.NewMediaIndex(d, m)
 	}
 
 	return d, nil
