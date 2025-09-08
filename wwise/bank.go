@@ -25,16 +25,32 @@ func NewBank() *Bank {
 
 // No side effect
 // Thread safe
-func BankHasChunk(b *Bank, name string) (in bool) {
+func HasChunk(b *Bank, name string) (in bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	_, in = b.ChunkPosition[name]
 	return in 
 }
 
+// No side effect
+// Thread safe
+func PopEncodedChunk(bnk *Bank, name string) (in bool, chunk []byte) {
+	bnk.mu.Lock()
+	defer bnk.mu.Unlock()
+
+	chunk, in = bnk.EncodedChunk[name]
+	if !in {
+		return in, nil
+	}
+
+	delete(bnk.EncodedChunk, name)
+
+	return in, chunk 
+}
+
 // Has side effect
 // Thread safe
-func BankAddBKHD(bnk *Bank, bkhd *BKHD) error {
+func RegBKHD(bnk *Bank, bkhd *BKHD) error {
 	if bkhd == nil {
 		panic("bkhd is nil")
 	}
@@ -54,7 +70,7 @@ func BankAddBKHD(bnk *Bank, bkhd *BKHD) error {
 
 // Has side effect
 // Thread safe
-func BankAddDIDX(bnk *Bank, didx *DIDX, pos u8) error {
+func RegDIDX(bnk *Bank, didx *DIDX, pos u8) error {
 	if didx == nil {
 		panic("didx is nil")
 	}
@@ -74,7 +90,7 @@ func BankAddDIDX(bnk *Bank, didx *DIDX, pos u8) error {
 
 // Has side effect
 // Thread safe
-func BankAddEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) error {
+func NewEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) error {
 	bnk.mu.Lock()
 	defer bnk.mu.Unlock()
 
@@ -94,4 +110,15 @@ func BankAddEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) er
 	bnk.EncodedChunk[chunkName] = encoded
 
 	return nil
+}
+
+// Has side effect
+// Thread safe
+func NewAudioSources(
+	didx *DIDX, 
+	data *DATA, 
+	newSourceIds []u32, 
+	audioData [][]byte,
+) (ok []u32, fail []u32, err error) {
+	return ok, fail, err
 }
