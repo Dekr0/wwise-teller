@@ -52,7 +52,7 @@ func Decode(
 	if err != nil {
 		return nil, err
 	}
-	wwise.BankAddBKHD(b, bkhd)
+	wwise.RegBKHD(b, bkhd)
 
 	slog.Info("Parsed BKHD")
 
@@ -81,7 +81,7 @@ func Decode(
 			if err != nil {
 				return nil, err
 			}
-			if err = wwise.BankAddDIDX(b, didx, pos); err != nil {
+			if err = wwise.RegDIDX(b, didx, pos); err != nil {
 				return nil, err
 			}
 			slog.Info("Parsed DIDX")
@@ -90,12 +90,17 @@ func Decode(
 			if _, err = io.ReadFull(reader, encoded); err != nil {
 				return nil, err
 			}
-			if err = wwise.BankAddEncodedChunk(b, chunkName, pos, encoded); err != nil {
+			if err = wwise.NewEncodedChunk(b, chunkName, pos, encoded); err != nil {
 				return nil, err
 			}
 			slog.Warn(fmt.Sprintf("Skipping chunk %s (size = %d)", chunkName, chunkSize))
 		}
 		pos += 1
 	}
+
+	in, chunk := wwise.PopEncodedChunk(b, "DATA")
+	if opt.IsIncludeDATA() && in {
+	}
+
 	return b, nil
 }
