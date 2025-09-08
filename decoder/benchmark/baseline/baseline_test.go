@@ -90,7 +90,7 @@ func BenchmarkWriteOnceLargest(b *testing.B) {
 	}
 }
 
-func BenchmarkUnbufferWriteLargest(b *testing.B) {
+func BenchmarkManyWriteLargest(b *testing.B) {
 	os.Remove("tmp")
 
 	const name = "content_audio_weapons_superearth.st_bnk"
@@ -105,7 +105,7 @@ func BenchmarkUnbufferWriteLargest(b *testing.B) {
 	b.ResetTimer()
 
 	for b.Loop() {
-		f, err := baseline.UnBufferWrite(data, writeSize)
+		f, err := baseline.ManyWrite(data, writeSize)
 
 		if err != nil {
 			b.Fatal(err)
@@ -126,38 +126,28 @@ func BenchmarkUnbufferWriteLargest(b *testing.B) {
 	}
 }
 
-func BenchmarkBufferWriteLargest(b *testing.B) {
-	os.Remove("tmp")
-
+func TestManyWriteLargest(t *testing.T) {
 	const name = "content_audio_weapons_superearth.st_bnk"
-	const buffSize = 4096
+	const writeSize = 4096
 
 	path := filepath.Join(SoundBanksDir, name)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		b.Fatal(err)
+		t.Fatal(err)
 	}
 
-	b.ResetTimer()
+	f, err := baseline.ManyWrite(data, writeSize)
 
-	for b.Loop() {
-		f, err := baseline.BufferWrite(data, buffSize)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		if err != nil {
-			b.Fatal(err)
+	if f != nil {
+		if err = f.Close(); err != nil {
+			t.Fatal(err)
 		}
-
-		{
-			b.StopTimer()
-			if f != nil {
-				if err = f.Close(); err != nil {
-					b.Fatal(err)
-				}
-			}
-			if err = os.Remove("tmp"); err != nil {
-				b.Fatal(err)
-			}
-			b.StartTimer()
-		}
+	}
+	if err = os.Remove("tmp"); err != nil {
+		t.Fatal(err)
 	}
 }
