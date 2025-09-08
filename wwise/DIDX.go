@@ -23,6 +23,16 @@ type DIDXDATA struct {
 	AudioData map[u32][]byte
 }
 
+// Only use this for DecodeDATA!
+func LockDIDXDATA(d *DIDXDATA) {
+	d.mu.Lock()
+}
+
+// Only use this for DecodeDATA!
+func UnlockDIDXDATA(d *DIDXDATA) {
+	d.mu.Unlock()
+}
+
 func NewDIDXDATA(size u32) *DIDXDATA {
 	return &DIDXDATA{
 		SourceIds: make([]u32, 0, size),

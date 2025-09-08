@@ -100,6 +100,7 @@ func Decode(
 
 	in, chunk := wwise.PopEncodedChunk(b, "DATA")
 	if opt.IsIncludeDATA() && in {
+		DecodeDATA(b.DIDXDATA, chunk)
 	}
 
 	return b, nil
