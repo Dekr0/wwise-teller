@@ -55,7 +55,7 @@ func NewMediaIndex(d *DIDXDATA, m MediaIndexEntry) {
 
 	d.SourceIds = append(d.SourceIds, m.SourceId) 
 	d.Offsets[sourceId] = offset
-	d.Sizes[size] = size
+	d.Sizes[sourceId] = size
 }
 
 // Has side effect
