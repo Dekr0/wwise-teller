@@ -12,13 +12,13 @@ func DecodeDIDX(
 	chunkSize u32,
 	o         order,
 ) (
-	d *wwise.DIDX, err error,
+	d *wwise.DIDXDATA, err error,
 ) {
 	num := chunkSize / wwise.SizeOfMediaIndex
 
 	r := io.LimitReader(inReader, int64(chunkSize))
 
-	d = wwise.NewDIDX(chunkSize)
+	d = wwise.NewDIDXDATA(chunkSize)
 
 	var m wwise.MediaIndexEntry
 	for range num {

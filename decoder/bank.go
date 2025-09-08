@@ -77,11 +77,11 @@ func Decode(
 		case wwise.ChunkNameBKHD:
 			return nil, fmt.Errorf("Duplicated BKHD chunk")
 		case wwise.ChunkNameDIDX:
-			didx, err := DecodeDIDX(reader, chunkSize, o)
+			didxdata, err := DecodeDIDX(reader, chunkSize, o)
 			if err != nil {
 				return nil, err
 			}
-			if err = wwise.RegDIDX(b, didx, pos); err != nil {
+			if err = wwise.RegDIDXDATA(b, didxdata, pos); err != nil {
 				return nil, err
 			}
 			slog.Info("Parsed DIDX")
