@@ -2,9 +2,7 @@ package baseline
 
 import (
 	"bufio"
-	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -67,7 +65,7 @@ func WriteOnce(data []byte) (f *os.File, err error) {
 	return f, err
 }
 
-func UnBufferWrite(data []byte, writeSize uint32) (f *os.File, err error) {
+func ManyWrite(data []byte, writeSize uint32) (f *os.File, err error) {
 	f, err = os.Create("tmp")
 	if err != nil {
 		return nil, err
@@ -83,34 +81,4 @@ func UnBufferWrite(data []byte, writeSize uint32) (f *os.File, err error) {
 	}
 
 	return f, err
-}
-
-func BufferWrite(data []byte, bufSize uint32) (f *os.File, err error) {
-	f, err = os.CreateTemp("", "tmp")
-	if err != nil {
-		return nil, err
-	}
-
-	writer := bufio.NewWriterSize(f, int(bufSize))
-
-	nwrite := 0
-	retry := 32
-	for nwrite < len(data) && retry > 0 {
-		nn, err := writer.Write(data)
-		if err != nil {
-			log.Print(err.Error())
-			retry -= 1
-		}
-		nwrite += nn
-	}
-
-	if err = writer.Flush(); err != nil {
-		return f, err
-	}
-
-	if nwrite < len(data) {
-		return f, fmt.Errorf("Failed to write all data into the file")
-	}
-
-	return f, nil
 }
