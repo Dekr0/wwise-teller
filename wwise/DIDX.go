@@ -2,6 +2,7 @@ package wwise
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 )
 
@@ -16,14 +17,14 @@ type MediaIndexEntry struct {
 type DIDX struct {
 	mu sync.Mutex
 	
-	SourceIds map[u32]struct{}
+	SourceIds []u32
 	Offsets   map[u32]u32
 	Sizes     map[u32]u32
 }
 
 func NewDIDX(size u32) *DIDX {
 	return &DIDX{
-		SourceIds: make(map[u32]struct{}, size),
+		SourceIds: make([]u32, 0, size),
 		Offsets: make(map[u32]u32, size),
 		Sizes: make(map[u32]u32, size),
 	}
@@ -31,8 +32,9 @@ func NewDIDX(size u32) *DIDX {
 
 // Has side effect
 // Thread safe
-// Use this if assuming there will be no duplicate in DIDX entry
-func AddNewMediaIndex(d *DIDX, m MediaIndexEntry) {
+// Use this if assuming there will be no duplicate in DIDX entry (e.g., at 
+// decoding phase)
+func NewMediaIndex(d *DIDX, m MediaIndexEntry) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -40,14 +42,14 @@ func AddNewMediaIndex(d *DIDX, m MediaIndexEntry) {
 	offset := m.Offset
 	size := m.Size
 
-	d.SourceIds[sourceId] = struct{}{}
+	d.SourceIds = append(d.SourceIds, m.SourceId) 
 	d.Offsets[sourceId] = offset
 	d.Sizes[size] = size
 }
 
 // Has side effect
 // Thread safe
-func AddNewMediaIndexCheck(d *DIDX, m MediaIndexEntry) error {
+func NewMediaIndexCheck(d *DIDX, m MediaIndexEntry) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -55,11 +57,11 @@ func AddNewMediaIndexCheck(d *DIDX, m MediaIndexEntry) error {
 	offset := m.Offset
 	size := m.Size
 
-	if _, in := d.SourceIds[sourceId]; in {
+	if !slices.Contains(d.SourceIds, sourceId) {
 		return fmt.Errorf("Media index with %d already exist.", sourceId)
 	}
 
-	d.SourceIds[sourceId] = struct{}{}
+	d.SourceIds = append(d.SourceIds, m.SourceId)
 
 	if _, in := d.Offsets[sourceId]; in {
 		panic(fmt.Sprintf("Media index with %d does not exist but it has offset value", sourceId))
@@ -76,11 +78,19 @@ func AddNewMediaIndexCheck(d *DIDX, m MediaIndexEntry) error {
 
 // No side effect
 // Thread safe
-func HasMediaIndex(d *DIDX, sourceId u32) (in bool) {
+func NumMediaIndex(d *DIDX) u32 {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	_, in = d.SourceIds[sourceId]
-	return in
+
+	return u32(len(d.SourceIds))
+}
+
+// No side effect
+// Thread safe
+func HasMediaIndex(d *DIDX, sourceId u32) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return slices.Contains(d.SourceIds, sourceId)
 }
 
 // No side effect
@@ -90,7 +100,7 @@ func MediaIndex(d *DIDX, sourceId u32) (offset u32, size u32) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if _, in := d.SourceIds[sourceId]; !in {
+	if !slices.Contains(d.SourceIds, sourceId) {
 		panic(fmt.Sprintf("No media index with %d.", sourceId))
 	}
 
@@ -113,8 +123,8 @@ func MediaIndexCheck(d *DIDX, sourceId u32) (offset u32, size u32, in bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if _, in := d.SourceIds[sourceId]; !in {
-		return offset, size, in
+	if !slices.Contains(d.SourceIds, sourceId) {
+		return offset, size, false
 	}
 
 	offset, in = d.Offsets[sourceId]
