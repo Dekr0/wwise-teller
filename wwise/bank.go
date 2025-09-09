@@ -86,6 +86,10 @@ func EncodeBank(
 		if err != nil {
 			return err
 		}
+		err = EncodeDATANotAlign(b.DIDXDATA, w)
+		if err != nil {
+			return err
+		}
 	} else {
 		err = EncodeDIDX(b.DIDXDATA, w, o)
 		if err != nil {
