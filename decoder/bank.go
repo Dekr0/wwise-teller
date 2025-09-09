@@ -72,10 +72,12 @@ func Decode(
 			return nil, err
 		}
 		slog.Debug(fmt.Sprintf("Locate %s chunk (size %d)", chunkName, chunkSize))
+
+		if wwise.HasChunk(b, chunkName) {
+			return nil, fmt.Errorf("Duplicated chunk %s", chunkName)
+		}
 		
 		switch chunkName {
-		case wwise.ChunkNameBKHD:
-			return nil, fmt.Errorf("Duplicated BKHD chunk")
 		case wwise.ChunkNameDIDX:
 			didxdata, err := DecodeDIDX(reader, chunkSize, o)
 			if err != nil {
@@ -93,14 +95,16 @@ func Decode(
 			if err = wwise.NewEncodedChunk(b, chunkName, pos, encoded); err != nil {
 				return nil, err
 			}
-			slog.Warn(fmt.Sprintf("Skipping chunk %s (size = %d)", chunkName, chunkSize))
+			slog.Warn(fmt.Sprintf("Skipping (storing as encoded chunk) chunk %s (size = %d)", chunkName, chunkSize))
 		}
 		pos += 1
 	}
 
-	in, chunk := wwise.PopEncodedChunk(b, "DATA")
+	in := wwise.HasChunk(b, "DATA")
 	if opt.IsIncludeDATA() && in {
+		_, chunk := wwise.PopEncodedChunk(b, "DATA")
 		DecodeDATA(b.DIDXDATA, chunk)
+		slog.Info("Parsed DATA chunk")
 	}
 
 	return b, nil
