@@ -35,11 +35,11 @@ func ComputeDIDXOffset(d *DIDXDATA) {
 	offsets := d.Offsets
 	sizes := d.Sizes
 	
-	offset := u64(0)
+	offsetNotAlign := u64(0)
 	for _, sourceId := range sourceIds {
 		_, in := offsets[sourceId]
 		if !in {
-			panic(fmt.Sprintf("%d does not have an offset value", offset))
+			panic(fmt.Sprintf("%d does not have an offset value", offsetNotAlign))
 		}
 
 		size, in := sizes[sourceId]
@@ -47,8 +47,8 @@ func ComputeDIDXOffset(d *DIDXDATA) {
 			panic(fmt.Sprintf("%d does not have a size value", size))
 		}
 
-		offsets[sourceId] = u32(offset)
-		offset += u64(size)
+		offsets[sourceId] = u32(offsetNotAlign)
+		offsetNotAlign += u64(size)
 	}
 }
 
@@ -82,7 +82,7 @@ func VerifyDIDXDATA(d *DIDXDATA) error {
 		)
 	}
 
-	offsetChecker := u64(0)
+	offsetNotAlignChecker := u64(0)
 	for i, sourceId := range d.SourceIds {
 		audioData, in := audioDataIndices[sourceId]
 		if !in {
@@ -108,10 +108,10 @@ func VerifyDIDXDATA(d *DIDXDATA) error {
 			)
 		}
 
-		if u64(offset) != offsetChecker {
+		if u64(offset) != offsetNotAlignChecker {
 			return fmt.Errorf(
 				"Expecting media index (index %d) with source id %d has an offset of %d but receive %d",
-				i, sourceId, offsetChecker, offset,
+				i, sourceId, offsetNotAlignChecker, offset,
 			)
 		}
 
@@ -132,6 +132,12 @@ func EncodeDIDX(d *DIDXDATA, w io.Writer, o order) (err error) {
 	defer d.mu.Unlock()
 
 	sourceIds := d.SourceIds
+
+	chunkHeader := ChunkHeader{ [4]byte{'D', 'I', 'D', 'X'}, 12 * u32(len(sourceIds)) }
+	if err = bin.Write(w, o, chunkHeader); err != nil {
+		return err
+	}
+
 	offsets := d.Offsets
 	sizes := d.Sizes
 
