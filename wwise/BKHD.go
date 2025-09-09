@@ -41,7 +41,7 @@ func EncodeBKHD(b *BKHD, w io.Writer, o bin.ByteOrder) (err error) {
 		Version: b.Version,
 		Id: b.Id,
 		Language: b.Language,
-		DeviceAllocatedWithAlignment: (u32(b.DeviceAllocated) << 16) | (u32(b.Alignment)),
+		DeviceAllocatedWithAlignment: (u32(b.Alignment) << 16) | u32(b.DeviceAllocated),
 		Project: b.Project,
 	}
 	if err = bin.Write(w, o, payload); err != nil {
