@@ -1,7 +1,9 @@
 package wwise
 
 import (
+	bin "encoding/binary"
 	"fmt"
+	"io"
 	"slices"
 	"sync"
 )
@@ -21,6 +23,161 @@ type DIDXDATA struct {
 	Offsets   map[u32]u32
 	Sizes     map[u32]u32
 	AudioData map[u32][]byte
+}
+
+// Has side effect
+// Thread safe
+func ComputeDIDXOffset(d *DIDXDATA) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	sourceIds := d.SourceIds
+	offsets := d.Offsets
+	sizes := d.Sizes
+	
+	offset := u64(0)
+	for _, sourceId := range sourceIds {
+		_, in := offsets[sourceId]
+		if !in {
+			panic(fmt.Sprintf("%d does not have an offset value", offset))
+		}
+
+		size, in := sizes[sourceId]
+		if !in {
+			panic(fmt.Sprintf("%d does not have a size value", size))
+		}
+
+		offsets[sourceId] = u32(offset)
+		offset += u64(size)
+	}
+}
+
+func VerifyDIDXDATA(d *DIDXDATA) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	sourceIds := d.SourceIds
+	audioDataIndices := d.AudioData
+	offsets := d.Offsets
+	sizes := d.Sizes
+
+	if len(sourceIds) != len(audioDataIndices) {
+		return fmt.Errorf(
+			"# of source ids (%d) does not equal to # of audio data (%d)", 
+			len(sourceIds), len(audioDataIndices),
+		)
+	}
+
+	if len(audioDataIndices) != len(offsets) {
+		return fmt.Errorf(
+			"# of offset values (%d) does not equal to # of source ids (%d)",
+			len(offsets), len(sourceIds),
+		)
+	}
+
+	if len(offsets) != len(sizes) {
+		return fmt.Errorf(
+			"# of size values (%d) does not equal to # of source ids (%d)",
+			len(sizes), len(sourceIds),
+		)
+	}
+
+	offsetChecker := u64(0)
+	for i, sourceId := range d.SourceIds {
+		audioData, in := audioDataIndices[sourceId]
+		if !in {
+			return fmt.Errorf(
+				"Source id %d does not have an associated audio data",
+				sourceId,
+			)
+		}
+
+		offset, in := offsets[sourceId]
+		if !in {
+			return fmt.Errorf(
+				"Source id %d does not have an associated offset value",
+				sourceId,
+			)
+		}
+
+		size, in := sizes[sourceId]
+		if !in {
+			return fmt.Errorf(
+				"Source id %d does not have an associated size value",
+				sourceId,
+			)
+		}
+
+		if u64(offset) != offsetChecker {
+			return fmt.Errorf(
+				"Expecting media index (index %d) with source id %d has an offset of %d but receive %d",
+				i, sourceId, offsetChecker, offset,
+			)
+		}
+
+		audioDataSize := len(audioData)
+		if int(size) != audioDataSize {
+			return fmt.Errorf(
+				"Media index (index %d) with source id %d has a size value of %d but its audio data has a size value of %d",
+				i, sourceId, size, audioDataSize,
+			)
+		}
+	}
+
+	return nil
+}
+
+func EncodeDIDX(d *DIDXDATA, w io.Writer, o order) (err error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	sourceIds := d.SourceIds
+	offsets := d.Offsets
+	sizes := d.Sizes
+
+	var payload MediaIndexEntry
+	for _, sourceId := range sourceIds {
+		offset, in := offsets[sourceId]
+		if !in {
+			return fmt.Errorf("Source id %d does not have a offset value", sourceId)
+		}
+
+		size, in := sizes[sourceId]
+		if !in {
+			return fmt.Errorf("Source id %d does not have a size value", sourceId)
+		}
+
+		payload.SourceId = sourceId
+		payload.Offset = offset
+		payload.Size = size
+
+		err = bin.Write(w, o, payload)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func EncodeDATANotAlign(d *DIDXDATA, w io.Writer) (err error) {
+	d.mu.Lock()
+	d.mu.Unlock()
+
+	sourceIds := d.SourceIds
+	audioData := d.AudioData
+
+	for _, sourceId := range sourceIds {
+		audioData, in := audioData[sourceId]
+		if !in {
+			return fmt.Errorf("Source id %d does not have an associated audio data", sourceId)
+		}
+		if _, err := w.Write(audioData); err != nil {
+			return err
+		}
+	}
+
+	return err
 }
 
 // Only use this for DecodeDATA!
