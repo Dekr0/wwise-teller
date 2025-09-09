@@ -18,18 +18,37 @@ type BKHD struct {
 	Data           []u8
 }
 
+type BKHDEncodePayload struct {
+	Version                      u32
+	Id                           u32
+	Language                     u32
+	DeviceAllocatedWithAlignment u32
+	Project                      u32
+}
+
 // Use for pre-allocation
-func (b *BKHD) Size() u32 {
+func BKHDSize(b *BKHD) u32 {
 	return BaseSizeBKHD + u32(len(b.Data))
 }
 
-func (b *BKHD) Encode(w io.Writer, o bin.ByteOrder) (err error) {
-	if err = bin.Write(w, o, b.Version); err != nil { return err }
-	if err = bin.Write(w, o, b.Id); err != nil { return err }
-	if err = bin.Write(w, o, b.Language); err != nil { return err }
-	joint := (u32(b.DeviceAllocated) << 16) | (u32(b.Alignment))
-	if err = bin.Write(w, o, joint); err != nil { return err }
-	if err = bin.Write(w, o, b.Project); err != nil { return err }
-	_, err = w.Write(b.Data)
+func EncodeBKHD(b *BKHD, w io.Writer, o bin.ByteOrder) (err error) {
+	chunkHeader := ChunkHeader{ [4]byte{'B', 'K', 'H', 'D'}, BKHDSize(b)}
+	if err = bin.Write(w, o, chunkHeader); err != nil {
+		return err
+	}
+
+	payload := BKHDEncodePayload{
+		Version: b.Version,
+		Id: b.Id,
+		Language: b.Language,
+		DeviceAllocatedWithAlignment: (u32(b.DeviceAllocated) << 16) | (u32(b.Alignment)),
+		Project: b.Project,
+	}
+	if err = bin.Write(w, o, payload); err != nil {
+		return err
+	}
+
+	_, err = w.Write(b.Data) 
+
 	return err
 }
