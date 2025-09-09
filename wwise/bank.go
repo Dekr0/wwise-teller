@@ -1,7 +1,12 @@
 package wwise
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"log/slog"
+	"slices"
+	"sort"
 	"sync"
 )
 
@@ -16,11 +21,151 @@ type Bank struct {
 	HIRC     *HIRC
 }
 
+type ChunkHeader struct {
+	ChunkName [4]byte
+	ChunkSize    u32
+}
+
 func NewBank() *Bank {
 	return &Bank{
 		ChunkPosition: make(map[string]u8, 11),
 		EncodedChunk: make(map[string][]byte, 7),
 	}
+}
+
+type EncodeBankOpt struct {
+	option u8
+}
+
+const MaskMETA u8 = 0b1000_0000
+
+func IncludeEncodedMETA(o *EncodeBankOpt) {
+	o.option |= MaskMETA
+}
+
+func IsIncludeEncodedMETA(o *EncodeBankOpt) bool {
+	return o.option & MaskMETA > 0
+}
+
+func ExcludeEncodedMETA(o *EncodeBankOpt) {
+	o.option = o.option | (^MaskMETA)
+}
+
+// The encoded chunk will follow convention / order imposed by Wwise authoring 
+// tool.
+// BKHD -> DIDX -> DATA -> HIRC
+func EncodeBank(
+	ctx context.Context, 
+	w    io.Writer,
+	o    order, 
+	b   *Bank, 
+	opt *EncodeBankOpt,
+) (err error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if opt == nil {
+		opt = &EncodeBankOpt{}
+		IncludeEncodedMETA(opt)
+	}
+
+	err = EncodeBKHD(b.BKHD, w, o)
+	if err != nil {
+		return err
+	}
+
+	if b.DIDXDATA.AudioData != nil {
+		ComputeDIDXOffset(b.DIDXDATA)
+
+		err = VerifyDIDXDATA(b.DIDXDATA)
+		if err != nil {
+			return err
+		}
+
+		err = EncodeDIDX(b.DIDXDATA, w, o)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = EncodeDIDX(b.DIDXDATA, w, o)
+		if err != nil {
+			return err
+		}
+
+		chunk, in := b.EncodedChunk["DATA"]
+		if !in {
+			slog.Warn("DATA chunk is missing")
+		}
+
+		_, err = w.Write(chunk)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Temporary
+	chunk, in := b.EncodedChunk["HIRC"]
+	if !in {
+		slog.Warn("HIRC chunk is missing")
+	}
+	_, err = w.Write(chunk)
+	if err != nil {
+		return err
+	}
+	
+	// Write the rest of encoded chunks in the order appeared in the decoding 
+	// phase.
+	type ChunkPosition struct {
+		ChunkName string
+		Position  u8
+	}
+
+	chunkPositions := make([]ChunkPosition, 0, len(b.ChunkPosition))
+	for chunkName, pos := range b.ChunkPosition {
+		if chunkName == "META" && IsIncludeEncodedMETA(opt) {
+			continue
+		}
+		switch chunkName {
+		case ChunkNameBKHD:
+		case ChunkNameDIDX:
+		case ChunkNameDATA:
+		case ChunkNameHIRC:
+		default:
+			i, found := sort.Find(len(chunkPositions), func(i int) int {
+				if pos < chunkPositions[i].Position {
+					return -1
+				}
+				if pos == chunkPositions[i].Position {
+					return 0
+				}
+				return 1
+			})
+
+			if found {
+				return fmt.Errorf(
+					"Chunk %s and chunk %s occupy the same chunk position %d",
+					chunkName, chunkPositions[i].ChunkName, chunkPositions[i].Position,
+					)
+			}
+
+			chunkPositions = slices.Insert(
+				chunkPositions, i, ChunkPosition{ chunkName, pos },
+			)
+		}
+	}
+
+	for _, chunkPos := range chunkPositions {
+		chunkName := chunkPos.ChunkName
+		chunk, in := b.EncodedChunk[chunkName]
+		if !in {
+			slog.Warn(fmt.Sprintf("Chunk %s is missing", chunkPos.ChunkName))
+		}
+		if _, err = w.Write(chunk); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // No side effect
