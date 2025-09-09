@@ -2,6 +2,7 @@ package wwise
 
 import (
 	"context"
+	bin "encoding/binary"
 	"fmt"
 	"io"
 	"log/slog"
@@ -73,6 +74,7 @@ func EncodeBank(
 	if err != nil {
 		return err
 	}
+	slog.Info("Encoded BKHD")
 
 	if b.DIDXDATA.AudioData != nil {
 		ComputeDIDXOffset(b.DIDXDATA)
@@ -86,35 +88,61 @@ func EncodeBank(
 		if err != nil {
 			return err
 		}
+		slog.Info("Encoded DIDX")
+
 		err = EncodeDATANotAlign(b.DIDXDATA, w)
 		if err != nil {
 			return err
 		}
+		slog.Info("Encoded DIDX")
 	} else {
 		err = EncodeDIDX(b.DIDXDATA, w, o)
 		if err != nil {
 			return err
 		}
+		slog.Info("Encoded DIDX")
 
 		chunk, in := b.EncodedChunk["DATA"]
 		if !in {
 			slog.Warn("DATA chunk is missing")
 		}
 
+		chunkHeader := ChunkHeader{
+			[4]byte{'D', 'A', 'T', 'A'}, 
+			u32(len(chunk)),
+		}
+		if err = bin.Write(w, o, chunkHeader); err != nil {
+			return err
+		}
+
 		_, err = w.Write(chunk)
 		if err != nil {
 			return err
 		}
+		slog.Info("Encoded DATA")
 	}
 
 	// Temporary
-	chunk, in := b.EncodedChunk["HIRC"]
-	if !in {
-		slog.Warn("HIRC chunk is missing")
-	}
-	_, err = w.Write(chunk)
-	if err != nil {
-		return err
+
+	{
+		chunk, in := b.EncodedChunk["HIRC"]
+		if !in {
+			slog.Warn("HIRC chunk is missing")
+		}
+
+		chunkHeader := ChunkHeader{
+			[4]byte{'H', 'I', 'R', 'C'}, 
+			u32(len(chunk)),
+		}
+		if err = bin.Write(w, o, chunkHeader); err != nil {
+			return err
+		}
+
+		_, err = w.Write(chunk)
+		if err != nil {
+			return err
+		}
+		slog.Info("Encoded HIRC")
 	}
 	
 	// Write the rest of encoded chunks in the order appeared in the decoding 
@@ -126,7 +154,7 @@ func EncodeBank(
 
 	chunkPositions := make([]ChunkPosition, 0, len(b.ChunkPosition))
 	for chunkName, pos := range b.ChunkPosition {
-		if chunkName == "META" && IsIncludeEncodedMETA(opt) {
+		if chunkName == "META" && !IsIncludeEncodedMETA(opt) {
 			continue
 		}
 		switch chunkName {
@@ -161,12 +189,25 @@ func EncodeBank(
 	for _, chunkPos := range chunkPositions {
 		chunkName := chunkPos.ChunkName
 		chunk, in := b.EncodedChunk[chunkName]
+
+		chunkHeader := ChunkHeader{
+			[4]byte{chunkName[0], chunkName[1], chunkName[2], chunkName[3]}, 
+			u32(len(chunk)),
+		}
+		if err = bin.Write(w, o, chunkHeader); err != nil {
+			return err
+		}
+
 		if !in {
 			slog.Warn(fmt.Sprintf("Chunk %s is missing", chunkPos.ChunkName))
+			continue
 		}
+
 		if _, err = w.Write(chunk); err != nil {
 			return err
 		}
+
+		slog.Info(fmt.Sprintf("Encoded %s", chunkName))
 	}
 
 	return nil
