@@ -1,5 +1,14 @@
 package wwise
 
+const HircIdSize = 4
+
+const HircHeaderSize = Size8 + Size32
+
+const Size8  = 1
+const Size16 = 2
+const Size32 = 4
+const Size64 = 8
+
 type LerpType = u8
 
 const (
