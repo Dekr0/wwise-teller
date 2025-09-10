@@ -1,6 +1,7 @@
 package decoder
 
 import (
+	"fmt"
 	"io"
 	"sort"
 
@@ -12,12 +13,13 @@ import (
 func DecodeBKHD(
 	path     string,
 	inReader io.Reader,
-	o        order) (
+	o        order,
+) (
 	b *wwise.BKHD, err error,
 ) {
 	size, err := uio.U32(inReader, o)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to read BKHD chunk size: %w", err)
 	}
 
 	r := io.LimitReader(inReader, int64(size))
@@ -28,7 +30,7 @@ func DecodeBKHD(
 
 	{
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to read Bank version: %w", err)
 		}
 
 		if version == 0 || version == 1 {
@@ -73,17 +75,17 @@ func DecodeBKHD(
 
 	b.Id, err = uio.U32(r, o)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to read bank id: %w", err)
 	}
 
 	b.Language, err = uio.U32(r, o)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to read bank language id: %w", err)
 	}
 
 	res, err := uio.U32(r, o)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to read device allocated value and alignment value in BKHD: %w", err)
 	}
 
 	b.DeviceAllocated = u16(0x0000ffff & res)
@@ -91,12 +93,12 @@ func DecodeBKHD(
 
 	b.Project, err = uio.U32(r, o)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to read bank project id: %w", err)
 	}
 
 	b.Data, err = io.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to read remaining encoded data of BKHD: %w", err)
 	}
 	
 	return b, nil
