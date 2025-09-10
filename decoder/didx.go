@@ -1,10 +1,11 @@
 package decoder
 
 import (
+	"fmt"
 	"io"
 
-	"github.com/Dekr0/unwise/wwise"
 	uio "github.com/Dekr0/unwise/io"
+	"github.com/Dekr0/unwise/wwise"
 )
 
 func DecodeDIDX(
@@ -21,10 +22,10 @@ func DecodeDIDX(
 	d = wwise.NewDIDXDATA(chunkSize)
 
 	var m wwise.MediaIndexEntry
-	for range num {
+	for i := range num {
 		err = uio.Struct(r, o, &m)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to decode media index entry at %d: %w", i, err)
 		}
 		wwise.NewMediaIndex(d, m)
 	}
