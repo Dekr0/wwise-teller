@@ -1,9 +1,7 @@
 package wwise
 
-import (
-	"context"
-	"io"
-)
+import "slices"
+
 
 type EncodeHircOpt struct {
 	NumRoutine u8
@@ -22,17 +20,20 @@ type Hierarchy struct {
 type HIRC struct {
 	monoId u32 // a monotonic id counter that only increase
 
+	InternalIds []u32
 	Hierarchies map[u32]*Hierarchy
 
-	EventComponet  EventComponet
+	EventComponet  EventComponent
 	StateComponent StateComponent
+
+	EncodedHierarchy map[u32][]byte
 }
 
 func NewHIRC(numHirc u32) *HIRC {
 	return &HIRC{
 		monoId: 0,
 		Hierarchies: make(map[u32]*Hierarchy, numHirc),
-		EventComponet: EventComponet{
+		EventComponet: EventComponent{
 			// Estimate 25% of hierarchies will be Event
 			EventData: make(map[u32]*EventData, numHirc / 4),
 		},
@@ -40,17 +41,27 @@ func NewHIRC(numHirc u32) *HIRC {
 			// TODO: Estimation
 			StateProps: make(map[u32]*StateProps),
 		},
+		EncodedHierarchy: make(map[u32][]byte),
 	}
 }
 
 // Has side effect
 func NewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
 	internalId = h.monoId
+
 	if _, in := h.Hierarchies[internalId]; in {
-		panic("Implementation error of monotonic internal id: duplication detected")
+		panic(MonotonicIdCollision)
 	}
-	h.Hierarchies[h.monoId] = &Hierarchy{ id, t }
+	// Get rid off this once I figure out the tree traversal algorithm 
+	if slices.Contains(h.InternalIds, internalId) {
+		panic(MonotonicIdCollision)
+	}
+
+	h.InternalIds = append(h.InternalIds, internalId)
+	h.Hierarchies[internalId] = &Hierarchy{ id, t }
+
 	h.monoId++
+
 	return internalId
 }
 
@@ -62,7 +73,7 @@ func NewState(h *HIRC, id u32, data *StateProps) {
 	internalId := NewHierarchy(h, id, HircTypeState)
 	s := &h.StateComponent
 	if _, in := s.StateProps[internalId]; in {
-		panic("Implementation error of monotonic internal id: duplication detected")
+		panic(MonotonicIdCollision)
 	}
 	s.StateProps[internalId] = data
 }
@@ -75,18 +86,21 @@ func NewEvent(h *HIRC, id u32, data *EventData) {
 	internalId := NewHierarchy(h, id, HircTypeEvent)
 	e := &h.EventComponet
 	if _, in := e.EventData[internalId]; in {
-		panic("Implementation error of monotonic internal id: duplication detected")
+		panic(MonotonicIdCollision)
 	}
 	e.EventData[internalId] = data
 }
 
-func EncodeHirc(
-	ctx      context.Context,
-	w        io.Writer,
-	o        order,
-	version  u32,
-	h       *HIRC, 
-	opt     *EncodeHircOpt,
-) (err error) {
-	return nil
+// Has side effect
+func NewEncodedHierarchy(h *HIRC, id u32, t HircType, encoded []byte) {
+	if encoded == nil {
+		panic("Encoded hierarchy data is nil")
+	}
+
+	internalId := NewHierarchy(h, id, t)
+
+	if _, in := h.EncodedHierarchy[internalId]; in {
+		panic(MonotonicIdCollision)
+	}
+	h.EncodedHierarchy[internalId] = encoded
 }
