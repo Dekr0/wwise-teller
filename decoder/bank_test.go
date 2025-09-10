@@ -22,7 +22,7 @@ func TestDecodeComplex(t *testing.T) {
 	bankDecodeOpt := decoder.BankDecodeOption{}
 	bankDecodeOpt.ExcludeDATA()
 	hircDecodeOpt := decoder.HircDecodeOption{}
-	hircDecodeOpt.NumRoutine = 0
+	hircDecodeOpt.NumRoutine = 4
 
 	const bank = "content_audio_weapons_superearth.st_bnk"
 	bnk, err := decoder.Decode(
