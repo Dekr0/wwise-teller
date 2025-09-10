@@ -1,7 +1,8 @@
 package io
 
-const V128Mask    = 0b0111_1111
-const V128MaxSize = 10
+const V128Mask         = 0b0111_1111
+const V128NextByteMask = 0b1000_0000
+const V128MaxSize      = 10
 
 type V128 struct {
 	B []byte
