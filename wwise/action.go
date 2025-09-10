@@ -1,8 +1,6 @@
 package wwise
 
 import (
-	"sync"
-
 	"github.com/Dekr0/unwise/io"
 )
 
@@ -97,8 +95,6 @@ type ActionSpecificParamSetGameParameter struct {
 }
 
 type ActionComponent struct {
-	mu sync.Mutex
-
 	// Components that are shared across all actions
 	ActionBasicData map[u32]*ActionBasicData
 	Properties      map[u32]*Prop

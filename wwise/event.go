@@ -1,8 +1,6 @@
 package wwise
 
 import (
-	"sync"
-
 	"github.com/Dekr0/unwise/io"
 )
 
@@ -12,7 +10,5 @@ type EventData struct {
 }
 
 type EventComponet struct {
-	mu sync.Mutex
-
 	EventData map[u32]*EventData
 }
