@@ -16,10 +16,14 @@ func Decode(
 	ctx  context.Context, 
 	p    string, 
 	o    order,
-	opt *DecoderOption,
+	bankOpt *BankDecodeOption,
+	hircOpt *HircDecodeOption,
 ) (b *wwise.Bank, err error) {
-	if opt == nil {
+	if bankOpt == nil {
 		return nil, fmt.Errorf("Must provide a bank decoder option")
+	}
+	if hircOpt == nil {
+		return nil, fmt.Errorf("Mus provide a HIRC decoder option")
 	}
 
 	b = wwise.NewBank()
@@ -30,10 +34,10 @@ func Decode(
 	}
 	defer f.Close()
 
-	reader := bufio.NewReaderSize(f, int(opt.DecoderBufferSize))
+	reader := bufio.NewReaderSize(f, int(bankOpt.DecoderBufferSize))
 
 	var chunkNameBytes []byte = make([]byte, 4, 4)
-	_, err = reader.Read(chunkNameBytes)
+	_, err = io.ReadFull(reader, chunkNameBytes)
 	if err != nil {
 		return nil, fmt.Errorf("Failed read chunk name of first chunk: %w", err)
 	}
@@ -53,7 +57,7 @@ func Decode(
 
 	pos := u8(1)
 	for {
-		_, err = reader.Read(chunkNameBytes)
+		_, err = io.ReadFull(reader, chunkNameBytes)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -84,6 +88,13 @@ func Decode(
 			}
 			wwise.RegDIDXDATA(b, didxdata, pos)
 			slog.Info("Parsed DIDX", "position", pos, "size", chunkSize)
+		case wwise.ChunkNameHIRC:
+			hirc, err := DecodeHIRC(ctx, hircOpt, reader, o, chunkSize, bkhd.Version)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to decode HIRC chunk at position %d: %w", pos, err)
+			}
+			wwise.RegHIRC(b, hirc, pos)
+			slog.Info("Parsed HIRC", "position", pos, "size", chunkSize)
 		default:
 			encoded := make([]byte, chunkSize, chunkSize)
 			if _, err = io.ReadFull(reader, encoded); err != nil {
@@ -112,7 +123,7 @@ func Decode(
 	}
 
 	in := wwise.HasChunk(b, "DATA")
-	if opt.IsIncludeDATA() && in {
+	if bankOpt.IsIncludeDATA() && in {
 		_, chunk := wwise.PopEncodedChunk(b, "DATA")
 		DecodeDATA(b.DIDXDATA, chunk)
 		slog.Info("Parsed DATA chunk", "size", len(chunk))
