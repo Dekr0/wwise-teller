@@ -2,6 +2,7 @@ package benchmark
 
 import (
 	"encoding/binary"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,14 +13,22 @@ import (
 var SoundBanksDir string = os.Getenv("SOUNDBANKS")
 
 func BenchmarkDecodeBaseline(b *testing.B) {
+	slog.SetDefault(slog.New(slog.DiscardHandler))
+
 	const bank = "content_audio_weapons_superearth.st_bnk"
+
+	bankDecodeOpt := decoder.BankDecodeOption{}
+	bankDecodeOpt.ExcludeDATA()
+	hircDecodeOpt := decoder.HircDecodeOption{}
+	hircDecodeOpt.NumRoutine = 0
+
 	for b.Loop() {
 		_, err := decoder.Decode(
 			b.Context(),
 			filepath.Join(SoundBanksDir, bank),
 			binary.LittleEndian,
-			nil,
-			nil,
+			&bankDecodeOpt,
+			&hircDecodeOpt,
 		)
 		b.StopTimer()
 		if err != nil {
