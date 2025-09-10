@@ -38,7 +38,7 @@ func NewHIRC(numHirc u32) *HIRC {
 		},
 		StateComponent: StateComponent{
 			// TODO: Estimation
-			StateProps: make(map[u32]*StateProp),
+			StateProps: make(map[u32]*StateProps),
 		},
 	}
 }
@@ -55,7 +55,7 @@ func NewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
 }
 
 // Has side effect
-func NewState(h *HIRC, id u32, data *StateProp) {
+func NewState(h *HIRC, id u32, data *StateProps) {
 	if data == nil {
 		panic("State property is nil")
 	}

@@ -14,7 +14,7 @@ func DecodeState(r io.Reader, o order, ver u32, h *wwise.HIRC, size u32) {
 
 	numStateProps := uio.U16P(r, o)
 
-	data := &wwise.StateProp{
+	data := &wwise.StateProps{
 		Ids: make([]u16, numStateProps, numStateProps),
 		Vals: make([]f32, numStateProps, numStateProps),
 	}
