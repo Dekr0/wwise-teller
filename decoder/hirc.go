@@ -3,8 +3,10 @@ package decoder
 import (
 	"bytes"
 	"context"
+	bin "encoding/binary"
 	"fmt"
 	"io"
+	"log/slog"
 
 	uio "github.com/Dekr0/unwise/io"
 	"github.com/Dekr0/unwise/wwise"
@@ -12,19 +14,23 @@ import (
 
 type HierarchyDecoder func(io.Reader, order, u32, *wwise.HIRC, u32)
 
-type DecoderOptHIRC struct {
+type HircDecodeOption struct {
 	NumRoutine   u8
 	Exclude    []u8
 }
 
 func DecodeHIRC(
-	ctx      context.Context, 
-	decoder  DecoderOptHIRC,
-	inReader io.Reader, 
-	o        order,
-	size     u32, 
-	ver      u32, 
+	ctx       context.Context, 
+	opt      *HircDecodeOption,
+	inReader  io.Reader, 
+	o         order,
+	size      u32, 
+	ver       u32, 
 ) (h *wwise.HIRC, err error) {
+	if opt == nil {
+		return nil, fmt.Errorf("Must provide HIRC decoder option")
+	}
+
 	r := io.LimitReader(inReader, int64(size))
 
 	numHirc, err := uio.U32(r, o)
@@ -32,7 +38,7 @@ func DecodeHIRC(
 		return nil, fmt.Errorf("Failed to decode # of hierarchies: %w", err)
 	}
 
-	sem := make(chan struct{}, decoder.NumRoutine)
+	sem := make(chan struct{}, opt.NumRoutine)
 
 	h = wwise.NewHIRC(numHirc)
 
@@ -64,8 +70,9 @@ func DecodeHIRC(
 			return nil, fmt.Errorf("Failed to decode hierarchy data size: %w", err)
 		}
 
-		buffer := make([]byte, 0, size)
-		if _, err = r.Read(buffer); err != nil {
+		buffer := make([]byte, size, size)
+		_, err = io.ReadFull(r, buffer)
+		if err != nil {
 			if err == io.EOF {
 				eof = true
 				break
@@ -75,7 +82,10 @@ func DecodeHIRC(
 				size, err,
 			)
 		}
+
 		reader := bytes.NewReader(buffer)
+
+		slog.Debug(fmt.Sprintf("Decoding a %s", wwise.GetHircTypeName(t)), "dispath", dispatch, "size", size)
 
 		var decoder HierarchyDecoder
 		switch t {
@@ -83,6 +93,19 @@ func DecodeHIRC(
 			decoder = DecodeState
 		case wwise.HircTypeEvent:
 			decoder = DecodeEvent
+		}
+
+		if decoder == nil {
+			var id u32
+			if err = bin.Read(reader, o, &id); err != nil {
+				return nil, fmt.Errorf(
+					"Failed to decode %s hierarchy id at position %d: %w",
+					wwise.GetHircTypeName(t), dispatch, err,
+				)
+			}
+			wwise.NewEncodedHierarchy(h, id, t, buffer)
+			dispatch++
+			continue
 		}
 
 		select {
