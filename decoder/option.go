@@ -1,6 +1,6 @@
 package decoder
 
-type DecoderOption struct {
+type BankDecodeOption struct {
 	option              u8
 	DecodedChunkRoutine u8
 	DecoderBufferSize   u32
@@ -19,26 +19,26 @@ const DecodeBufferSize = PageSize32k
 const MaskMETA u8 = 0b1000_0000
 const MaskDATA u8 = 0b0000_0100
 
-func (o *DecoderOption) IncludeDATA() {
+func (o *BankDecodeOption) IncludeDATA() {
 	o.option |= MaskDATA
 }
 
-func (o *DecoderOption) ExcludeDATA() {
+func (o *BankDecodeOption) ExcludeDATA() {
 	o.option = o.option | (^MaskDATA)
 }
 
-func (o *DecoderOption) IsIncludeDATA() bool {
+func (o *BankDecodeOption) IsIncludeDATA() bool {
 	return o.option & MaskDATA > 0
 }
 
-func (o *DecoderOption) IncludeMETA() {
+func (o *BankDecodeOption) IncludeMETA() {
 	o.option |= MaskMETA
 }
 
-func (o *DecoderOption) ExcludeMETA() {
+func (o *BankDecodeOption) ExcludeMETA() {
 	o.option = o.option | (^MaskMETA)
 }
 
-func (o *DecoderOption) IsIncludeMETA() bool {
+func (o *BankDecodeOption) IsIncludeMETA() bool {
 	return o.option & MaskMETA > 0
 }
