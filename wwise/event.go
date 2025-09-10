@@ -4,6 +4,7 @@ import (
 	bin "encoding/binary"
 	"fmt"
 	"io"
+	"sync"
 
 	uio "github.com/Dekr0/unwise/io"
 )
@@ -14,7 +15,22 @@ type EventData struct {
 }
 
 type EventComponent struct {
+	dMu sync.Mutex
+
 	EventData map[u32]*EventData
+}
+
+func NewEventData(e *EventComponent, internalId u32, data *EventData) {
+	if data == nil {
+		panic("Event data is nil")
+	}
+
+	e.dMu.Lock()
+	defer e.dMu.Unlock()
+	if _, in := e.EventData[internalId]; in {
+		panic(MonotonicIdCollision)
+	}
+	e.EventData[internalId] = data
 }
 
 func AssertEvent(e *EventComponent, version u32, internalId u32, id u32) {
