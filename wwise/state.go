@@ -4,6 +4,7 @@ import (
 	bin "encoding/binary"
 	"fmt"
 	"io"
+	"sync"
 )
 
 const SizeOfStateBaseData = SizeOfHierarchyId + Size16
@@ -20,7 +21,22 @@ type StateProp struct {
 }
 
 type StateComponent struct {
+	dMu sync.Mutex
+
 	StateProps map[u32]*StateProps
+}
+
+func NewStateData(s *StateComponent, internalId u32, data *StateProps) {
+	if data == nil {
+		panic("State property is nil")
+	}
+
+	s.dMu.Lock()
+	defer s.dMu.Unlock()
+	if _, in := s.StateProps[internalId]; in {
+		panic(MonotonicIdCollision)
+	}
+	s.StateProps[internalId] = data
 }
 
 // Call this before obtaining size of State and encoding State
