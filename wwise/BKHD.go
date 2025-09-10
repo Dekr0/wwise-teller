@@ -2,6 +2,7 @@ package wwise
 
 import (
 	bin "encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -32,9 +33,9 @@ func BKHDSize(b *BKHD) u32 {
 }
 
 func EncodeBKHD(b *BKHD, w io.Writer, o bin.ByteOrder) (err error) {
-	chunkHeader := ChunkHeader{ [4]byte{'B', 'K', 'H', 'D'}, BKHDSize(b)}
+	chunkHeader := ChunkHeader{ [4]byte{'B', 'K', 'H', 'D'}, BKHDSize(b) }
 	if err = bin.Write(w, o, chunkHeader); err != nil {
-		return err
+		return fmt.Errorf("Failed to encode BKHD chunk header: %w", err)
 	}
 
 	payload := BKHDEncodePayload{
@@ -45,10 +46,13 @@ func EncodeBKHD(b *BKHD, w io.Writer, o bin.ByteOrder) (err error) {
 		Project: b.Project,
 	}
 	if err = bin.Write(w, o, payload); err != nil {
-		return err
+		return fmt.Errorf("Failed to encode BKHD basic field: %w", err)
 	}
 
 	_, err = w.Write(b.Data) 
+	if err != nil {
+		err = fmt.Errorf("Failed to write BKHD encoded data: %w", err)
+	}
 
 	return err
 }
