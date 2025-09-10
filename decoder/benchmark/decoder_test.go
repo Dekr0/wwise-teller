@@ -19,7 +19,8 @@ func BenchmarkDecodeBaseline(b *testing.B) {
 			filepath.Join(SoundBanksDir, bank),
 			binary.LittleEndian,
 			nil,
-			)
+			nil,
+		)
 		b.StopTimer()
 		if err != nil {
 			b.Fatal(err)
