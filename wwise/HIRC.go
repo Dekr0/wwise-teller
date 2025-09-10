@@ -1,8 +1,18 @@
 package wwise
 
 import (
-	"sync"
+	"context"
+	"io"
 )
+
+type EncodeHircOpt struct {
+	NumRoutine u8
+}
+
+type HierarchyHeader struct {
+	Type HircType
+	Size u32
+}
 
 type Hierarchy struct {
 	Id   u32
@@ -10,8 +20,6 @@ type Hierarchy struct {
 }
 
 type HIRC struct {
-	mu sync.Mutex
-
 	monoId u32 // a monotonic id counter that only increase
 
 	Hierarchies map[u32]*Hierarchy
@@ -36,42 +44,49 @@ func NewHIRC(numHirc u32) *HIRC {
 }
 
 // Has side effect
-// Thread safe
-func HIRCNewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
-	h.mu.Lock()
+func NewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
 	internalId = h.monoId
+	if _, in := h.Hierarchies[internalId]; in {
+		panic("Implementation error of monotonic internal id: duplication detected")
+	}
 	h.Hierarchies[h.monoId] = &Hierarchy{ id, t }
 	h.monoId++
-	h.mu.Unlock()
 	return internalId
 }
 
 // Has side effect
-// Thread safe
-func HIRCNewState(h *HIRC, id u32, data *StateProp) {
+func NewState(h *HIRC, id u32, data *StateProp) {
 	if data == nil {
 		panic("State property is nil")
 	}
-
-	internalId := HIRCNewHierarchy(h, id, HircTypeState)
-
+	internalId := NewHierarchy(h, id, HircTypeState)
 	s := &h.StateComponent
-	s.mu.Lock()
+	if _, in := s.StateProps[internalId]; in {
+		panic("Implementation error of monotonic internal id: duplication detected")
+	}
 	s.StateProps[internalId] = data
-	s.mu.Unlock()
 }
 
 // Has side effect
-// Thread safe
-func HIRCNewEvent(h *HIRC, id u32, data *EventData) {
+func NewEvent(h *HIRC, id u32, data *EventData) {
 	if data == nil {
 		panic("Event data is nil")
 	}
-
-	internalId := HIRCNewHierarchy(h, id, HircTypeEvent)
-
+	internalId := NewHierarchy(h, id, HircTypeEvent)
 	e := &h.EventComponet
-	e.mu.Lock()
+	if _, in := e.EventData[internalId]; in {
+		panic("Implementation error of monotonic internal id: duplication detected")
+	}
 	e.EventData[internalId] = data
-	e.mu.Unlock()
+}
+
+func EncodeHirc(
+	ctx      context.Context,
+	w        io.Writer,
+	o        order,
+	version  u32,
+	h       *HIRC, 
+	opt     *EncodeHircOpt,
+) (err error) {
+	return nil
 }
