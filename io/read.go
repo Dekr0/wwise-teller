@@ -454,7 +454,7 @@ func VV128(r io.Reader, o order) (v *V128, err error) {
 
 	i := 0
 
-	for cur & V128Mask > 0 && i < V128MaxSize {
+	for cur & V128NextByteMask > 0 && i < V128MaxSize {
 		err = bin.Read(r, o, &cur)
 		if err != nil {
 			return nil, err
@@ -487,7 +487,7 @@ func VV128T(r io.Reader, o order, t *int) (v *V128, err error) {
 
 	i := 0
 
-	for cur & V128Mask > 0 && i < V128MaxSize {
+	for cur & V128NextByteMask > 0 && i < V128MaxSize {
 		err = bin.Read(r, o, &cur)
 		if err != nil {
 			return nil, err
