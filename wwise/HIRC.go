@@ -1,6 +1,9 @@
 package wwise
 
-import "slices"
+import (
+	"slices"
+	"sync"
+)
 
 
 type EncodeHircOpt struct {
@@ -20,13 +23,17 @@ type Hierarchy struct {
 type HIRC struct {
 	monoId u32 // a monotonic id counter that only increase
 
-	InternalIds []u32
-	Hierarchies map[u32]*Hierarchy
+	// This is intended to be used in decoding phase
+	hierarchyDMu sync.Mutex
+	InternalIds  []u32
+	Hierarchies  map[u32]*Hierarchy
 
 	EventComponet  EventComponent
 	StateComponent StateComponent
 
-	EncodedHierarchy map[u32][]byte
+	// This is intended to be used in decoding phase
+	encodedHierarchyDMu sync.Mutex
+	EncodedHierarchy    map[u32][]byte
 }
 
 func NewHIRC(numHirc u32) *HIRC {
@@ -47,6 +54,9 @@ func NewHIRC(numHirc u32) *HIRC {
 
 // Has side effect
 func NewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
+	h.hierarchyDMu.Lock()
+	defer h.hierarchyDMu.Unlock()
+
 	internalId = h.monoId
 
 	if _, in := h.Hierarchies[internalId]; in {
@@ -70,12 +80,9 @@ func NewState(h *HIRC, id u32, data *StateProps) {
 	if data == nil {
 		panic("State property is nil")
 	}
+
 	internalId := NewHierarchy(h, id, HircTypeState)
-	s := &h.StateComponent
-	if _, in := s.StateProps[internalId]; in {
-		panic(MonotonicIdCollision)
-	}
-	s.StateProps[internalId] = data
+	NewStateData(&h.StateComponent, internalId, data)
 }
 
 // Has side effect
@@ -84,11 +91,8 @@ func NewEvent(h *HIRC, id u32, data *EventData) {
 		panic("Event data is nil")
 	}
 	internalId := NewHierarchy(h, id, HircTypeEvent)
-	e := &h.EventComponet
-	if _, in := e.EventData[internalId]; in {
-		panic(MonotonicIdCollision)
-	}
-	e.EventData[internalId] = data
+
+	NewEventData(&h.EventComponet, internalId, data)
 }
 
 // Has side effect
@@ -99,6 +103,8 @@ func NewEncodedHierarchy(h *HIRC, id u32, t HircType, encoded []byte) {
 
 	internalId := NewHierarchy(h, id, t)
 
+	h.encodedHierarchyDMu.Lock()
+	defer h.encodedHierarchyDMu.Unlock()
 	if _, in := h.EncodedHierarchy[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
