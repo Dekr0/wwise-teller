@@ -8,12 +8,9 @@ import (
 	"log/slog"
 	"slices"
 	"sort"
-	"sync"
 )
 
 type Bank struct {
-	mu sync.Mutex
-
 	ChunkPosition map[string]u8
 	EncodedChunk  map[string][]byte
 
@@ -56,45 +53,37 @@ func ExcludeEncodedMETA(o *EncodeBankOpt) {
 // tool.
 // BKHD -> DIDX -> DATA -> HIRC
 func EncodeBank(
-	ctx context.Context, 
+	ctx  context.Context, 
 	w    io.Writer,
 	o    order, 
 	b   *Bank, 
 	opt *EncodeBankOpt,
 ) (err error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
 	if opt == nil {
-		opt = &EncodeBankOpt{}
-		IncludeEncodedMETA(opt)
+		return fmt.Errorf("Must provided a bank encoding option")
 	}
 
 	err = EncodeBKHD(b.BKHD, w, o)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to encode BKHD chunk: %w", err)
 	}
 	slog.Info("Encoded BKHD")
 
 	if b.DIDXDATA.AudioData != nil {
 		ComputeDIDXOffset(b.DIDXDATA)
-
-		err = VerifyDIDXDATA(b.DIDXDATA)
-		if err != nil {
-			return err
-		}
+		VerifyDIDXDATA(b.DIDXDATA)
 
 		err = EncodeDIDX(b.DIDXDATA, w, o)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to encode DIDX chunk: %w", err)
 		}
 		slog.Info("Encoded DIDX")
 
 		err = EncodeDATANotAlign(b.DIDXDATA, w)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to encode DATA chunk without alignment: %w", err)
 		}
-		slog.Info("Encoded DIDX")
+		slog.Info("Encoded DATA")
 	} else {
 		err = EncodeDIDX(b.DIDXDATA, w, o)
 		if err != nil {
@@ -104,45 +93,43 @@ func EncodeBank(
 
 		chunk, in := b.EncodedChunk["DATA"]
 		if !in {
-			slog.Warn("DATA chunk is missing")
-		}
+			slog.Warn("Encoded DATA chunk is missing")
+		} else {
+			chunkHeader := ChunkHeader{
+				[4]byte{'D', 'A', 'T', 'A'}, 
+				u32(len(chunk)),
+			}
+			if err = bin.Write(w, o, chunkHeader); err != nil {
+				return fmt.Errorf("Failed to write DATA chunk header: %w", err)
+			}
 
-		chunkHeader := ChunkHeader{
-			[4]byte{'D', 'A', 'T', 'A'}, 
-			u32(len(chunk)),
+			_, err = w.Write(chunk)
+			if err != nil {
+				return fmt.Errorf("Failed to write encoded DATA chunk: %w", err)
+			}
+			slog.Info("Encoded DATA")
 		}
-		if err = bin.Write(w, o, chunkHeader); err != nil {
-			return err
-		}
-
-		_, err = w.Write(chunk)
-		if err != nil {
-			return err
-		}
-		slog.Info("Encoded DATA")
 	}
 
-	// Temporary
-
-	{
+	{ // Temporary
 		chunk, in := b.EncodedChunk["HIRC"]
 		if !in {
-			slog.Warn("HIRC chunk is missing")
-		}
+			slog.Warn("Encoded HIRC chunk is missing")
+		} else {
+			chunkHeader := ChunkHeader{
+				[4]byte{'H', 'I', 'R', 'C'}, 
+				u32(len(chunk)),
+			}
+			if err = bin.Write(w, o, chunkHeader); err != nil {
+				return fmt.Errorf("Failed to write HIRC chunk header: %w", err)
+			}
 
-		chunkHeader := ChunkHeader{
-			[4]byte{'H', 'I', 'R', 'C'}, 
-			u32(len(chunk)),
+			_, err = w.Write(chunk)
+			if err != nil {
+				return fmt.Errorf("Failed to write encoded HIRC chunk: %w", err)
+			}
+			slog.Info("Encoded HIRC")
 		}
-		if err = bin.Write(w, o, chunkHeader); err != nil {
-			return err
-		}
-
-		_, err = w.Write(chunk)
-		if err != nil {
-			return err
-		}
-		slog.Info("Encoded HIRC")
 	}
 	
 	// Write the rest of encoded chunks in the order appeared in the decoding 
@@ -174,10 +161,10 @@ func EncodeBank(
 			})
 
 			if found {
-				return fmt.Errorf(
+				panic(fmt.Sprintf(
 					"Chunk %s and chunk %s occupy the same chunk position %d",
 					chunkName, chunkPositions[i].ChunkName, chunkPositions[i].Position,
-					)
+				))
 			}
 
 			chunkPositions = slices.Insert(
@@ -195,16 +182,16 @@ func EncodeBank(
 			u32(len(chunk)),
 		}
 		if err = bin.Write(w, o, chunkHeader); err != nil {
-			return err
+			return fmt.Errorf("Faile to write %s chunk header: %w", chunkName, err)
 		}
 
 		if !in {
-			slog.Warn(fmt.Sprintf("Chunk %s is missing", chunkPos.ChunkName))
+			slog.Warn(fmt.Sprintf("Encoded chunk of %s is missing", chunkName))
 			continue
 		}
 
 		if _, err = w.Write(chunk); err != nil {
-			return err
+			return fmt.Errorf("Failed to write encoded chunk of %s: %w", chunkName, err)
 		}
 
 		slog.Info(fmt.Sprintf("Encoded %s", chunkName))
@@ -216,8 +203,6 @@ func EncodeBank(
 // No side effect
 // Thread safe
 func HasChunk(b *Bank, name string) (in bool) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	_, in = b.ChunkPosition[name]
 	return in 
 }
@@ -225,9 +210,6 @@ func HasChunk(b *Bank, name string) (in bool) {
 // No side effect
 // Thread safe
 func PopEncodedChunk(bnk *Bank, name string) (in bool, chunk []byte) {
-	bnk.mu.Lock()
-	defer bnk.mu.Unlock()
-
 	chunk, in = bnk.EncodedChunk[name]
 	if !in {
 		return in, nil
@@ -240,56 +222,43 @@ func PopEncodedChunk(bnk *Bank, name string) (in bool, chunk []byte) {
 
 // Has side effect
 // Thread safe
-func RegBKHD(bnk *Bank, bkhd *BKHD) error {
+func RegBKHD(bnk *Bank, bkhd *BKHD) {
 	if bkhd == nil {
 		panic("bkhd is nil")
 	}
 
-	bnk.mu.Lock()
-	defer bnk.mu.Unlock()
-
 	if _, in := bnk.ChunkPosition["BKHD"]; in {
-		return fmt.Errorf("Duplicated BKHD chunk")
+		panic(fmt.Sprintf("Duplicated BKHD chunk"))
 	}
 	bnk.ChunkPosition["BKHD"] = 0
 
 	bnk.BKHD = bkhd
-
-	return nil
 }
 
 // Has side effect
 // Thread safe
-func RegDIDXDATA(bnk *Bank, didxdata *DIDXDATA, pos u8) error {
+func RegDIDXDATA(bnk *Bank, didxdata *DIDXDATA, pos u8) {
 	if didxdata == nil {
 		panic("didxdata is nil")
 	}
 
-	bnk.mu.Lock()
-	defer bnk.mu.Unlock()
-
 	if _, in := bnk.ChunkPosition["DIDX"]; in {
-		return fmt.Errorf("Duplicated DIDX chunk")
+		panic(fmt.Sprintf("Duplicated DIDX chunk"))
 	}
 	bnk.ChunkPosition["DIDX"] = pos
 
 	bnk.DIDXDATA = didxdata
-
-	return nil
 }
 
 // Has side effect
 // Thread safe
-func NewEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) error {
-	bnk.mu.Lock()
-	defer bnk.mu.Unlock()
-
+func NewEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) {
 	if encoded == nil {
 		panic("Encoded slice is nil")
 	}
 
 	if _, in := bnk.ChunkPosition[chunkName]; in {
-		return fmt.Errorf("Duplicate %s chunk", chunkName)
+		panic(fmt.Sprintf("Duplicate %s chunk", chunkName))
 	}
 
 	if _, in := bnk.EncodedChunk[chunkName]; in {
@@ -298,16 +267,4 @@ func NewEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) error 
 
 	bnk.ChunkPosition[chunkName] = pos
 	bnk.EncodedChunk[chunkName] = encoded
-
-	return nil
-}
-
-// Has side effect
-// Thread safe
-func NewAudioSources(
-	didxdata *DIDXDATA, 
-	newSourceIds []u32, 
-	audioData [][]byte,
-) (ok []u32, fail []u32, err error) {
-	return ok, fail, err
 }
