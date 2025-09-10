@@ -188,7 +188,7 @@ func NewMediaIndex(d *DIDXDATA, m MediaIndexEntry) {
 	offset := m.Offset
 	size := m.Size
 
-	if !slices.Contains(d.SourceIds, sourceId) {
+	if slices.Contains(d.SourceIds, sourceId) {
 		panic(fmt.Sprintf("Media index with %d already exist.", sourceId))
 	}
 
@@ -211,7 +211,7 @@ func NewMediaIndexCheck(d *DIDXDATA, m MediaIndexEntry) error {
 	offset := m.Offset
 	size := m.Size
 
-	if !slices.Contains(d.SourceIds, sourceId) {
+	if slices.Contains(d.SourceIds, sourceId) {
 		return fmt.Errorf("Media index with %d already exist.", sourceId)
 	}
 
