@@ -9,9 +9,6 @@ import (
 // Has side effect
 // Thread safe
 func DecodeDATA(d *wwise.DIDXDATA, chunk []byte) {
-	wwise.LockDIDXDATA(d)
-	defer wwise.UnlockDIDXDATA(d)
-
 	sourceIds := d.SourceIds
 	offsets := d.Offsets
 	sizes := d.Sizes
