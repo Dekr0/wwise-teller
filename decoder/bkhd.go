@@ -10,7 +10,7 @@ import (
 	"github.com/Dekr0/unwise/wwise"
 )
 
-func DecodeBKHD(
+func AllocDecodeBKHD(
 	path     string,
 	inReader io.Reader,
 	o        order,
