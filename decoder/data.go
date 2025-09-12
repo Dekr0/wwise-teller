@@ -8,7 +8,7 @@ import (
 
 // Has side effect
 // Thread safe
-func DecodeDATA(d *wwise.DIDXDATA, chunk []byte) {
+func AllocDecodeDATA(d *wwise.AudioStore, chunk []byte) {
 	sourceIds := d.SourceIds
 	offsets := d.Offsets
 	sizes := d.Sizes
