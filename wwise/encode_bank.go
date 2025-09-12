@@ -2,18 +2,19 @@ package wwise
 
 import (
 	"context"
-	bin "encoding/binary"
 	"fmt"
-	"io"
 	"log/slog"
 	"slices"
 	"sort"
+	uio "github.com/Dekr0/unwise/io"
 )
 
 type ChunkHeader struct {
 	ChunkName [4]byte
 	ChunkSize    u32
 }
+
+const SizeOfChunkHeader = 8
 
 type EncodeBankOpt struct {
 	option u8
@@ -38,8 +39,7 @@ func ExcludeEncodedMETA(o *EncodeBankOpt) {
 // BKHD -> DIDX -> DATA -> HIRC
 func EncodeBank(
 	ctx      context.Context, 
-	w        io.Writer,
-	o        order, 
+	e       *uio.EncoderCtx,
 	b       *Bank, 
 	bankOpt *EncodeBankOpt,
 	hircOpt *EncodeHircOpt,
@@ -52,7 +52,7 @@ func EncodeBank(
 		panic(fmt.Errorf("A sound bank without BKHD passed the decoding phase"))
 	}
 
-	err = EncodeBKHD(b.BKHD, w, o)
+	err = EncodeBKHD(b.BKHD, e)
 	if err != nil {
 		return fmt.Errorf("Failed to encode BKHD chunk: %w", err)
 	}
@@ -63,19 +63,19 @@ func EncodeBank(
 			ComputeDIDXOffset(b.DIDXDATA)
 			VerifyDIDXDATA(b.DIDXDATA)
 
-			err = EncodeDIDX(b.DIDXDATA, w, o)
+			err = EncodeDIDX(b.DIDXDATA, e)
 			if err != nil {
 				return fmt.Errorf("Failed to encode DIDX chunk: %w", err)
 			}
 			slog.Info("Encoded DIDX")
 
-			err = EncodeDATANotAlign(b.DIDXDATA, w)
+			err = EncodeDATANotAlign(b.DIDXDATA, e)
 			if err != nil {
 				return fmt.Errorf("Failed to encode DATA chunk without alignment: %w", err)
 			}
 			slog.Info("Encoded DATA")
 		} else {
-			err = EncodeDIDX(b.DIDXDATA, w, o)
+			err = EncodeDIDX(b.DIDXDATA, e)
 			if err != nil {
 				return err
 			}
@@ -89,12 +89,11 @@ func EncodeBank(
 					[4]byte{'D', 'A', 'T', 'A'}, 
 					u32(len(chunk)),
 				}
-				if err = bin.Write(w, o, chunkHeader); err != nil {
+				if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
 					return fmt.Errorf("Failed to write DATA chunk header: %w", err)
 				}
 
-				_, err = w.Write(chunk)
-				if err != nil {
+				if err = uio.EncodeBytes(e, chunk); err != nil {
 					return fmt.Errorf("Failed to write encoded DATA chunk: %w", err)
 				}
 				slog.Info("Encoded DATA")
@@ -104,13 +103,44 @@ func EncodeBank(
 		slog.Warn(fmt.Sprintf("Sound bank %d does not have DIDX chunk (or DATA chunk as well)", b.BKHD.Id))
 	}
 
+	in, chunk := PopEncodedChunk(b, "INIT")
+	if in {
+		chunkHeader := ChunkHeader{
+			[4]byte{'I', 'N', 'I', 'T'}, 
+			u32(len(chunk)),
+		}
+		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
+			return fmt.Errorf("Failed to write INIT chunk header: %w", err)
+		}
+
+		if err = uio.EncodeBytes(e, chunk); err != nil {
+			return fmt.Errorf("Failed to write encoded INIT chunk: %w", err)
+		}
+		slog.Info("Encoded INIT")
+	}
+	in, chunk = PopEncodedChunk(b, "STMG")
+	if in {
+		chunkHeader := ChunkHeader{
+			[4]byte{'S', 'T', 'M', 'G'}, 
+			u32(len(chunk)),
+		}
+		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
+			return fmt.Errorf("Failed to write STMG chunk header: %w", err)
+		}
+
+		if err = uio.EncodeBytes(e, chunk); err != nil {
+			return fmt.Errorf("Failed to write encoded STMG chunk: %w", err)
+		}
+		slog.Info("Encoded STMG")
+	}
+
 	if b.HIRC != nil {
-		err := EncodeHirc(ctx, w, o, b.BKHD.Version, b.HIRC, hircOpt)
+		err := EncodeHirc(ctx, &HircEncoderCtx{e, b.BKHD.Version}, b.HIRC, hircOpt)
 		if err != nil {
 			return fmt.Errorf("Failed to encode HIRC chunk: %w", err)
 		}
 	} else {
-		slog.Warn("Sound bank ")
+		slog.Warn("Sound bank")
 	}
 	
 	// Write the rest of encoded chunks in the order appeared in the decoding 
@@ -129,6 +159,8 @@ func EncodeBank(
 		case ChunkNameBKHD:
 		case ChunkNameDIDX:
 		case ChunkNameDATA:
+		case ChunkNameINIT:
+		case ChunkNameSTMG:
 		case ChunkNameHIRC:
 		default:
 			i, found := sort.Find(len(chunkPositions), func(i int) int {
@@ -162,7 +194,7 @@ func EncodeBank(
 			[4]byte{chunkName[0], chunkName[1], chunkName[2], chunkName[3]}, 
 			u32(len(chunk)),
 		}
-		if err = bin.Write(w, o, chunkHeader); err != nil {
+		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
 			return fmt.Errorf("Faile to write %s chunk header: %w", chunkName, err)
 		}
 
@@ -171,7 +203,7 @@ func EncodeBank(
 			continue
 		}
 
-		if _, err = w.Write(chunk); err != nil {
+		if err = uio.EncodeBytes(e, chunk); err != nil {
 			return fmt.Errorf("Failed to write encoded chunk of %s: %w", chunkName, err)
 		}
 
