@@ -1,29 +1,51 @@
 package wwise
 
-// This seesm to be most optimal layout so far despite 21% is wasted.
+// --- struct definition --- //
+
 type FXs struct {
 	BypassAll   u8 // > 145 
 	FXs       []FX
 }
 
 type FX struct {
-	// Id should be after Idx but move upforward due to alignment
 	Id         u32 
 	Idx        u8
-	// <= 145
-	IsShareSet u8
-	IsRender   u8
-	// > 145
-	BitVector  u8
+	IsShareSet u8 // <= 145
+	IsRender   u8 // <= 145
+	BitVector  u8 // > 145
+}
+
+type FXsComponent struct {
+	ActorMixerFXs map[u32]*FXs
 }
 
 type FxMetadatas struct {
-	FxMetadatas    []FxMetadata
+	Idx        []u8
+	Id         []u32
+	IsShareSet []u8
 }
 
-type FxMetadata struct {
-	// The upper 8 bits is IsShareSet; The lower 8 bits is Idx
-	Idx        u16
+type FxMetadataS struct {
+	Idx        u8
+	IsShareSet u8
 	Id         u32
-	// IsShareSet u8 // Layout 1
+}
+
+type FxMetadataComponent struct {
+	ActorMixerFxMetadata map[u32]*FxMetadatas
+}
+
+// --- struct allocation --- //
+func AllocFXs(numFX u8) *FXs {
+	return &FXs{
+		FXs: make([]FX, numFX, numFX),
+	}
+}
+
+func AllocFxMetadatas(numFxMetadata u8) *FxMetadatas {
+	return &FxMetadatas{
+		Idx: make([]u8, numFxMetadata, numFxMetadata),
+		Id: make([]u32, numFxMetadata, numFxMetadata),
+		IsShareSet: make([]u8, numFxMetadata, numFxMetadata),
+	}
 }
