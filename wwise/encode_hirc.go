@@ -3,11 +3,31 @@ package wwise
 import (
 	"bytes"
 	"context"
-	bin "encoding/binary"
 	"fmt"
-	"io"
 	"sync"
+	uio "github.com/Dekr0/unwise/io"
 )
+
+type HircEncoderCtx struct {
+	Encoder *uio.EncoderCtx
+	Version  u32
+}
+
+func HIRCEncode(e *HircEncoderCtx, data any) (err error) {
+	return uio.Encode(e.Encoder, data)
+}
+
+func HIRCEncodeBytes(e *HircEncoderCtx, data []byte) (err error) {
+	return uio.EncodeBytes(e.Encoder, data)
+}
+
+func HIRCEncodeStruct(e *HircEncoderCtx, data any, size u32) (err error) {
+	return uio.EncodeStruct(e.Encoder, data, size)
+}
+
+func HIRCAssertEncodeLimit(e *HircEncoderCtx, prev u32, expect u32) (err error) {
+	return uio.AssertEncodeLimit(e.Encoder, prev, expect)
+}
 
 func SizeOfHIRC(h *HIRC, version u32) (size u32) {
 	size = SizeOfHierarchyNumCounter
@@ -42,20 +62,18 @@ func SizeOfHIRC(h *HIRC, version u32) (size u32) {
 
 func EncodeHirc(
 	ctx      context.Context,
-	w        io.Writer,
-	o        order,
-	version  u32,
+	e       *HircEncoderCtx,
 	h       *HIRC, 
 	opt     *EncodeHircOpt,
 ) (err error) {
-	size := SizeOfHIRC(h, version)
+	size := SizeOfHIRC(h, e.Version)
 
 	chunkHeader := ChunkHeader{ [4]byte{ 'H', 'I', 'R', 'C' }, size }
-	if err := bin.Write(w, o, chunkHeader); err != nil {
+	if err := HIRCEncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
 		return fmt.Errorf("Failed to encode HIRC chunk header: %w", err)
 	}
 
-	if err := bin.Write(w, o, u32(len(h.InternalIds))); err != nil {
+	if err := HIRCEncode(e, u32(len(h.InternalIds))); err != nil {
 		return fmt.Errorf("Failed to encode number of Hierarchy: %w", err)
 	}
 
@@ -79,39 +97,29 @@ func EncodeHirc(
 		case HircTypeState:
 			bufWriter := pool.Get().(*bytes.Buffer)
 
-			EncodeState(w, o, &h.StateComponent, version, internalId, hierarchyId)
+			EncodeState(e, &h.StateComponent, internalId, hierarchyId)
 
 			encoded := bufWriter.Bytes()
 
-			n, err := w.Write(encoded)
-			if err != nil {
+			if err = HIRCEncodeBytes(e, encoded); err != nil {
 				return fmt.Errorf("Failed to encode State %d: %w", hierarchyId, err)
 			}
-			if n != len(encoded) {
-				return fmt.Errorf(
-					"Failed to encode State %d: # (%d) of bytes written does not equal to # (%d) of bytes from buffer writer",
-					hierarchyId, n, len(encoded),
-				)
-			}
+
 			bufWriter.Reset()
 			pool.Put(bufWriter)
 		case HircTypeEvent:
 			bufWriter := pool.Get().(*bytes.Buffer)
 
-			EncodeEvent(w, o, &h.EventComponet, version, internalId, hierarchyId)
+			EncodeEvent(e, &h.EventComponet, internalId, hierarchyId)
 
 			encoded := bufWriter.Bytes()
 
-			n, err := w.Write(encoded)
-			if err != nil {
+			if err = HIRCEncodeBytes(e, encoded); err != nil {
 				return fmt.Errorf("Failed to encode Event %d: %w", hierarchyId, err)
 			}
-			if n != len(encoded) {
-				return fmt.Errorf(
-					"Failed to encode Event %d: # (%d) of bytes written does not equal to # (%d) of bytes from buffer writer",
-					hierarchyId, n, len(encoded),
-				)
-			}
+
+			bufWriter.Reset()
+			pool.Put(bufWriter)
 		default:
 			hierarchyName := GetHircTypeName(t)
 			encodedChunk, in := encodedHierarchy[internalId]
@@ -122,23 +130,15 @@ func EncodeHirc(
 			}
 
 			header := HierarchyHeader{ t, u32(len(encodedChunk)) }
-			if err := bin.Write(w, o, header); err != nil {
+			if err = HIRCEncodeStruct(e, header, SizeOfHierarchyHeader); err != nil {
 				return fmt.Errorf("Failed to encode %s %d header: %w", 
 					hierarchyName, hierarchyId, err,
 				)
 			}
 
-			n, err := w.Write(encodedChunk)
-			if err != nil {
+			if err = HIRCEncodeBytes(e, encodedChunk); err != nil {
 				return fmt.Errorf("Failed to write encoded chunk of %s %d: %w",
 					hierarchyName, hierarchyId, err,
-				)
-			}
-
-			if n != len(encodedChunk) {
-				return fmt.Errorf(
-					"Failed to encode %s %d: # (%d) of bytes written does not equal to # (%d) of bytes from buffer writer",
-					hierarchyName, hierarchyId, n, len(encodedChunk),
 				)
 			}
 		}
