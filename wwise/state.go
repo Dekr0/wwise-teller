@@ -1,11 +1,11 @@
 package wwise
 
 import (
-	bin "encoding/binary"
 	"fmt"
-	"io"
 	"sync"
 )
+
+// --- struct definition --- //
 
 const SizeOfStateBaseData = SizeOfHierarchyId + Size16
 
@@ -15,7 +15,7 @@ type StateProps struct {
 }
 
 const SizeOfStateProp = Size16 + Size32
-type StateProp struct {
+type StatePropS struct {
 	Id  u16
 	Val f32
 }
@@ -26,7 +26,18 @@ type StateComponent struct {
 	StateProps map[u32]*StateProps
 }
 
-func NewStateData(s *StateComponent, internalId u32, data *StateProps) {
+// --- allocation / freeing --- //
+
+func AllocStateProps(numStateProps u16) *StateProps {
+	return &StateProps{
+		Ids: make([]u16, numStateProps, numStateProps),
+		Vals: make([]f32, numStateProps, numStateProps),
+	} 
+}
+
+// --- function --- //
+
+func AddStateData(s *StateComponent, internalId u32, data *StateProps) {
 	if data == nil {
 		panic("State property is nil")
 	}
@@ -66,51 +77,46 @@ func SizeOfState(s *StateComponent, version u32, internalId u32, id u32) (size u
 }
 
 func EncodeState(
-	w           io.Writer,
-	o           order,
+	e          *HircEncoderCtx,
 	s          *StateComponent,
-	version     u32,
 	internalId  u32,
 	id          u32,
 ) {
-	AssertState(s, version, internalId, id)
+	AssertState(s, e.Version, internalId, id)
 
 	var err error
 
-	pos := u32(0)
-
-	size := SizeOfState(s, version, internalId, id)
+	size := SizeOfState(s, e.Version, internalId, id)
 	stateProp, in := s.StateProps[internalId]
 	if !in {
 		panic(fmt.Sprintf("State %d does not have state property", id))
 	}
 	
 	header := HierarchyHeader{ HircTypeState, size }
-	if err = bin.Write(w, o, header); err != nil {
+	if err = HIRCEncodeStruct(e, header, SizeOfHierarchyHeader); err != nil {
 		panic(fmt.Errorf("(State %d) Failed to encode hierarchy header: %w", id, err))
 	}
 
-	if err = bin.Write(w, o, id); err != nil {
+	curr := e.Encoder.Count
+
+	if err = HIRCEncode(e, id); err != nil {
 		panic(fmt.Errorf("(State %d) Failed to encode id: %w", id, err))
 	}
-	pos += SizeOfHierarchyId
 
-	if err = bin.Write(w, o, u16(len(stateProp.Ids))); err != nil {
+	if err = HIRCEncode(e, u16(len(stateProp.Ids))); err != nil {
 		panic(fmt.Errorf("(State %d) Failed to encode # of state properties: %w", id, err))
 	}
-	pos += Size16
 
 	ids := stateProp.Ids
 	vals := stateProp.Vals
 	for i, id := range ids {
-		stateProp := StateProp{ id, vals[i] }
-		if err = bin.Write(w, o, stateProp); err != nil {
+		stateProp := StatePropS{ id, vals[i] }
+		if err = HIRCEncodeStruct(e, stateProp, SizeOfStateProp); err != nil {
 			panic(fmt.Errorf("(State %d) Failed to encode %d-th state property: %w", id, i, err))
 		}
-		pos += SizeOfStateProp
 	}
 
-	if pos != size {
-		panic(fmt.Errorf("(State %d) Expect encoded data has a size of %d but receive %d", id, size, pos))
+	if err := HIRCAssertEncodeLimit(e, curr, size); err != nil {
+		panic(fmt.Errorf("(State %d) %w", id, err))
 	}
 }
