@@ -47,7 +47,7 @@ func Decoder(
 	}
 }
 
-func DecodeHIRC(
+func AllocDecodeHIRC(
 	ctx       context.Context, 
 	opt      *HircDecodeOption,
 	inReader  io.Reader, 
@@ -67,7 +67,7 @@ func DecodeHIRC(
 		return nil, fmt.Errorf("Failed to decode # of hierarchies: %w", err)
 	}
 
-	h = wwise.NewHIRC(numHirc)
+	h = wwise.AllocHIRC(numHirc)
 
 	decodingCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -127,9 +127,11 @@ func DecodeHIRC(
 		var decoder HierarchyDecoder
 		switch t {
 		case wwise.HircTypeState:
-			decoder = DecodeState
+			decoder = AllocDecodeState
+		// case wwise.HircTypeSound:
+		// 	decoder = AllocDecodeSound
 		case wwise.HircTypeEvent:
-			decoder = DecodeEvent
+			decoder = AllocDecodeEvent
 		}
 
 		if decoder == nil {
@@ -142,7 +144,7 @@ func DecodeHIRC(
 					wwise.GetHircTypeName(t), dispatch, err,
 				)
 			}
-			wwise.NewEncodedHierarchy(h, id, t, buffer)
+			wwise.AddEncodedHierarchy(h, id, t, buffer)
 			dispatch++
 			finished.Add(1)
 			continue
