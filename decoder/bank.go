@@ -12,7 +12,7 @@ import (
 	"github.com/Dekr0/unwise/wwise"
 )
 
-func Decode(
+func AllocDecode(
 	ctx  context.Context, 
 	p    string, 
 	o    order,
@@ -26,7 +26,7 @@ func Decode(
 		return nil, fmt.Errorf("Mus provide a HIRC decoder option")
 	}
 
-	b = wwise.NewBank()
+	b = wwise.AllocBank()
 
 	f, err := os.Open(p)
 	if err != nil {
@@ -47,7 +47,7 @@ func Decode(
 		return nil, WrongBKHDPosition(p)
 	}
 
-	bkhd, err := DecodeBKHD(p, reader, o)
+	bkhd, err := AllocDecodeBKHD(p, reader, o)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to decode BKHD: %w", err)
 	}
@@ -82,14 +82,14 @@ func Decode(
 		
 		switch chunkName {
 		case wwise.ChunkNameDIDX:
-			didxdata, err := DecodeDIDX(reader, chunkSize, o)
+			didxdata, err := AllocDecodeDIDX(reader, chunkSize, o)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to decode DIDX chunk at position %d: %w", pos, err)
 			}
 			wwise.RegDIDXDATA(b, didxdata, pos)
 			slog.Info("Parsed DIDX", "position", pos, "size", chunkSize)
 		case wwise.ChunkNameHIRC:
-			hirc, err := DecodeHIRC(ctx, hircOpt, reader, o, chunkSize, bkhd.Version)
+			hirc, err := AllocDecodeHIRC(ctx, hircOpt, reader, o, chunkSize, bkhd.Version)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to decode HIRC chunk at position %d: %w", pos, err)
 			}
@@ -103,7 +103,7 @@ func Decode(
 					chunkSize, chunkName, pos, err,
 				)
 			}
-			wwise.NewEncodedChunk(b, chunkName, pos, encoded)
+			wwise.AddEncodedChunk(b, chunkName, pos, encoded)
 			if chunkName == "DATA" {
 				slog.Info("Store encoded DATA chunk and delay its decoding",
 					"position", pos,
@@ -125,7 +125,7 @@ func Decode(
 	in := wwise.HasChunk(b, "DATA")
 	if bankOpt.IsIncludeDATA() && in {
 		_, chunk := wwise.PopEncodedChunk(b, "DATA")
-		DecodeDATA(b.DIDXDATA, chunk)
+		AllocDecodeDATA(b.DIDXDATA, chunk)
 		slog.Info("Parsed DATA chunk", "size", len(chunk))
 	}
 
