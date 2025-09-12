@@ -9,11 +9,11 @@ type Bank struct {
 	EncodedChunk  map[string][]byte
 
 	BKHD     *BKHD
-	DIDXDATA *DIDXDATA
+	DIDXDATA *AudioStore
 	HIRC     *HIRC
 }
 
-func NewBank() *Bank {
+func AllocBank() *Bank {
 	return &Bank{
 		ChunkPosition: make(map[string]u8, 11),
 		EncodedChunk: make(map[string][]byte, 7),
@@ -57,7 +57,7 @@ func RegBKHD(bnk *Bank, bkhd *BKHD) {
 
 // Has side effect
 // Thread safe
-func RegDIDXDATA(bnk *Bank, didxdata *DIDXDATA, pos u8) {
+func RegDIDXDATA(bnk *Bank, didxdata *AudioStore, pos u8) {
 	if didxdata == nil {
 		panic("didxdata is nil")
 	}
@@ -87,7 +87,7 @@ func RegHIRC(bnk *Bank, hirc *HIRC, pos u8) {
 
 // Has side effect
 // Thread safe
-func NewEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) {
+func AddEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) {
 	if encoded == nil {
 		panic("Encoded slice is nil")
 	}
