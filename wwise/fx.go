@@ -36,6 +36,7 @@ type FxMetadataComponent struct {
 }
 
 // --- struct allocation --- //
+
 func AllocFXs(numFX u8) *FXs {
 	return &FXs{
 		FXs: make([]FX, numFX, numFX),
