@@ -1,21 +1,20 @@
 package wwise
 
 import (
-	bin "encoding/binary"
 	"fmt"
-	"io"
 	"slices"
+	uio "github.com/Dekr0/unwise/io"
 )
 
 const SizeOfMediaIndex = 12
 
-type MediaIndexEntry struct {
+type MediaIndexS struct {
 	SourceId u32
 	Offset   u32
 	Size     u32
 }
 
-type DIDXDATA struct {
+type AudioStore struct {
 	SourceIds []u32
 	Offsets   map[u32]u32
 	Sizes     map[u32]u32
@@ -23,7 +22,7 @@ type DIDXDATA struct {
 }
 
 // Has side effect
-func ComputeDIDXOffset(d *DIDXDATA) {
+func ComputeDIDXOffset(d *AudioStore) {
 	sourceIds := d.SourceIds
 	offsets := d.Offsets
 	sizes := d.Sizes
@@ -45,7 +44,7 @@ func ComputeDIDXOffset(d *DIDXDATA) {
 	}
 }
 
-func VerifyDIDXDATA(d *DIDXDATA) {
+func VerifyDIDXDATA(d *AudioStore) {
 	sourceIds := d.SourceIds
 	audioDataIndices := d.AudioData
 	offsets := d.Offsets
@@ -116,18 +115,18 @@ func VerifyDIDXDATA(d *DIDXDATA) {
 	}
 }
 
-func EncodeDIDX(d *DIDXDATA, w io.Writer, o order) (err error) {
+func EncodeDIDX(d *AudioStore, e *uio.EncoderCtx) (err error) {
 	sourceIds := d.SourceIds
 
 	chunkHeader := ChunkHeader{ [4]byte{'D', 'I', 'D', 'X'}, 12 * u32(len(sourceIds)) }
-	if err = bin.Write(w, o, chunkHeader); err != nil {
+	if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
 		return fmt.Errorf("Failed to encode DIDX chunk header: %w", err)
 	}
 
 	offsets := d.Offsets
 	sizes := d.Sizes
 
-	var payload MediaIndexEntry
+	var payload MediaIndexS
 	for i, sourceId := range sourceIds {
 		offset, in := offsets[sourceId]
 		if !in {
@@ -143,7 +142,7 @@ func EncodeDIDX(d *DIDXDATA, w io.Writer, o order) (err error) {
 		payload.Offset = offset
 		payload.Size = size
 
-		err = bin.Write(w, o, payload)
+		err = uio.EncodeStruct(e, payload, SizeOfMediaIndex)
 		if err != nil {
 			return fmt.Errorf("Failed to encode media index (linear index %d) of source %d: %w", i, sourceId, err)
 		}
@@ -152,7 +151,7 @@ func EncodeDIDX(d *DIDXDATA, w io.Writer, o order) (err error) {
 	return nil
 }
 
-func EncodeDATANotAlign(d *DIDXDATA, w io.Writer) (err error) {
+func EncodeDATANotAlign(d *AudioStore, e *uio.EncoderCtx) (err error) {
 	sourceIds := d.SourceIds
 	audioData := d.AudioData
 
@@ -161,7 +160,7 @@ func EncodeDATANotAlign(d *DIDXDATA, w io.Writer) (err error) {
 		if !in {
 			panic(fmt.Sprintf("Source %d does not have an associated audio data", sourceId))
 		}
-		if _, err := w.Write(audioData); err != nil {
+		if err = uio.EncodeBytes(e, audioData); err != nil {
 			return fmt.Errorf(
 				"Failed to write audio data of source %d (linear index %d): %w",
 				sourceId, i, err,
@@ -172,8 +171,8 @@ func EncodeDATANotAlign(d *DIDXDATA, w io.Writer) (err error) {
 	return err
 }
 
-func NewDIDXDATA(size u32) *DIDXDATA {
-	return &DIDXDATA{
+func AllocAudioStore(size u32) *AudioStore {
+	return &AudioStore{
 		SourceIds: make([]u32, 0, size),
 		Offsets: make(map[u32]u32, size),
 		Sizes: make(map[u32]u32, size),
@@ -183,7 +182,7 @@ func NewDIDXDATA(size u32) *DIDXDATA {
 // Has side effect
 // Use this if assuming there will be no duplicate in DIDX entry (e.g., at 
 // decoding phase)
-func NewMediaIndex(d *DIDXDATA, m MediaIndexEntry) {
+func AddMediaIndex(d *AudioStore, m MediaIndexS) {
 	sourceId := m.SourceId
 	offset := m.Offset
 	size := m.Size
@@ -206,7 +205,7 @@ func NewMediaIndex(d *DIDXDATA, m MediaIndexEntry) {
 }
 
 // Has side effect
-func NewMediaIndexCheck(d *DIDXDATA, m MediaIndexEntry) error {
+func AddMediaIndexCheck(d *AudioStore, m MediaIndexS) error {
 	sourceId := m.SourceId
 	offset := m.Offset
 	size := m.Size
@@ -231,18 +230,18 @@ func NewMediaIndexCheck(d *DIDXDATA, m MediaIndexEntry) error {
 }
 
 // No side effect
-func NumMediaIndex(d *DIDXDATA) u32 {
+func NumMediaIndex(d *AudioStore) u32 {
 	return u32(len(d.SourceIds))
 }
 
 // No side effect
-func HasMediaIndex(d *DIDXDATA, sourceId u32) bool {
+func HasMediaIndex(d *AudioStore, sourceId u32) bool {
 	return slices.Contains(d.SourceIds, sourceId)
 }
 
 // No side effect
 // Use HasMediaIndex before MediaIndex
-func MediaIndex(d *DIDXDATA, sourceId u32) (offset u32, size u32) {
+func MediaIndex(d *AudioStore, sourceId u32) (offset u32, size u32) {
 	if !slices.Contains(d.SourceIds, sourceId) {
 		panic(fmt.Sprintf("No media index with %d.", sourceId))
 	}
@@ -261,7 +260,7 @@ func MediaIndex(d *DIDXDATA, sourceId u32) (offset u32, size u32) {
 }
 
 // No side effect
-func MediaIndexCheck(d *DIDXDATA, sourceId u32) (
+func MediaIndexCheck(d *AudioStore, sourceId u32) (
 	offset u32, size u32, in bool,
 ) {
 	if !slices.Contains(d.SourceIds, sourceId) {
@@ -284,7 +283,7 @@ func MediaIndexCheck(d *DIDXDATA, sourceId u32) (
 // Has side effect
 // Use this when omiting all alignment at the decoding phase, or use it with 
 // HasMediaIndex
-func UpdateMediaIndex(d *DIDXDATA, m MediaIndexEntry) {
+func SetMediaIndex(d *AudioStore, m MediaIndexS) {
 	sourceId := m.SourceId
 	offset := m.Offset
 	size := m.Size
