@@ -58,24 +58,24 @@ func EncodeBank(
 	}
 	slog.Info("Encoded BKHD")
 
-	if b.DIDXDATA != nil {
-		if b.DIDXDATA.AudioData != nil {
-			ComputeDIDXOffset(b.DIDXDATA)
-			VerifyDIDXDATA(b.DIDXDATA)
+	if b.AudioStore != nil {
+		if b.AudioStore.AudioData != nil {
+			ComputeDIDXOffset(b.AudioStore)
+			VerifyDIDXDATA(b.AudioStore)
 
-			err = EncodeDIDX(b.DIDXDATA, e)
+			err = EncodeDIDX(b.AudioStore, e)
 			if err != nil {
 				return fmt.Errorf("Failed to encode DIDX chunk: %w", err)
 			}
 			slog.Info("Encoded DIDX")
 
-			err = EncodeDATANotAlign(b.DIDXDATA, e)
+			err = EncodeDATANotAlign(b.AudioStore, e)
 			if err != nil {
 				return fmt.Errorf("Failed to encode DATA chunk without alignment: %w", err)
 			}
 			slog.Info("Encoded DATA")
 		} else {
-			err = EncodeDIDX(b.DIDXDATA, e)
+			err = EncodeDIDX(b.AudioStore, e)
 			if err != nil {
 				return err
 			}

@@ -8,9 +8,9 @@ type Bank struct {
 	ChunkPosition map[string]u8
 	EncodedChunk  map[string][]byte
 
-	BKHD     *BKHD
-	DIDXDATA *AudioStore
-	HIRC     *HIRC
+	BKHD       *BKHD
+	AudioStore *AudioStore
+	HIRC       *HIRC
 }
 
 func AllocBank() *Bank {
@@ -67,7 +67,7 @@ func RegDIDXDATA(bnk *Bank, didxdata *AudioStore, pos u8) {
 	}
 	bnk.ChunkPosition["DIDX"] = pos
 
-	bnk.DIDXDATA = didxdata
+	bnk.AudioStore = didxdata
 }
 
 // Has side effect

@@ -125,7 +125,7 @@ func AllocDecode(
 	in := wwise.HasChunk(b, "DATA")
 	if bankOpt.IsIncludeDATA() && in {
 		_, chunk := wwise.PopEncodedChunk(b, "DATA")
-		AllocDecodeDATA(b.DIDXDATA, chunk)
+		AllocDecodeDATA(b.AudioStore, chunk)
 		slog.Info("Parsed DATA chunk", "size", len(chunk))
 	}
 
