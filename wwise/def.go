@@ -89,5 +89,7 @@ const (
 	ChunkNameBKHD ChunkName = "BKHD"
 	ChunkNameDIDX ChunkName = "DIDX"
 	ChunkNameDATA ChunkName = "DATA"
+	ChunkNameINIT ChunkName = "INIT"
+	ChunkNameSTMG ChunkName = "STMG"
 	ChunkNameHIRC ChunkName = "HIRC"
 )
