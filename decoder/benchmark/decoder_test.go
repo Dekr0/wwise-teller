@@ -23,7 +23,7 @@ func BenchmarkDecodeBaseline(b *testing.B) {
 	hircDecodeOpt.NumRoutine = 0
 
 	for b.Loop() {
-		_, err := decoder.Decode(
+		_, err := decoder.AllocDecode(
 			b.Context(),
 			filepath.Join(SoundBanksDir, bank),
 			binary.LittleEndian,
