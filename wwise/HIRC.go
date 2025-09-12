@@ -36,7 +36,7 @@ type HIRC struct {
 	EncodedHierarchy    map[u32][]byte
 }
 
-func NewHIRC(numHirc u32) *HIRC {
+func AllocHIRC(numHirc u32) *HIRC {
 	return &HIRC{
 		monoId: 0,
 		Hierarchies: make(map[u32]*Hierarchy, numHirc),
@@ -53,7 +53,7 @@ func NewHIRC(numHirc u32) *HIRC {
 }
 
 // Has side effect
-func NewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
+func AddHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
 	h.hierarchyDMu.Lock()
 	defer h.hierarchyDMu.Unlock()
 
@@ -76,32 +76,32 @@ func NewHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
 }
 
 // Has side effect
-func NewState(h *HIRC, id u32, data *StateProps) {
+func AddState(h *HIRC, id u32, data *StateProps) {
 	if data == nil {
 		panic("State property is nil")
 	}
 
-	internalId := NewHierarchy(h, id, HircTypeState)
-	NewStateData(&h.StateComponent, internalId, data)
+	internalId := AddHierarchy(h, id, HircTypeState)
+	AddStateData(&h.StateComponent, internalId, data)
 }
 
 // Has side effect
-func NewEvent(h *HIRC, id u32, data *EventData) {
+func AddEvent(h *HIRC, id u32, data *EventData) {
 	if data == nil {
 		panic("Event data is nil")
 	}
-	internalId := NewHierarchy(h, id, HircTypeEvent)
+	internalId := AddHierarchy(h, id, HircTypeEvent)
 
-	NewEventData(&h.EventComponet, internalId, data)
+	AddEventData(&h.EventComponet, internalId, data)
 }
 
 // Has side effect
-func NewEncodedHierarchy(h *HIRC, id u32, t HircType, encoded []byte) {
+func AddEncodedHierarchy(h *HIRC, id u32, t HircType, encoded []byte) {
 	if encoded == nil {
 		panic("Encoded hierarchy data is nil")
 	}
 
-	internalId := NewHierarchy(h, id, t)
+	internalId := AddHierarchy(h, id, t)
 
 	h.encodedHierarchyDMu.Lock()
 	defer h.encodedHierarchyDMu.Unlock()
