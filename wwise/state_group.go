@@ -1,8 +1,6 @@
 package wwise
 
 import (
-	"sync"
-
 	uio "github.com/Dekr0/unwise/io"
 )
 
@@ -26,7 +24,5 @@ type State struct {
 }
 
 type StateGroupComponent struct {
-	dMu sync.Mutex
-
 	ActorMixerStateGroup map[u32]*StateGroup
 }
