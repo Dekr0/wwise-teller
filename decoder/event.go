@@ -9,7 +9,7 @@ import (
 
 // Expect r to be SectionReader, LimitReader, bytes.Reader, or bytes.Buffer 
 // since these type of reader will do automatic bound checking.
-func AllocDecodeEvent(r io.Reader, o order, ver u32, h *wwise.HIRC, size u32) {
+func AllocDecodeEvent(r io.Reader, o order, ver u32, size u32) any {
 	id := uio.U32P(r, o)
 
 	data := wwise.AllocEventData(uio.VV128P(r, o))
@@ -17,5 +17,7 @@ func AllocDecodeEvent(r io.Reader, o order, ver u32, h *wwise.HIRC, size u32) {
 		data.ActionIds[i] = uio.U32P(r, o)
 	}
 
-	wwise.AddEvent(h, id, data)
+	e := &wwise.EventH{Id: id, EventData: data}
+
+	return e
 }
