@@ -20,7 +20,6 @@ func BenchmarkDecodeBaseline(b *testing.B) {
 	bankDecodeOpt := decoder.BankDecodeOption{}
 	bankDecodeOpt.ExcludeDATA()
 	hircDecodeOpt := decoder.HircDecodeOption{}
-	hircDecodeOpt.NumRoutine = 0
 
 	for b.Loop() {
 		_, err := decoder.AllocDecode(
