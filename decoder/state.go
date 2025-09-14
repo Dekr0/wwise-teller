@@ -10,7 +10,7 @@ import (
 // Expect r to be SectionReader, LimitReader, bytes.Reader, or bytes.Buffer 
 // since these type of reader will do automatic bound checking.
 // Has side effect on HIRC
-func AllocDecodeState(r io.Reader, o order, ver u32, h *wwise.HIRC, size u32) {
+func AllocDecodeState(r io.Reader, o order, ver u32, size u32) any {
 	id := uio.U32P(r, o)
 
 	data := wwise.AllocStateProps(uio.U16P(r, o))
@@ -20,5 +20,7 @@ func AllocDecodeState(r io.Reader, o order, ver u32, h *wwise.HIRC, size u32) {
 		data.Vals[i] = uio.F32P(r, o)
 	}
 
-	wwise.AddState(h, id, data)
+	res := &wwise.StateH{ Id: id, StateProps: data }
+
+	return res
 }
