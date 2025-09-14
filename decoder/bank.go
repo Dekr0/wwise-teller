@@ -76,7 +76,7 @@ func AllocDecode(
 			"size", chunkSize,
 		)
 
-		if wwise.HasChunk(b, chunkName) {
+		if wwise.HasChunk(&b.Chunk, chunkName) {
 			return nil, fmt.Errorf("A duplicated %s chunk at position %d", chunkName, pos)
 		}
 		
@@ -103,7 +103,7 @@ func AllocDecode(
 					chunkSize, chunkName, pos, err,
 				)
 			}
-			wwise.AddEncodedChunk(b, chunkName, pos, encoded)
+			wwise.AddEncodedChunk(&b.Chunk, chunkName, pos, encoded)
 			if chunkName == "DATA" {
 				slog.Info("Store encoded DATA chunk and delay its decoding",
 					"position", pos,
@@ -122,9 +122,9 @@ func AllocDecode(
 		pos += 1
 	}
 
-	in := wwise.HasChunk(b, "DATA")
+	in := wwise.HasChunk(&b.Chunk, wwise.ChunkNameDATA)
 	if bankOpt.IsIncludeDATA() && in {
-		_, chunk := wwise.PopEncodedChunk(b, "DATA")
+		_, chunk := wwise.PopEncodedChunk(&b.Chunk, wwise.ChunkNameDATA)
 		AllocDecodeDATA(b.AudioStore, chunk)
 		slog.Info("Parsed DATA chunk", "size", len(chunk))
 	}
