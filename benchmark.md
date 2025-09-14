@@ -14,7 +14,7 @@
         - 3.4925 GB/s Read 
         - 2.60260 GB/s Write
 
-## Fastest IO speed in Go using developement hard disk
+## Raw read speed in Go using developement hard disk
 
 - Benchmark data from `go test -bench` has a very high chance of which it 
 reflects the situation of hot loaded.
@@ -26,7 +26,6 @@ reflects the situation of hot loaded.
 
 - Total size is 36282368 bytes.
 - Read all at once -> 10.70 ms +/- 10%
-
 ```
 ----------------------------------------
 | size | unbuffer     | buffer         |
@@ -42,7 +41,6 @@ reflects the situation of hot loaded.
 
 - Total size is 1758597120 bytes
 - Read all at once -> 539.8 +/- 1%
-
 ```
 -------------------------
 | size  | buffer        |
@@ -62,7 +60,6 @@ reflects the situation of hot loaded.
 
 - Total size is 36282368 bytes.
 - Read all at once -> 11.37
-
 ```
 ------------------------------------------------------
 | recv buffer size | read buffer size | time         |
@@ -78,7 +75,6 @@ reflects the situation of hot loaded.
 
 - Total size is 1758597120 bytes
 - Read all at once -> 517.9
-
 ```
 ------------------------------------------------------
 | recv buffer size | read buffer size | time         |
@@ -90,4 +86,23 @@ reflects the situation of hot loaded.
 | 16k              | 32k              | 7.044 +/- 8% |
 | 32k              | 32k              | 6.401 +/- 1% |
 ------------------------------------------------------
+```
+
+## Raw write speed in Go using developement hard disk
+
+### Matching input rate and output rate
+
+- Total size is 36282368 bytes.
+- Write all at once -> 20.83 ms +/- 4%
+```
+------------------------------
+| Write size | Time          |
+|------------|---------------|
+| 4k         | 40.87 +/- 13% |
+| 8k         | 25.06 +/- 3%  |
+| 16k        | 18.02 +/- 2%  |
+| 32k        | 15.28 +/- 1%  |
+| 64k        | 13.80 +/- 2%  |
+| 128k       | 12.74 +/- 1%  |
+------------------------------
 ```
