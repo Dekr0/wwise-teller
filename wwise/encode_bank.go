@@ -36,7 +36,7 @@ func ExcludeEncodedMETA(o *EncodeBankOpt) {
 
 // The encoded chunk will follow convention / order imposed by Wwise authoring 
 // tool.
-// BKHD -> DIDX -> DATA -> HIRC
+// BKHD -> DIDX -> DATA -> INIT -> STMG -> HIRC
 func EncodeBank(
 	ctx      context.Context, 
 	e       *uio.EncoderCtx,
@@ -81,32 +81,60 @@ func EncodeBank(
 			}
 			slog.Info("Encoded DIDX")
 
-			chunk, in := b.EncodedChunk["DATA"]
-			if !in {
-				slog.Warn("Encoded DATA chunk is missing")
-			} else {
-				chunkHeader := ChunkHeader{
-					[4]byte{'D', 'A', 'T', 'A'}, 
-					u32(len(chunk)),
-				}
-				if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
-					return fmt.Errorf("Failed to write DATA chunk header: %w", err)
-				}
-
-				if err = uio.EncodeBytes(e, chunk); err != nil {
-					return fmt.Errorf("Failed to write encoded DATA chunk: %w", err)
-				}
-				slog.Info("Encoded DATA")
+			if err = EncodeEncodedDATA(&b.Chunk, e); err != nil {
+				return err
 			}
 		}
 	} else {
 		slog.Warn(fmt.Sprintf("Sound bank %d does not have DIDX chunk (or DATA chunk as well)", b.BKHD.Id))
 	}
 
-	in, chunk := PopEncodedChunk(b, "INIT")
+	if err := EncodeEncodedINIT(&b.Chunk, e); err != nil {
+		return err
+	}
+
+	if err := EncodeEncodedSTMG(&b.Chunk, e); err != nil {
+		return err
+	}
+
+	if b.HIRC != nil {
+		err := EncodeHirc(ctx, &HircEncoderCtx{e, b.BKHD.Version}, b.HIRC, hircOpt)
+		if err != nil {
+			return fmt.Errorf("Failed to encode HIRC chunk: %w", err)
+		}
+	} else {
+		slog.Warn("Sound bank")
+	}
+
+	return EncodeRemainEncodedChunk(&b.Chunk, e, bankOpt)
+}
+
+func EncodeEncodedDATA(c *ChunkComponent, e *uio.EncoderCtx) (err error) {
+ 	chunk, in := c.Encoded[ChunkNameDATA]
+ 	if !in {
+ 		slog.Warn("Encoded DATA chunk is missing")
+ 	} else {
+ 		chunkHeader := ChunkHeader{
+ 			[4]byte([]byte(ChunkNameDATA)), 
+ 			u32(len(chunk)),
+ 		}
+ 		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
+ 			return fmt.Errorf("Failed to write DATA chunk header: %w", err)
+ 		}
+
+ 		if err = uio.EncodeBytes(e, chunk); err != nil {
+ 			return fmt.Errorf("Failed to write encoded DATA chunk: %w", err)
+ 		}
+ 		slog.Info("Encoded DATA")
+ 	}
+ 	return nil
+}
+
+func EncodeEncodedINIT(c *ChunkComponent, e *uio.EncoderCtx) (err error) {
+	chunk, in := c.Encoded[ChunkNameINIT]
 	if in {
 		chunkHeader := ChunkHeader{
-			[4]byte{'I', 'N', 'I', 'T'}, 
+			[4]byte([]byte(ChunkNameINIT)), 
 			u32(len(chunk)),
 		}
 		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
@@ -118,10 +146,14 @@ func EncodeBank(
 		}
 		slog.Info("Encoded INIT")
 	}
-	in, chunk = PopEncodedChunk(b, "STMG")
+	return nil
+}
+
+func EncodeEncodedSTMG(c *ChunkComponent, e *uio.EncoderCtx) (err error) {
+	chunk, in := c.Encoded[ChunkNameSTMG]
 	if in {
 		chunkHeader := ChunkHeader{
-			[4]byte{'S', 'T', 'M', 'G'}, 
+			[4]byte([]byte(ChunkNameSTMG)), 
 			u32(len(chunk)),
 		}
 		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
@@ -133,16 +165,14 @@ func EncodeBank(
 		}
 		slog.Info("Encoded STMG")
 	}
+	return nil
+}
 
-	if b.HIRC != nil {
-		err := EncodeHirc(ctx, &HircEncoderCtx{e, b.BKHD.Version}, b.HIRC, hircOpt)
-		if err != nil {
-			return fmt.Errorf("Failed to encode HIRC chunk: %w", err)
-		}
-	} else {
-		slog.Warn("Sound bank")
-	}
-	
+func EncodeRemainEncodedChunk(
+	c *ChunkComponent, 
+	e *uio.EncoderCtx, 
+	o *EncodeBankOpt,
+) (err error) {
 	// Write the rest of encoded chunks in the order appeared in the decoding 
 	// phase.
 	type ChunkPosition struct {
@@ -150,11 +180,12 @@ func EncodeBank(
 		Position  u8
 	}
 
-	chunkPositions := make([]ChunkPosition, 0, len(b.ChunkPosition))
-	for chunkName, pos := range b.ChunkPosition {
-		if chunkName == "META" && !IsIncludeEncodedMETA(bankOpt) {
+	chunkPositions := make([]ChunkPosition, 0, len(c.Position))
+	for chunkName, v := range c.Position {
+		if chunkName == "META" && !IsIncludeEncodedMETA(o) {
 			continue
 		}
+
 		switch chunkName {
 		case ChunkNameBKHD:
 		case ChunkNameDIDX:
@@ -164,10 +195,10 @@ func EncodeBank(
 		case ChunkNameHIRC:
 		default:
 			i, found := sort.Find(len(chunkPositions), func(i int) int {
-				if pos < chunkPositions[i].Position {
+				if v < chunkPositions[i].Position {
 					return -1
 				}
-				if pos == chunkPositions[i].Position {
+				if v == chunkPositions[i].Position {
 					return 0
 				}
 				return 1
@@ -177,18 +208,18 @@ func EncodeBank(
 				panic(fmt.Sprintf(
 					"Chunk %s and chunk %s occupy the same chunk position %d",
 					chunkName, chunkPositions[i].ChunkName, chunkPositions[i].Position,
-				))
+					))
 			}
 
 			chunkPositions = slices.Insert(
-				chunkPositions, i, ChunkPosition{ chunkName, pos },
-			)
+				chunkPositions, i, ChunkPosition{ chunkName, v },
+				)
 		}
 	}
 
 	for _, chunkPos := range chunkPositions {
 		chunkName := chunkPos.ChunkName
-		chunk, in := b.EncodedChunk[chunkName]
+		chunk, in := c.Encoded[chunkName]
 
 		chunkHeader := ChunkHeader{
 			[4]byte{chunkName[0], chunkName[1], chunkName[2], chunkName[3]}, 
