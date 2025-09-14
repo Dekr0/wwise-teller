@@ -1,8 +1,6 @@
 package wwise
 
 import (
-	"sync"
-
 	uio "github.com/Dekr0/unwise/io"
 )
 
@@ -22,13 +20,9 @@ type RTPCGraph struct {
 }
 
 type RTPCComponent struct {
-	dMu sync.Mutex
-
 	ActorMixerRTPC map[u32]*RTPC
 }
 
 type RTPCGraphComponent struct {
-	dMu sync.Mutex
-
 	ActorMixerRTPC map[u32][]RTPCGraph
 }
