@@ -41,6 +41,14 @@ chunk size.
 - Milestone 2: parse BKHD and store encoded chunk
     - Buffer size 32k: 9.376 ms +/- 3%
     - Delta: 2.975 ms +/- 0%
-- Milestone 3: parse BKHD and store encoded chunk in parallel
-    - Buffer size 32k: 9.376 ms +/- 3%
-    - Delta: 2.975 ms +/- 0%
+- Milestone 3: Milestone 2 + parse DIXD
+    - Buffer size 32k: 9.883 ms +/- 1%
+    - Delta: 3.488 ms +/- 0%
+- Milestone 4: Milestone 3 + parse DATA
+    - Buffer size 32k: 10.01 ms +/- 1%
+    - Delta: 3.609 ms +/- 0%
+- Milestone 5: Milestone 3 + parse HIRC (Event + State)
+    - Buffer size 32k: 13.19 ms +/- 0%
+        - Delta: 6.789 ms +/- 0%
+    - Buffer size 16k: 14.26 ms +/- 1% 
+        - Delta: 7.859 ms +/- 0%
