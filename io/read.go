@@ -11,10 +11,6 @@ import (
 // - If a read function contains a P, this function will panic instead of
 // returning error.
 
-// Usage
-// If a struct is deterministic (i.e. size is fixed; no variable-size field),
-// use
-
 func U8(r io.Reader, o order) (v u8, err error) {
 	err = bin.Read(r, o, &v)
 	return v, err
