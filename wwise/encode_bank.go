@@ -86,7 +86,7 @@ func EncodeBank(
 			}
 		}
 	} else {
-		slog.Warn(fmt.Sprintf("Sound bank %d does not have DIDX chunk (or DATA chunk as well)", b.BKHD.Id))
+		slog.Warn(fmt.Sprintf("Sound bank %d does not have DIDX chunk and / or DATA chunk", b.BKHD.Id))
 	}
 
 	if err := EncodeEncodedINIT(&b.Chunk, e); err != nil {
@@ -103,7 +103,7 @@ func EncodeBank(
 			return fmt.Errorf("Failed to encode HIRC chunk: %w", err)
 		}
 	} else {
-		slog.Warn("Sound bank")
+		slog.Warn("Sound bank %d does not have HIRC chunk.")
 	}
 
 	return EncodeRemainEncodedChunk(&b.Chunk, e, bankOpt)
