@@ -5,101 +5,112 @@ import (
 )
 
 type Bank struct {
-	ChunkPosition map[string]u8
-	EncodedChunk  map[string][]byte
-
 	BKHD       *BKHD
 	AudioStore *AudioStore
 	HIRC       *HIRC
+	Chunk       ChunkComponent
+}
+
+type ChunkComponent struct {
+	Position map[string]u8
+	Encoded  map[string][]byte
+}
+
+func AllocChunkComponent() *ChunkComponent {
+	return &ChunkComponent{
+		Position: make(map[string]u8, 11),
+		Encoded: make(map[string][]byte, 7),
+	}
 }
 
 func AllocBank() *Bank {
 	return &Bank{
-		ChunkPosition: make(map[string]u8, 11),
-		EncodedChunk: make(map[string][]byte, 7),
+		Chunk: *AllocChunkComponent(),
 	}
 }
 
 // No side effect
-// Thread safe
-func HasChunk(b *Bank, name string) (in bool) {
-	_, in = b.ChunkPosition[name]
+func HasChunk(c *ChunkComponent, name string) (in bool) {
+	_, in = c.Position[name]
 	return in 
 }
 
-// No side effect
-// Thread safe
-func PopEncodedChunk(bnk *Bank, name string) (in bool, chunk []byte) {
-	chunk, in = bnk.EncodedChunk[name]
+// Has side effect
+func AddChunkPosition(c *ChunkComponent, name string, pos u8) {
+	if _, in := c.Position[name]; in {
+		panic(fmt.Sprintf("Postion value for chunk %s already exist: %d", name, pos))
+	}
+	c.Position[name] = pos
+}
+
+// Has side effect
+func PopEncodedChunk(c *ChunkComponent, name string) (in bool, chunk []byte) {
+	chunk, in = c.Encoded[name]
 	if !in {
 		return in, nil
 	}
 
-	delete(bnk.EncodedChunk, name)
+	delete(c.Encoded, name)
 
 	return in, chunk 
 }
 
 // Has side effect
-// Thread safe
 func RegBKHD(bnk *Bank, bkhd *BKHD) {
 	if bkhd == nil {
 		panic("bkhd is nil")
 	}
 
-	if _, in := bnk.ChunkPosition["BKHD"]; in {
+	if HasChunk(&bnk.Chunk, ChunkNameBKHD) {
 		panic(fmt.Sprintf("Duplicated BKHD chunk"))
 	}
-	bnk.ChunkPosition["BKHD"] = 0
+
+	AddChunkPosition(&bnk.Chunk, ChunkNameBKHD, 0)
 
 	bnk.BKHD = bkhd
 }
 
 // Has side effect
-// Thread safe
-func RegDIDXDATA(bnk *Bank, didxdata *AudioStore, pos u8) {
-	if didxdata == nil {
+func RegDIDXDATA(bnk *Bank, audioStore *AudioStore, pos u8) {
+	if audioStore == nil {
 		panic("didxdata is nil")
 	}
 
-	if _, in := bnk.ChunkPosition["DIDX"]; in {
+	if HasChunk(&bnk.Chunk, ChunkNameDIDX) {
 		panic(fmt.Sprintf("Duplicated DIDX chunk"))
 	}
-	bnk.ChunkPosition["DIDX"] = pos
 
-	bnk.AudioStore = didxdata
+	AddChunkPosition(&bnk.Chunk, ChunkNameDIDX, pos)
+
+	bnk.AudioStore = audioStore
 }
 
 // Has side effect
-// Thread safe
 func RegHIRC(bnk *Bank, hirc *HIRC, pos u8) {
 	if hirc == nil {
 		panic("hirc is nil")
 	}
 
-	if _, in := bnk.ChunkPosition["HIRC"]; in {
+	if HasChunk(&bnk.Chunk, ChunkNameHIRC) {
 		panic(fmt.Sprintf("Duplicated HIRC chunk"))
 	}
-	bnk.ChunkPosition["HIRC"] = pos
+
+	AddChunkPosition(&bnk.Chunk, ChunkNameHIRC, pos)
 
 	bnk.HIRC = hirc
 }
 
 // Has side effect
-// Thread safe
-func AddEncodedChunk(bnk *Bank, chunkName string, pos u8, encoded []byte) {
+func AddEncodedChunk(c *ChunkComponent, chunkName string, pos u8, encoded []byte) {
 	if encoded == nil {
 		panic("Encoded slice is nil")
 	}
-
-	if _, in := bnk.ChunkPosition[chunkName]; in {
+	if _, in := c.Position[chunkName]; in {
 		panic(fmt.Sprintf("Duplicate %s chunk", chunkName))
 	}
-
-	if _, in := bnk.EncodedChunk[chunkName]; in {
+	c.Position[chunkName] = pos
+	if _, in := c.Encoded[chunkName]; in {
 		panic(fmt.Sprintf("Duplicate encoded chunk %s", chunkName))
 	}
-
-	bnk.ChunkPosition[chunkName] = pos
-	bnk.EncodedChunk[chunkName] = encoded
+	c.Encoded[chunkName] = encoded
 }
