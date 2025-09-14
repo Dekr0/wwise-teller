@@ -3,6 +3,7 @@ package wwise
 import (
 	"fmt"
 	"slices"
+
 	uio "github.com/Dekr0/unwise/io"
 )
 
@@ -44,6 +45,7 @@ func ComputeDIDXOffset(d *AudioStore) {
 	}
 }
 
+// Has no side effect
 func VerifyDIDXDATA(d *AudioStore) {
 	sourceIds := d.SourceIds
 	audioDataIndices := d.AudioData
@@ -115,6 +117,7 @@ func VerifyDIDXDATA(d *AudioStore) {
 	}
 }
 
+// Has no side effect
 func EncodeDIDX(d *AudioStore, e *uio.EncoderCtx) (err error) {
 	sourceIds := d.SourceIds
 
@@ -151,6 +154,7 @@ func EncodeDIDX(d *AudioStore, e *uio.EncoderCtx) (err error) {
 	return nil
 }
 
+// Has no side effect
 func EncodeDATANotAlign(d *AudioStore, e *uio.EncoderCtx) (err error) {
 	sourceIds := d.SourceIds
 	audioData := d.AudioData
