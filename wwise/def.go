@@ -93,3 +93,5 @@ const (
 	ChunkNameSTMG ChunkName = "STMG"
 	ChunkNameHIRC ChunkName = "HIRC"
 )
+
+type AccumType = u8

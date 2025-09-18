@@ -27,7 +27,7 @@ func AllocDecodeDIDX(
 		if err != nil {
 			return nil, fmt.Errorf("Failed to decode media index entry at %d: %w", i, err)
 		}
-		wwise.AddMediaIndex(d, m)
+		d.AddMediaIndex(m)
 	}
 
 	return d, nil

@@ -81,6 +81,19 @@ not return something. A procedure may or may not have side effects.
 setter with non business logic validation (e.g. pointer not nil, duplication of 
 key, mutex).
 
+## Data Ownership and Data Read / Write Access
+
+- Places that store data have the ownership.
+- Read / write access (other than 1 to 1 simple assignment) should happen outside 
+of places that store data.
+- Read / write access outside of places that store data should deal of a view 
+of data. That view typically can be data itself, or a combination of different 
+data.
+- Read / write access logic should be centralized and grouped, or / and 
+encapsulated by a system (a set of procedures).
+- Write access logic should produce output instead of performing modification in 
+place.
+
 ## Data Correctness
 
 ### Encoding

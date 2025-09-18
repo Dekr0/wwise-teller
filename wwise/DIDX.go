@@ -186,7 +186,7 @@ func AllocAudioStore(size u32) *AudioStore {
 // Has side effect
 // Use this if assuming there will be no duplicate in DIDX entry (e.g., at 
 // decoding phase)
-func AddMediaIndex(d *AudioStore, m MediaIndexS) {
+func (d *AudioStore) AddMediaIndex(m MediaIndexS) {
 	sourceId := m.SourceId
 	offset := m.Offset
 	size := m.Size
@@ -209,7 +209,7 @@ func AddMediaIndex(d *AudioStore, m MediaIndexS) {
 }
 
 // Has side effect
-func AddMediaIndexCheck(d *AudioStore, m MediaIndexS) error {
+func (d *AudioStore) AddMediaIndexCheck(m MediaIndexS) error {
 	sourceId := m.SourceId
 	offset := m.Offset
 	size := m.Size
@@ -234,18 +234,18 @@ func AddMediaIndexCheck(d *AudioStore, m MediaIndexS) error {
 }
 
 // No side effect
-func NumMediaIndex(d *AudioStore) u32 {
+func (d *AudioStore) NumMediaIndex() u32 {
 	return u32(len(d.SourceIds))
 }
 
 // No side effect
-func HasMediaIndex(d *AudioStore, sourceId u32) bool {
+func (d *AudioStore) HasMediaIndex(sourceId u32) bool {
 	return slices.Contains(d.SourceIds, sourceId)
 }
 
 // No side effect
 // Use HasMediaIndex before MediaIndex
-func MediaIndex(d *AudioStore, sourceId u32) (offset u32, size u32) {
+func (d *AudioStore) MediaIndex(sourceId u32) (offset u32, size u32) {
 	if !slices.Contains(d.SourceIds, sourceId) {
 		panic(fmt.Sprintf("No media index with %d.", sourceId))
 	}
@@ -264,7 +264,7 @@ func MediaIndex(d *AudioStore, sourceId u32) (offset u32, size u32) {
 }
 
 // No side effect
-func MediaIndexCheck(d *AudioStore, sourceId u32) (
+func (d *AudioStore) MediaIndexCheck(sourceId u32) (
 	offset u32, size u32, in bool,
 ) {
 	if !slices.Contains(d.SourceIds, sourceId) {
@@ -287,7 +287,7 @@ func MediaIndexCheck(d *AudioStore, sourceId u32) (
 // Has side effect
 // Use this when omiting all alignment at the decoding phase, or use it with 
 // HasMediaIndex
-func SetMediaIndex(d *AudioStore, m MediaIndexS) {
+func (d *AudioStore) SetMediaIndex(m MediaIndexS) {
 	sourceId := m.SourceId
 	offset := m.Offset
 	size := m.Size

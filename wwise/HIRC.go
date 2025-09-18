@@ -1,112 +1,97 @@
 package wwise
 
-import (
-	"slices"
-	"sync"
-)
-
-
-type EncodeHircOpt struct {
-	NumRoutine u8
-}
-
-type HierarchyHeader struct {
-	Type HircType
-	Size u32
-}
-
-type Hierarchy struct {
-	Id   u32
-	Type HircType
-}
-
 type HIRC struct {
-	monoId u32 // a monotonic id counter that only increase
-
-	// This is intended to be used in decoding phase
-	hierarchyDMu sync.Mutex
-	InternalIds  []u32
-	Hierarchies  map[u32]*Hierarchy
-
-	EventComponet  EventComponent
-	StateComponent StateComponent
-
-	// This is intended to be used in decoding phase
-	encodedHierarchyDMu sync.Mutex
-	EncodedHierarchy    map[u32][]byte
+	AdvanceBehaviorComponent AdvanceBehaviorComponent
+	AuxParamComponent        AuxParamComponent
+	EventComponet            EventComponent
+	FXsComponent             FXsComponent
+	FxMetadatasComponent     FxMetadatasComponent
+	HDRComponent             HDRComponent
+	Hierarchy                Hierarchy
+	OverrideComponent        OverrideComponent
+	PluginParamComponent     PluginParamComponent
+	PositionParamComponent   PositionParamComponent
+	PropComponent            PropComponent
+	RPropComponent           RPropComponent
+	RTPCComponent            RTPCComponent
+	SourceDataComponent      SourceDataComponent
+	StateComponent           StateComponent
+	StatePropComponent       StatePropComponent
+	StateGroupComponent      StateGroupComponent
 }
 
 func AllocHIRC(numHirc u32) *HIRC {
 	return &HIRC{
-		monoId: 0,
-		Hierarchies: make(map[u32]*Hierarchy, numHirc),
-		EventComponet: EventComponent{
-			// Estimate 25% of hierarchies will be Event
-			EventData: make(map[u32]*EventData, numHirc / 4),
-		},
-		StateComponent: StateComponent{
-			// TODO: Estimation
-			StateProps: make(map[u32]*StateProps),
-		},
-		EncodedHierarchy: make(map[u32][]byte),
+		AdvanceBehaviorComponent: *AllocAdvanceBehaviorComponent(numHirc / 2), 
+		AuxParamComponent: *AllocAuxParamComponent(numHirc),
+		EventComponet: *AllocEventComponent(numHirc / 4),
+		FXsComponent: *AllocFXsComponent(0),
+		FxMetadatasComponent: *AllocFxMetadataComponent(0),
+		Hierarchy: *AllocHierarchy(numHirc),
+		HDRComponent: *AllocateHDRComponent(numHirc),
+		OverrideComponent: *AllocOverrideComponent(0),
+		PluginParamComponent: *AllocPluginParamComponent(0),
+		PositionParamComponent: *AllocPositionParamComponent(numHirc),
+		PropComponent: *AllocPropComponent(numHirc),
+		RPropComponent: *AllocRPropComponent(numHirc),
+		RTPCComponent: *AllocateRTPCComponent(numHirc, 0),
+		SourceDataComponent: *AllocSourceDataComponent(0),
+		StateComponent: *AllocStateComponent(0),
+		StatePropComponent: *AllocStatePropComponent(numHirc),
+		StateGroupComponent: *AllocStateGroupComponent(numHirc),
 	}
 }
 
 // Has side effect
-func AddHierarchy(h *HIRC, id u32, t HircType) (internalId u32) {
-	h.hierarchyDMu.Lock()
-	defer h.hierarchyDMu.Unlock()
-
-	internalId = h.monoId
-
-	if _, in := h.Hierarchies[internalId]; in {
-		panic(MonotonicIdCollision)
-	}
-	// Get rid off this once I figure out the tree traversal algorithm 
-	if slices.Contains(h.InternalIds, internalId) {
-		panic(MonotonicIdCollision)
-	}
-
-	h.InternalIds = append(h.InternalIds, internalId)
-	h.Hierarchies[internalId] = &Hierarchy{ id, t }
-
-	h.monoId++
-
-	return internalId
-}
-
-// Has side effect
-func AddState(h *HIRC, id u32, data *StateProps) {
+func (h *HIRC) AddState(id u32, data *StateHierarchyProp) {
 	if data == nil {
 		panic("State property is nil")
 	}
-
-	internalId := AddHierarchy(h, id, HircTypeState)
-	AddStateData(&h.StateComponent, internalId, data)
+	internalId := h.Hierarchy.AddHierarchyNode(id, HircTypeState)
+	h.StateComponent.AddStateData(internalId, data)
 }
 
 // Has side effect
-func AddEvent(h *HIRC, id u32, data *EventData) {
+func (h *HIRC) AddSound(data *SoundH, version u32) {
+	if data == nil {
+		panic("Sound data is nil")
+	}
+	internalId := h.Hierarchy.AddHierarchyNode(data.Id, HircTypeSound)
+	h.SourceDataComponent.AddSourceData(internalId, data.SourceData)
+	h.PluginParamComponent.AddPluginParam(internalId, data.PluginParam)
+	h.AddBaseParameter(internalId, data.BaseParameter, version)
+}
+
+func (h *HIRC) AddBaseParameter(internalId u32, b *BaseParameter, version u32) {
+	h.OverrideComponent.AddOverrideParentFx(internalId, b.OverrideParentFx)
+	h.FXsComponent.AddFXs(internalId, b.FXs)
+	h.OverrideComponent.AddOverrideFxMetadata(internalId, b.OverrideFxMetadata)
+	h.FxMetadatasComponent.AddFxMetadatas(internalId, b.FxMetadatas)
+	if version <= 145 {
+		h.OverrideComponent.AddOverrideAttachmentParam(internalId, b.OverrideAttachmentParam)
+	}
+	h.OverrideComponent.AddOverrideBusId(internalId, b.OverideBusId)
+	h.Hierarchy.AddDirectParentId(internalId, b.DirectParentId)
+	h.AdvanceBehaviorComponent.AddBaseSettingVector(internalId, b.SettingVector)
+	h.PropComponent.AddProp(internalId, b.Prop)
+	h.RPropComponent.AddRProp(internalId, b.RProp)
+	h.PositionParamComponent.AddPositionParam(internalId, b.PositionParam)
+	h.AuxParamComponent.AddAuxParam(internalId, b.AuxParam)
+	h.AdvanceBehaviorComponent.AddAdvanceSettingVector(internalId, b.AdvanceSettingVector)
+	h.AdvanceBehaviorComponent.AddVirtualQueueBehavior(internalId, b.VirtualQueueBehavior)
+	h.AdvanceBehaviorComponent.AddMaxNumInstance(internalId, b.MaxNumInstance)
+	h.AdvanceBehaviorComponent.AddBelowThresholdBehavior(internalId, b.BelowThresholdBehavior)
+	h.HDRComponent.AddHDRSettingVector(internalId, b.HDRSettingVector)
+	h.StatePropComponent.AddStateProp(internalId, b.StateProp)
+	h.StateGroupComponent.AddStateGroup(internalId, b.StateGroup)
+	h.RTPCComponent.AddBaseRTPC(internalId, b.RTPC)
+}
+
+// Has side effect
+func (h *HIRC) AddEvent(id u32, data *EventData) {
 	if data == nil {
 		panic("Event data is nil")
 	}
-	internalId := AddHierarchy(h, id, HircTypeEvent)
-
-	AddEventData(&h.EventComponet, internalId, data)
-}
-
-// Has side effect
-func AddEncodedHierarchy(h *HIRC, id u32, t HircType, encoded []byte) {
-	if encoded == nil {
-		panic("Encoded hierarchy data is nil")
-	}
-
-	internalId := AddHierarchy(h, id, t)
-
-	h.encodedHierarchyDMu.Lock()
-	defer h.encodedHierarchyDMu.Unlock()
-	if _, in := h.EncodedHierarchy[internalId]; in {
-		panic(MonotonicIdCollision)
-	}
-	h.EncodedHierarchy[internalId] = encoded
+	internalId := h.Hierarchy.AddHierarchyNode(id, HircTypeEvent)
+	h.EventComponet.AddEventData(internalId, data)
 }

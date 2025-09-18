@@ -30,13 +30,13 @@ func AllocBank() *Bank {
 }
 
 // No side effect
-func HasChunk(c *ChunkComponent, name string) (in bool) {
+func (c *ChunkComponent) HasChunk(name string) (in bool) {
 	_, in = c.Position[name]
 	return in 
 }
 
 // Has side effect
-func AddChunkPosition(c *ChunkComponent, name string, pos u8) {
+func (c *ChunkComponent) AddChunkPosition(name string, pos u8) {
 	if _, in := c.Position[name]; in {
 		panic(fmt.Sprintf("Postion value for chunk %s already exist: %d", name, pos))
 	}
@@ -44,7 +44,7 @@ func AddChunkPosition(c *ChunkComponent, name string, pos u8) {
 }
 
 // Has side effect
-func PopEncodedChunk(c *ChunkComponent, name string) (in bool, chunk []byte) {
+func (c *ChunkComponent) PopEncodedChunk(name string) (in bool, chunk []byte) {
 	chunk, in = c.Encoded[name]
 	if !in {
 		return in, nil
@@ -56,52 +56,52 @@ func PopEncodedChunk(c *ChunkComponent, name string) (in bool, chunk []byte) {
 }
 
 // Has side effect
-func RegBKHD(bnk *Bank, bkhd *BKHD) {
+func (bnk *Bank) RegBKHD(bkhd *BKHD) {
 	if bkhd == nil {
 		panic("bkhd is nil")
 	}
 
-	if HasChunk(&bnk.Chunk, ChunkNameBKHD) {
+	if bnk.Chunk.HasChunk(ChunkNameBKHD) {
 		panic(fmt.Sprintf("Duplicated BKHD chunk"))
 	}
 
-	AddChunkPosition(&bnk.Chunk, ChunkNameBKHD, 0)
+	bnk.Chunk.AddChunkPosition(ChunkNameBKHD, 0)
 
 	bnk.BKHD = bkhd
 }
 
 // Has side effect
-func RegDIDXDATA(bnk *Bank, audioStore *AudioStore, pos u8) {
+func (bnk *Bank) RegDIDXDATA(audioStore *AudioStore, pos u8) {
 	if audioStore == nil {
 		panic("didxdata is nil")
 	}
 
-	if HasChunk(&bnk.Chunk, ChunkNameDIDX) {
+	if bnk.Chunk.HasChunk(ChunkNameDIDX) {
 		panic(fmt.Sprintf("Duplicated DIDX chunk"))
 	}
 
-	AddChunkPosition(&bnk.Chunk, ChunkNameDIDX, pos)
+	bnk.Chunk.AddChunkPosition(ChunkNameDIDX, pos)
 
 	bnk.AudioStore = audioStore
 }
 
 // Has side effect
-func RegHIRC(bnk *Bank, hirc *HIRC, pos u8) {
+func (bnk *Bank) RegHIRC(hirc *HIRC, pos u8) {
 	if hirc == nil {
 		panic("hirc is nil")
 	}
 
-	if HasChunk(&bnk.Chunk, ChunkNameHIRC) {
+	if bnk.Chunk.HasChunk(ChunkNameHIRC) {
 		panic(fmt.Sprintf("Duplicated HIRC chunk"))
 	}
 
-	AddChunkPosition(&bnk.Chunk, ChunkNameHIRC, pos)
+	bnk.Chunk.AddChunkPosition(ChunkNameHIRC, pos)
 
 	bnk.HIRC = hirc
 }
 
 // Has side effect
-func AddEncodedChunk(c *ChunkComponent, chunkName string, pos u8, encoded []byte) {
+func (c *ChunkComponent) AddEncodedChunk(chunkName string, pos u8, encoded []byte) {
 	if encoded == nil {
 		panic("Encoded slice is nil")
 	}

@@ -18,6 +18,8 @@ func AllocDecode(
 	o    order,
 	bankOpt *BankDecodeOption,
 	hircOpt *HircDecodeOption,
+	// provide meta about the chunk position,
+	// if not, do a chunk scan first to locate all the possible split position
 ) (b *wwise.Bank, err error) {
 	if bankOpt == nil {
 		return nil, fmt.Errorf("Must provide a bank decoder option")
@@ -51,7 +53,7 @@ func AllocDecode(
 	if err != nil {
 		return nil, fmt.Errorf("Failed to decode BKHD: %w", err)
 	}
-	wwise.RegBKHD(b, bkhd)
+	b.RegBKHD(bkhd)
 
 	slog.Info("Parsed BKHD")
 
@@ -76,7 +78,7 @@ func AllocDecode(
 			"size", chunkSize,
 		)
 
-		if wwise.HasChunk(&b.Chunk, chunkName) {
+		if b.Chunk.HasChunk(chunkName) {
 			return nil, fmt.Errorf("A duplicated %s chunk at position %d", chunkName, pos)
 		}
 		
@@ -86,14 +88,14 @@ func AllocDecode(
 			if err != nil {
 				return nil, fmt.Errorf("Failed to decode DIDX chunk at position %d: %w", pos, err)
 			}
-			wwise.RegDIDXDATA(b, didxdata, pos)
+			b.RegDIDXDATA(didxdata, pos)
 			slog.Info("Parsed DIDX", "position", pos, "size", chunkSize)
 		case wwise.ChunkNameHIRC:
 			hirc, err := AllocDecodeHIRC(ctx, hircOpt, reader, o, chunkSize, bkhd.Version)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to decode HIRC chunk at position %d: %w", pos, err)
 			}
-			wwise.RegHIRC(b, hirc, pos)
+			b.RegHIRC(hirc, pos)
 			slog.Info("Parsed HIRC", "position", pos, "size", chunkSize)
 		default:
 			encoded := make([]byte, chunkSize, chunkSize)
@@ -103,7 +105,7 @@ func AllocDecode(
 					chunkSize, chunkName, pos, err,
 				)
 			}
-			wwise.AddEncodedChunk(&b.Chunk, chunkName, pos, encoded)
+			b.Chunk.AddEncodedChunk(chunkName, pos, encoded)
 			if chunkName == "DATA" {
 				slog.Info("Store encoded DATA chunk and delay its decoding",
 					"position", pos,
@@ -122,9 +124,9 @@ func AllocDecode(
 		pos += 1
 	}
 
-	in := wwise.HasChunk(&b.Chunk, wwise.ChunkNameDATA)
+	in := b.Chunk.HasChunk(wwise.ChunkNameDATA)
 	if bankOpt.IsIncludeDATA() && in {
-		_, chunk := wwise.PopEncodedChunk(&b.Chunk, wwise.ChunkNameDATA)
+		_, chunk := b.Chunk.PopEncodedChunk(wwise.ChunkNameDATA)
 		AllocDecodeDATA(b.AudioStore, chunk)
 		slog.Info("Parsed DATA chunk", "size", len(chunk))
 	}
