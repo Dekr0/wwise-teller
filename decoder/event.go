@@ -17,7 +17,7 @@ func AllocDecodeEvent(r io.Reader, o order, ver u32, size u32) any {
 		data.ActionIds[i] = uio.U32P(r, o)
 	}
 
-	e := &wwise.EventH{Id: id, EventData: data}
+	e := &wwise.Event{Id: id, EventData: data}
 
 	return e
 }

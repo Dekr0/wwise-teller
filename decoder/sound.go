@@ -23,7 +23,7 @@ func AllocDecodeSound(r io.Reader, o order, version u32, size u32) any {
 
 	AllocDecodeBaseParameter(r, o, version, &b)
 
-	sound := &wwise.SoundH{
+	sound := &wwise.Sound{
 		Id: id,
 		SourceData: sourceData,
 		PluginParam: pluginParam,

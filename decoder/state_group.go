@@ -13,7 +13,7 @@ func AllocDecodeStateGroup(r io.Reader, o order, version u32) (s *wwise.StateGro
 		s.StateGroupId[i] = uio.U32P(r, o)
 		s.StateSyncType[i] = uio.U8P(r, o)
 		s.NumStates[i] = *uio.VV128P(r, o)
-		s.States[i] = make([]wwise.State, s.NumStates[i].V, s.NumStates[i].V)
+		s.States[i] = make([]wwise.StateGroupState, s.NumStates[i].V, s.NumStates[i].V)
 		if version > 145 {
 			s.StatesProp[i] = make([]wwise.StateGroupStateProp, s.NumStates[i].V, s.NumStates[i].V)
 		}

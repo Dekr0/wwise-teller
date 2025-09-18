@@ -52,25 +52,32 @@ func SizeOfHIRC(h *HIRC, version u32) (size u32) {
 			panic(fmt.Errorf("Internal id %d does not have hierarchy info", id))
 		}
 		hid, t := hierarchy.Id, hierarchy.Type
+		tName := GetHircTypeName(t)
 		switch t {
 		case HircTypeState:
-			if err := h.StateComponent.AssertStateById(id); err != nil {
-				panic(fmt.Errorf("(State %d): %w", hid, err))
+			s := h.State(id)
+			if err := AssertState(s); err != nil {
+				panic(fmt.Errorf("(%s %d): %w", tName, hid, err))
 			}
-			// TODO: refactor
-			size += h.StateComponent.SizeOfStateById(id)
+			size += SizeOfState(s)
 		case HircTypeSound:
-			s := h.SoundH(id, version)
+			s := h.Sound(id, version)
 			if err := AssertSound(s, version); err != nil {
-				panic(fmt.Errorf("(Sound %d): %w", hid, err))
+				panic(fmt.Errorf("(%s %d): %w", tName, hid, err))
 			}
 			size += SizeOfSound(s, version)
 		case HircTypeEvent:
-			if err := h.EventComponet.AssertEventById(id); err != nil {
-				panic(fmt.Errorf("(Event %d): %w", id, err))
+			e := h.Event(id)
+			if err := AssertEvent(e); err != nil {
+				panic(fmt.Errorf("(%s %d): %w", tName, id, err))
 			}
-			// TODO: refactor
-			size += h.EventComponet.SizeOfEventById(id)
+			size += SizeOfEvent(e)
+		case HircTypeActorMixer:
+			a := h.ActorMixer(id, version)
+			if err := AssertActorMixer(a, version); err != nil {
+				panic(fmt.Errorf("(%s %d): %w", tName, hid, err))
+			}
+			size += SizeOfActorMixer(a, version)
 		default:
 			encodedData, in := encodedNodes[id]
 			if !in {
@@ -118,7 +125,9 @@ func EncodeHirc(
 			panic(fmt.Errorf("Internal id %d does not have hierarchy", internalId))
 		}
 
-		hierarchyId, t := hierarchy.Id, hierarchy.Type
+		const errMsg = "Failed to encode %s %d: %w"
+		hid, t := hierarchy.Id, hierarchy.Type
+		name := GetHircTypeName(t)
 		switch t {
 		case HircTypeState:
 			bufWriter := pool.Get().(*bytes.Buffer)
@@ -132,14 +141,15 @@ func EncodeHirc(
 				Version: e.Version,
 			}
 
-			state := h.GatherStateData(internalId)
-			size := SizeOfState(state.StateProps)
-			EncodeState(&be, state, size)
+			state := h.State(internalId)
+			if err = EncodeState(&be, state); err != nil {
+				panic(fmt.Errorf(errMsg, name, hid, err))
+			}
 
 			encoded := bufWriter.Bytes()
 
 			if err = e.Bytes(encoded); err != nil {
-				return fmt.Errorf("Failed to encode State %d: %w", hierarchyId, err)
+				return fmt.Errorf(errMsg, name, hid, err)
 			}
 
 			bufWriter.Reset()
@@ -156,12 +166,15 @@ func EncodeHirc(
 				Version: e.Version,
 			}
 
-			h.EncodeSound(&be, internalId)
+			sound := h.Sound(internalId, e.Version)
+			if err := EncodeSound(&be, sound); err != nil {
+				panic(fmt.Errorf(errMsg, name, hid, err))
+			}
 
 			encoded := bufWriter.Bytes()
 
 			if err = e.Bytes(encoded); err != nil {
-				return fmt.Errorf("Failed to encode Sound %d: %w", hierarchyId, err)
+				return fmt.Errorf(errMsg, name, hid, err)
 			}
 
 			bufWriter.Reset()
@@ -178,22 +191,47 @@ func EncodeHirc(
 				Version: e.Version,
 			}
 
-			event := h.GatherEventData(internalId)
-			size := SizeOfEvent(event.EventData)
-			EncodeEvent(&be, event, size)
+			event := h.Event(internalId)
+			if err := EncodeEvent(&be, event); err != nil {
+				panic(fmt.Errorf(errMsg, name, hid, err))
+			}
 
 			encoded := bufWriter.Bytes()
 
 			if err = e.Bytes(encoded); err != nil {
-				return fmt.Errorf("Failed to encode Event %d: %w", hierarchyId, err)
+				return fmt.Errorf("Failed to encode %s %d: %w", name, hid, err)
+			}
+
+			bufWriter.Reset()
+			pool.Put(bufWriter)
+		case HircTypeActorMixer:
+			bufWriter := pool.Get().(*bytes.Buffer)
+
+			be := HircEncoderCtx{
+				Encoder: &uio.EncoderCtx{
+					Writer: bufWriter,
+					Order: e.Encoder.Order,
+					Count: 0,
+				},
+				Version: e.Version,
+			}
+
+			a := h.ActorMixer(internalId, e.Version)
+			if err := EncodeActorMixer(&be, a); err != nil {
+				panic(fmt.Errorf(errMsg, name, hid, err))
+			}
+
+			encoded := bufWriter.Bytes()
+
+			if err = e.Bytes(encoded); err != nil {
+				return fmt.Errorf(errMsg, name, hid, err)
 			}
 
 			bufWriter.Reset()
 			pool.Put(bufWriter)
 		default:
-			ts := GetHircTypeName(t)
 			if err = h.EncodeEncodedHierarchy(e, t, internalId); err != nil {
-				return fmt.Errorf("Failed to encode %s %d: %w", ts, hierarchyId, err)
+				return fmt.Errorf(errMsg, name, hid, err)
 			}
 		}
 	}

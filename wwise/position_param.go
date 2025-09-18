@@ -107,9 +107,6 @@ func AssertPositionParam(p *PositionParam, isRoot bool) error {
 		if !PositionOverrideParent(p) {
 			return fmt.Errorf("Position override parent is not set for a root level hierarchy")
 		}
-		if !PositionListenerRelativeRouting(p) {
-			return fmt.Errorf("Position listener relative routing is not set for a root level hierarchy")
-		}
 	}
 
 	if !PositionOverrideParent(p) {
@@ -379,6 +376,9 @@ func (c *PositionParamComponent) GetPositionParam(internalId u32) (p *PositionPa
 
 // Has side effect
 func (c *PositionParamComponent) AddPositionParam(internalId u32, p *PositionParam) {
+	if p == nil {
+		panic("Position parameter is nil")
+	}
 	if _, in := c.PositionParam[internalId]; in {
 		panic(MonotonicIdCollision)
 	}

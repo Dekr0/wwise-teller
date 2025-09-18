@@ -28,6 +28,31 @@ type BaseParameter struct {
 	RTPC                    *RTPC
 }
 
+func (h *HIRC) AddBaseParameter(internalId u32, b *BaseParameter, version u32) {
+	h.OverrideComponent.AddOverrideParentFx(internalId, b.OverrideParentFx)
+	h.FXsComponent.AddFXs(internalId, b.FXs)
+	h.OverrideComponent.AddOverrideFxMetadata(internalId, b.OverrideFxMetadata)
+	h.FxMetadatasComponent.AddFxMetadatas(internalId, b.FxMetadatas)
+	if version <= 145 {
+		h.OverrideComponent.AddOverrideAttachmentParam(internalId, b.OverrideAttachmentParam)
+	}
+	h.OverrideComponent.AddOverrideBusId(internalId, b.OverideBusId)
+	h.Hierarchy.AddDirectParentId(internalId, b.DirectParentId)
+	h.AdvanceBehaviorComponent.AddBaseSettingVector(internalId, b.SettingVector)
+	h.PropComponent.AddProp(internalId, b.Prop)
+	h.RPropComponent.AddRProp(internalId, b.RProp)
+	h.PositionParamComponent.AddPositionParam(internalId, b.PositionParam)
+	h.AuxParamComponent.AddAuxParam(internalId, b.AuxParam)
+	h.AdvanceBehaviorComponent.AddAdvanceSettingVector(internalId, b.AdvanceSettingVector)
+	h.AdvanceBehaviorComponent.AddVirtualQueueBehavior(internalId, b.VirtualQueueBehavior)
+	h.AdvanceBehaviorComponent.AddMaxNumInstance(internalId, b.MaxNumInstance)
+	h.AdvanceBehaviorComponent.AddBelowThresholdBehavior(internalId, b.BelowThresholdBehavior)
+	h.HDRComponent.AddHDRSettingVector(internalId, b.HDRSettingVector)
+	h.StatePropComponent.AddStateProp(internalId, b.StateProp)
+	h.StateGroupComponent.AddStateGroup(internalId, b.StateGroup)
+	h.RTPCComponent.AddBaseRTPC(internalId, b.RTPC)
+}
+
 func (h *HIRC) BaseParameter(internalId u32, version u32) (b *BaseParameter) {
 	b = &BaseParameter{}
 	b.OverrideParentFx = h.GetOverrideParentFx(internalId)

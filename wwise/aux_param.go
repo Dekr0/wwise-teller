@@ -151,6 +151,9 @@ func (c *AuxParamComponent) GetAuxParam(internalId u32) (a *AuxParam) {
 }
 
 func (c *AuxParamComponent) AddAuxParam(internalId u32, a *AuxParam) {
+	if a == nil {
+		panic("Auxiliary parameter is nil")
+	}
 	if _, in := c.AuxParam[internalId]; in {
 		panic(MonotonicIdCollision)
 	}

@@ -246,6 +246,9 @@ func (c *RTPCComponent) GetBaseRTPC(internalId u32) (r *RTPC) {
 }
 
 func (c *RTPCComponent) AddBaseRTPC(internalId u32, r *RTPC) {
+	if r == nil {
+		panic("Base parameter RTPC is nil")
+	}
 	if _, in := c.BaseRTPC[internalId]; in {
 		panic(MonotonicIdCollision)
 	}

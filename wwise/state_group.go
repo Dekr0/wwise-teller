@@ -13,11 +13,11 @@ type StateGroup struct {
 	StateGroupId    []u32
 	StateSyncType   []StateSyncType
 	NumStates       []uio.V128
-	States          [][]State
+	States          [][]StateGroupState
 	StatesProp      [][]StateGroupStateProp
 }
 
-type State struct {
+type StateGroupState struct {
 	Id           u32
 	InstanceId   u32 // v <= 145
 }
@@ -52,7 +52,7 @@ func AllocStateGroup(size *uio.V128, version u32) *StateGroup {
 			StateGroupId: make([]u32, size.V, size.V),
 			StateSyncType: make([]StateSyncType, size.V, size.V),
 			NumStates: make([]uio.V128, size.V, size.V),
-			States: make([][]State, size.V, size.V),
+			States: make([][]StateGroupState, size.V, size.V),
 		}
 	} else {
 		return &StateGroup{
@@ -60,7 +60,7 @@ func AllocStateGroup(size *uio.V128, version u32) *StateGroup {
 			StateGroupId: make([]u32, size.V, size.V),
 			StateSyncType: make([]StateSyncType, size.V, size.V),
 			NumStates: make([]uio.V128, size.V, size.V),
-			States: make([][]State, size.V, size.V),
+			States: make([][]StateGroupState, size.V, size.V),
 			StatesProp: make([][]StateGroupStateProp, size.V, size.V),
 		}
 	}
@@ -255,6 +255,9 @@ func (c *StateGroupComponent) GetStateGroup(internalId u32) (p *StateGroup) {
 }
 
 func (c *StateGroupComponent) AddStateGroup(internalId u32, s *StateGroup) {
+	if s == nil {
+		panic("State group is nil")
+	}
 	if _, in := c.StateGroup[internalId]; in {
 		panic(MonotonicIdCollision)
 	}

@@ -212,6 +212,9 @@ func (c *RPropComponent) GetRProp(internalId u32) (r *RProp) {
 
 // Has side effect
 func (c *PropComponent) AddProp(internalId u32, p *Prop) {
+	if p == nil {
+		panic("Propery is nil")
+	}
 	if _, in := c.Prop[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -220,6 +223,9 @@ func (c *PropComponent) AddProp(internalId u32, p *Prop) {
 
 // Has side effect
 func (c *RPropComponent) AddRProp(internalId u32, r *RProp) {
+	if r == nil {
+		panic("Range-based property is nil")
+	}
 	if _, in := c.RProp[internalId]; in {
 		panic(MonotonicIdCollision)
 	}

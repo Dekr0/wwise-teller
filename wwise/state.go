@@ -8,7 +8,7 @@ import (
 
 const SizeOfStateBaseData = SizeOfHierarchyId + Size16
 
-type StateH struct {
+type State struct {
 	Id          u32
 	StateProps *StateHierarchyProp
 }
@@ -51,7 +51,8 @@ func AllocStateProps(numStateProps u16) *StateHierarchyProp {
 // --- assertion --- //
 
 // Has no side effect
-func AssertState(stateProp *StateHierarchyProp) error {
+func AssertState(s *State) error {
+	stateProp := s.StateProps
 	if len(stateProp.Ids) != len(stateProp.Vals) {
 		return fmt.Errorf("# of state property ids does not equal # of state values")
 	}
@@ -61,7 +62,8 @@ func AssertState(stateProp *StateHierarchyProp) error {
 // --- sizing --- //
 
 // Has no side effect
-func SizeOfState(stateProp *StateHierarchyProp) (size u32) {
+func SizeOfState(s *State) (size u32) {
+	stateProp := s.StateProps
 	size = SizeOfStateBaseData
 	size += u32(len(stateProp.Ids)) * Size16 + u32(len(stateProp.Vals)) * Size32
 	return size
@@ -72,34 +74,32 @@ func SizeOfState(stateProp *StateHierarchyProp) (size u32) {
 // Has no side effect
 func EncodeState(
 	e    *HircEncoderCtx,
-	s    *StateH,
-	size u32,
-) {
+	s    *State,
+) error {
 	var err error
 	id := s.Id
 	stateProps := s.StateProps
+	size := SizeOfState(s)
 	header := HierarchyHeader{ HircTypeState, size }
 	if err = e.Struct(header, SizeOfHierarchyHeader); err != nil {
-		panic(fmt.Errorf("(State %d) Failed to encode hierarchy header: %w", id, err))
+		return fmt.Errorf("Failed to encode hierarchy header: %w", err)
 	}
 	curr := e.Encoder.Count
 	if err = e.Primitive(id); err != nil {
-		panic(fmt.Errorf("(State %d) Failed to encode id: %w", id, err))
+		return fmt.Errorf("Failed to encode id: %w", err)
 	}
 	if err = e.Primitive(u16(len(stateProps.Ids))); err != nil {
-		panic(fmt.Errorf("(State %d) Failed to encode # of state properties: %w", id, err))
+		return fmt.Errorf("Failed to encode # of state properties: %w", err)
 	}
 	ids := stateProps.Ids
 	vals := stateProps.Vals
 	for i, id := range ids {
 		stateProp := StatePropS{ id, vals[i] }
 		if err = e.Struct(stateProp, SizeOfStateStateProp); err != nil {
-			panic(fmt.Errorf("(State %d) Failed to encode %d-th state property: %w", id, i, err))
+			return fmt.Errorf("Failed to encode %d-th state property: %w", i, err)
 		}
 	}
-	if err := e.Expect(curr, size); err != nil {
-		panic(fmt.Errorf("(State %d) %w", id, err))
-	}
+	return e.Expect(curr, size)
 }
 
 // --- component getter and setter --- //
@@ -130,31 +130,11 @@ func (s *StateComponent) AddStateData(internalId u32, data *StateHierarchyProp) 
 	s.StateProps[internalId] = data
 }
 
-// --- component assertion wrapper --- //
-
-func (s *StateComponent) AssertStateById(internalId u32) error {
-	stateProp, in := s.StateProps[internalId]
-	if !in {
-		return fmt.Errorf("Failed to locate state property") 
-	}
-	return AssertState(stateProp)
-}
-
-// --- component sizing wrapper --- //
-
-func (s *StateComponent) SizeOfStateById(internalId u32) u32 {
-	stateProp, in := s.StateProps[internalId]
-	if !in {
-		panic("Failed to locate state property")
-	}
-	return SizeOfState(stateProp)
-}
-
 // --- HIRC component wrapper --- //
 
 // Has no side effect
-func (h *HIRC) GatherStateData(internalId u32) *StateH {
+func (h *HIRC) State(internalId u32) *State {
 	node := h.Hierarchy.GetHierarchyNode(internalId)
 	p := h.StateComponent.GetStateProps(internalId)
-	return &StateH{ node.Id, p }
+	return &State{ node.Id, p }
 }

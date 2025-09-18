@@ -90,6 +90,8 @@ func AllocDecodeHIRC(
 			decoder = AllocDecodeSound
 		case wwise.HircTypeEvent:
 			decoder = AllocDecodeEvent
+		case wwise.HircTypeActorMixer:
+			decoder = AllocDecodeActorMixer
 		}
 
 		if decoder == nil {
@@ -109,12 +111,14 @@ func AllocDecodeHIRC(
 		reader := bytes.NewReader(buffer)
 		res := decoder(reader, o, version, size)
 		switch t := res.(type) {
-		case *wwise.StateH:
+		case *wwise.State:
 			h.AddState(t.Id, t.StateProps)
-		case *wwise.SoundH:
+		case *wwise.Sound:
 			h.AddSound(t, version)
-		case *wwise.EventH:
+		case *wwise.Event:
 			h.AddEvent(t.Id, t.EventData)
+		case *wwise.ActorMixer:
+			h.AddActorMixer(t, version)
 		}
 		dispatch++
 	}

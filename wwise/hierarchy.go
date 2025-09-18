@@ -15,11 +15,16 @@ type HierarchyNode struct {
 	Id     u32
 }
 
+type Container struct {
+	Ids []u32
+}
+
 type Hierarchy struct {
 	NextInternalId     u32 
 	InternalIds      []u32
 	Nodes            map[u32]*HierarchyNode
 	DirectParentId   map[u32]u32
+	Container        map[u32]*Container
 	EncodedNodes     map[u32][]byte
 }
 
@@ -31,8 +36,33 @@ func AllocHierarchy(numHirc u32) *Hierarchy {
 		InternalIds: make([]u32, 0, numHirc),
 		DirectParentId: make(map[u32]u32, numHirc),
 		Nodes: make(map[u32]*HierarchyNode, numHirc),
+		Container: make(map[u32]*Container, numHirc),
 		EncodedNodes: make(map[u32][]byte),
 	}
+}
+
+func AllocContainer(size u32) *Container {
+	return &Container{ make([]u32, size, size) }
+}
+
+// --- sizing --- //
+
+func SizeOfContainer(c *Container) u32 {
+	return Size32 + Size32 * u32(len(c.Ids))
+}
+
+// --- encoding --- //
+
+func EncodeContainer(e *HircEncoderCtx, c *Container) error {
+	size := SizeOfContainer(c)
+	curr := e.Count()
+	if err := e.Primitive(u32(len(c.Ids))); err != nil {
+		return fmt.Errorf("Failed to encode # of ids in container: %w", err)
+	}
+	if err := e.Primitive(c.Ids); err != nil {
+		return fmt.Errorf("Failed to encode ids in container: %w", err)
+	}
+	return e.Expect(curr, size)
 }
 
 // --- getter and setter --- //
@@ -81,6 +111,24 @@ func (h *Hierarchy) AddDirectParentId(internalId u32, directParentId u32) {
 	h.DirectParentId[internalId] = directParentId
 }
 
+func (h *Hierarchy) GetContainer(internalId u32) *Container {
+	if container, in := h.Container[internalId]; !in {
+		panic("Failed to locate container")
+	} else {
+		return container
+	}
+}
+
+func (h *Hierarchy) AddContainer(internalId u32, container *Container) {
+	if container == nil {
+		panic("Container is nil")
+	}
+	if _, in := h.Container[internalId]; in {
+		panic(MonotonicIdCollision)
+	}
+	h.Container[internalId] = container
+}
+
 func (h *Hierarchy) GetEncodedHierarchyNode(internalId u32) []byte {
 	if encoded, in := h.EncodedNodes[internalId]; !in {
 		panic("Failed to locate encoded nodes")
@@ -123,6 +171,14 @@ func (h *HIRC) GetDirectParentId(internalId u32) u32 {
 
 func (h *HIRC) GetEncodedHierarchyNode(internalId u32) []byte {
 	return h.Hierarchy.GetEncodedHierarchyNode(internalId)
+}
+
+func (h *HIRC) AddContainer(internalId u32, container *Container) {
+	h.Hierarchy.AddContainer(internalId, container)
+}
+
+func (h *HIRC) GetContainer(internalId u32) *Container {
+	return h.Hierarchy.GetContainer(internalId)
 }
 
 func (h *HIRC) EncodeEncodedHierarchy(e *HircEncoderCtx, t HircType, internalId u32) error {

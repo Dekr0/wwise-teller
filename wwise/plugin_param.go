@@ -114,6 +114,9 @@ func (c *PluginParamComponent) GetPluginParam(internalId u32) (p *PluginParam) {
 
 // Has side effect
 func (c *PluginParamComponent) AddPluginParam(internalId u32, p *PluginParam) {
+	if p == nil {
+		panic("Plugin parameter is nil")
+	}
 	if _, in := c.PluginParam[internalId]; in {
 		panic(MonotonicIdCollision)
 	}

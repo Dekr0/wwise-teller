@@ -7,7 +7,7 @@ import (
 
 // --- struct definition --- //
 
-type EventH struct {
+type Event struct {
 	Id         u32
 	EventData *EventData
 }
@@ -44,7 +44,8 @@ func AllocEventData(numActionIds *uio.V128) (data *EventData) {
 // --- assertion --- //
 
 // Has no side effect
-func AssertEvent(eventData *EventData) error {
+func AssertEvent(e *Event) error {
+	eventData := e.EventData
 	if eventData.NumActionIds.V != u64(len(eventData.ActionIds)) {
 		return fmt.Errorf("# of action ids does not equal to actual # of stored action ids")
 	}
@@ -54,8 +55,9 @@ func AssertEvent(eventData *EventData) error {
 // --- sizing --- //
 
 // Has no side effect
-func SizeOfEvent(eventData *EventData) (size u32) {
+func SizeOfEvent(e *Event) (size u32) {
 	size = SizeOfHierarchyId
+	eventData := e.EventData
 	b, v := eventData.NumActionIds.B, eventData.NumActionIds.V
 	size += u32(len(b))
 	size += u32(v) * Size32
@@ -67,50 +69,31 @@ func SizeOfEvent(eventData *EventData) (size u32) {
 // Has no side effect
 func EncodeEvent(
 	eCtx  *HircEncoderCtx,
-	event *EventH,
-	size   u32,
-) {
+	event *Event,
+) error {
 	var err error
 	id := event.Id
+	size := SizeOfEvent(event)
 	eventData := event.EventData
 	header := HierarchyHeader{ HircTypeEvent, size }
 	if err = eCtx.Struct(header, SizeOfHierarchyHeader); err != nil {
-		panic(fmt.Errorf("(Event %d) Failed to encode hierarchy header: %w", id, err))
+		return fmt.Errorf("Failed to encode hierarchy header: %w", err)
 	}
 	curr := eCtx.Encoder.Count
 	if err = eCtx.Primitive(id); err != nil {
-		panic(fmt.Errorf("(Event %d) Failed to encode id: %w", id, err))
+		return fmt.Errorf("Failed to encode id: %w", err)
 	}
 	err = eCtx.Bytes(eventData.NumActionIds.B)
 	if err != nil {
-		panic(fmt.Errorf("(Event %d) Failed to write number of action ids: %w", id, err))
+		return fmt.Errorf("Failed to write number of action ids: %w", err)
 	}
 	actionIds := eventData.ActionIds
 	for i, actionId := range actionIds {
 		if err = eCtx.Primitive(actionId); err != nil {
-			panic(fmt.Errorf("(Event %d) Failed to encode %d-th action id %d", id, i, actionId))
+			return fmt.Errorf("Failed to encode %d-th action id %d", i, actionId)
 		}
 	}
-	if err := eCtx.Expect(curr, size); err != nil {
-		panic(fmt.Errorf("(Event %d) %w", id, err))
-	}
-}
-
-// --- component assertion wrapper --- //
-
-func (e *EventComponent) AssertEventById(internalId u32) error {
-	eventData, in := e.EventData[internalId]
-	if !in {
-		return fmt.Errorf("Failed to locate event data")
-	}
-	return AssertEvent(eventData)
-}
-
-// --- component sizing wrapper --- //
-
-func (e *EventComponent) SizeOfEventById(internalId u32) u32 {
-	eventData := e.GetEventData(internalId)
-	return SizeOfEvent(eventData)
+	return eCtx.Expect(curr, size)
 }
 
 // --- component getter and setter --- //
@@ -143,8 +126,8 @@ func (e *EventComponent) AddEventData(internalId u32, data *EventData) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GatherEventData(internalId u32) *EventH {
+func (h *HIRC) Event(internalId u32) *Event {
 	node := h.Hierarchy.GetHierarchyNode(internalId)
 	data := h.EventComponet.GetEventData(internalId)
-	return &EventH{ node.Id, data }
+	return &Event{ node.Id, data }
 }

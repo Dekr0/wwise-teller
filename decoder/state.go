@@ -20,7 +20,7 @@ func AllocDecodeState(r io.Reader, o order, ver u32, size u32) any {
 		data.Vals[i] = uio.F32P(r, o)
 	}
 
-	res := &wwise.StateH{ Id: id, StateProps: data }
+	res := &wwise.State{ Id: id, StateProps: data }
 
 	return res
 }

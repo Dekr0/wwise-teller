@@ -253,6 +253,9 @@ func (c *FxMetadatasComponent) GetFxMetadatas(internalId u32) (f *FxMetadatas) {
 }
 
 func (c *FXsComponent) AddFXs(internalId u32, f *FXs) {
+	if f == nil {
+		panic("FXs is nil")
+	}
 	if _, in := c.FXs[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -260,6 +263,9 @@ func (c *FXsComponent) AddFXs(internalId u32, f *FXs) {
 }
 
 func (c *FxMetadatasComponent) AddFxMetadatas(internalId u32, f *FxMetadatas) {
+	if f == nil {
+		panic("FxMetadatas is nil")
+	}
 	if _, in := c.FxMetadatas[internalId]; in {
 		panic(MonotonicIdCollision)
 	}

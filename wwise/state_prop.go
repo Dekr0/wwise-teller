@@ -140,6 +140,9 @@ func (c *StatePropComponent) GetStateProp(internalId u32) (p *StateProp) {
 }
 
 func (c *StatePropComponent) AddStateProp(internalId u32, s *StateProp) {
+	if s == nil {
+		panic("State property is nil")
+	}
 	if _, in := c.StateProp[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
