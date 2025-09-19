@@ -1,5 +1,51 @@
 package wwise
 
+type HIRCSpaceSpec struct {
+	Sum             u32
+	AdvanceBehavior u32
+	AuxParam        u32
+	Event           u32
+	FXs             u32
+	HDR             u32
+	Override        u32
+	PluginParam     u32
+	PositionParam   u32
+	Prop            u32
+	RProp           u32
+	RTPC            u32
+	RandomSeq       u32
+	Layer           u32
+	Source          u32
+	State           u32
+	StateProp       u32
+	StateGroup      u32
+}
+
+type HierarchyStat struct {
+	State             u32
+	Sound             u32
+	Action            u32
+	Event             u32
+	RanSeqCntr        u32
+	SwitchCntr        u32
+	ActorMixer        u32
+	Bus               u32
+	LayerCntr         u32
+	MusicSegment      u32
+	MusicTrack        u32
+	MusicSwitchCntr   u32
+	MusicRanSeqCntr   u32
+	Attenuation       u32
+	DialogueEvent     u32
+	FxShareSet        u32
+	FxCustom          u32
+	AuxBus            u32
+	LFOModulator      u32
+	EnvelopeModulator u32
+	AudioDevice       u32
+	TimeModulator     u32
+}
+
 type HIRC struct {
 	AdvanceBehaviorComponent AdvanceBehaviorComponent
 	AuxParamComponent        AuxParamComponent
@@ -14,31 +60,57 @@ type HIRC struct {
 	PropComponent            PropComponent
 	RPropComponent           RPropComponent
 	RTPCComponent            RTPCComponent
+	RandomSeqComponent       RandomSeqComponent
 	SourceDataComponent      SourceDataComponent
 	StateComponent           StateComponent
 	StatePropComponent       StatePropComponent
 	StateGroupComponent      StateGroupComponent
 }
 
-func AllocHIRC(numHirc u32) *HIRC {
+func EstimateHIRCSpace(in *HierarchyStat, out *HIRCSpaceSpec) {
+	actorMixer := in.Sound + in.RanSeqCntr + in.SwitchCntr + in.ActorMixer + in.LayerCntr
+	buses := in.Bus + in.AuxBus
+	FXs := in.FxCustom + in.FxShareSet
+	music := in.MusicTrack + in.MusicSegment + in.MusicSwitchCntr + in.MusicRanSeqCntr
+	common := actorMixer + buses + music
+	out.AdvanceBehavior = common
+	out.AuxParam = common
+	out.Event = in.Event
+	out.FXs = common
+	out.HDR = common
+	out.Override = common
+	out.PluginParam = in.Sound + FXs
+	out.PositionParam = common
+	out.Prop = common
+	out.RProp = common
+	out.RTPC = common
+	out.RandomSeq = in.RanSeqCntr
+	out.Layer = in.LayerCntr
+	out.State = in.State
+	out.StateProp = common
+	out.StateGroup = common
+}
+
+func AllocHIRC(s *HIRCSpaceSpec) *HIRC {
 	return &HIRC{
-		AdvanceBehaviorComponent: *AllocAdvanceBehaviorComponent(numHirc / 2), 
-		AuxParamComponent: *AllocAuxParamComponent(numHirc),
-		EventComponet: *AllocEventComponent(numHirc / 4),
-		FXsComponent: *AllocFXsComponent(0),
-		FxMetadatasComponent: *AllocFxMetadataComponent(0),
-		Hierarchy: *AllocHierarchy(numHirc),
-		HDRComponent: *AllocateHDRComponent(numHirc),
-		OverrideComponent: *AllocOverrideComponent(0),
-		PluginParamComponent: *AllocPluginParamComponent(0),
-		PositionParamComponent: *AllocPositionParamComponent(numHirc),
-		PropComponent: *AllocPropComponent(numHirc),
-		RPropComponent: *AllocRPropComponent(numHirc),
-		RTPCComponent: *AllocateRTPCComponent(numHirc, 0),
-		SourceDataComponent: *AllocSourceDataComponent(0),
-		StateComponent: *AllocStateComponent(0),
-		StatePropComponent: *AllocStatePropComponent(numHirc),
-		StateGroupComponent: *AllocStateGroupComponent(numHirc),
+		AdvanceBehaviorComponent: *AllocAdvanceBehaviorComponent(s.AdvanceBehavior), 
+		AuxParamComponent: *AllocAuxParamComponent(s.AuxParam),
+		EventComponet: *AllocEventComponent(s.Event),
+		FXsComponent: *AllocFXsComponent(s.FXs),
+		FxMetadatasComponent: *AllocFxMetadataComponent(s.FXs),
+		Hierarchy: *AllocHierarchy(s.Sum),
+		HDRComponent: *AllocateHDRComponent(s.HDR),
+		OverrideComponent: *AllocOverrideComponent(s.Override),
+		PluginParamComponent: *AllocPluginParamComponent(s.PluginParam),
+		PositionParamComponent: *AllocPositionParamComponent(s.PositionParam),
+		PropComponent: *AllocPropComponent(s.Prop),
+		RPropComponent: *AllocRPropComponent(s.RProp),
+		RTPCComponent: *AllocateRTPCComponent(s.RTPC, s.Layer),
+		RandomSeqComponent: *AllocRandomSeqComponent(s.RandomSeq),
+		SourceDataComponent: *AllocSourceDataComponent(s.Source),
+		StateComponent: *AllocStateComponent(s.State),
+		StatePropComponent: *AllocStatePropComponent(s.StateProp),
+		StateGroupComponent: *AllocStateGroupComponent(s.StateGroup),
 	}
 }
 

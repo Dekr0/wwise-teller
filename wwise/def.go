@@ -84,14 +84,32 @@ func GetHircTypeName(t HircType) string {
 	return HircTypeName[t - 1]
 }
 
-type ChunkName = string
+type Tag = string
 const (
-	ChunkNameBKHD ChunkName = "BKHD"
-	ChunkNameDIDX ChunkName = "DIDX"
-	ChunkNameDATA ChunkName = "DATA"
-	ChunkNameINIT ChunkName = "INIT"
-	ChunkNameSTMG ChunkName = "STMG"
-	ChunkNameHIRC ChunkName = "HIRC"
+	TagBKHD Tag = "BKHD"
+	TagDIDX Tag = "DIDX"
+	TagDATA Tag = "DATA"
+	TagSTMG Tag = "STMG"
+	TagHIRC Tag = "HIRC"
+	TagFXPR Tag = "FXPR"
+	TagENVS Tag = "ENVS"
+	TagSTID Tag = "STID"
+	TagINIT Tag = "INIT"
+	TagPLAT Tag = "PLAT"
+	TagMETA Tag = "META"
 )
+var KnownTag []string = []string{
+	TagBKHD,
+	TagDIDX,
+	TagDATA,
+	TagSTMG,
+	TagHIRC,
+	TagFXPR,
+	TagENVS,
+	TagSTID,
+	TagINIT,
+	TagPLAT,
+	TagMETA,
+}
 
 type AccumType = u8

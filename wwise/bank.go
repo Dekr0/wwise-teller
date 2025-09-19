@@ -61,11 +61,11 @@ func (bnk *Bank) RegBKHD(bkhd *BKHD) {
 		panic("bkhd is nil")
 	}
 
-	if bnk.Chunk.HasChunk(ChunkNameBKHD) {
+	if bnk.Chunk.HasChunk(TagBKHD) {
 		panic(fmt.Sprintf("Duplicated BKHD chunk"))
 	}
 
-	bnk.Chunk.AddChunkPosition(ChunkNameBKHD, 0)
+	bnk.Chunk.AddChunkPosition(TagBKHD, 0)
 
 	bnk.BKHD = bkhd
 }
@@ -76,11 +76,11 @@ func (bnk *Bank) RegDIDXDATA(audioStore *AudioStore, pos u8) {
 		panic("didxdata is nil")
 	}
 
-	if bnk.Chunk.HasChunk(ChunkNameDIDX) {
+	if bnk.Chunk.HasChunk(TagDIDX) {
 		panic(fmt.Sprintf("Duplicated DIDX chunk"))
 	}
 
-	bnk.Chunk.AddChunkPosition(ChunkNameDIDX, pos)
+	bnk.Chunk.AddChunkPosition(TagDIDX, pos)
 
 	bnk.AudioStore = audioStore
 }
@@ -91,11 +91,11 @@ func (bnk *Bank) RegHIRC(hirc *HIRC, pos u8) {
 		panic("hirc is nil")
 	}
 
-	if bnk.Chunk.HasChunk(ChunkNameHIRC) {
+	if bnk.Chunk.HasChunk(TagHIRC) {
 		panic(fmt.Sprintf("Duplicated HIRC chunk"))
 	}
 
-	bnk.Chunk.AddChunkPosition(ChunkNameHIRC, pos)
+	bnk.Chunk.AddChunkPosition(TagHIRC, pos)
 
 	bnk.HIRC = hirc
 }

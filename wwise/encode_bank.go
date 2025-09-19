@@ -16,24 +16,6 @@ type ChunkHeader struct {
 
 const SizeOfChunkHeader = 8
 
-type EncodeBankOpt struct {
-	option u8
-}
-
-const MaskMETA u8 = 0b1000_0000
-
-func IncludeEncodedMETA(o *EncodeBankOpt) {
-	o.option |= MaskMETA
-}
-
-func IsIncludeEncodedMETA(o *EncodeBankOpt) bool {
-	return o.option & MaskMETA > 0
-}
-
-func ExcludeEncodedMETA(o *EncodeBankOpt) {
-	o.option = o.option | (^MaskMETA)
-}
-
 // The encoded chunk will follow convention / order imposed by Wwise authoring 
 // tool.
 // BKHD -> DIDX -> DATA -> INIT -> STMG -> HIRC
@@ -81,7 +63,7 @@ func EncodeBank(
 			}
 			slog.Info("Encoded DIDX")
 
-			if err = EncodeEncodedDATA(&b.Chunk, e); err != nil {
+			if err = EncodeEncodedChunk(&b.Chunk, TagDATA, e); err != nil {
 				return err
 			}
 		}
@@ -89,11 +71,11 @@ func EncodeBank(
 		slog.Warn(fmt.Sprintf("Sound bank %d does not have DIDX chunk and / or DATA chunk", b.BKHD.Id))
 	}
 
-	if err := EncodeEncodedINIT(&b.Chunk, e); err != nil {
+	if err := EncodeEncodedChunk(&b.Chunk, TagINIT, e); err != nil {
 		return err
 	}
 
-	if err := EncodeEncodedSTMG(&b.Chunk, e); err != nil {
+	if err := EncodeEncodedChunk(&b.Chunk, TagSTMG, e); err != nil {
 		return err
 	}
 
@@ -103,69 +85,33 @@ func EncodeBank(
 			return fmt.Errorf("Failed to encode HIRC chunk: %w", err)
 		}
 	} else {
-		slog.Warn("Sound bank %d does not have HIRC chunk.")
+		if err = EncodeEncodedChunk(&b.Chunk, TagHIRC, e); err != nil {
+			return fmt.Errorf("Faile to encode HIRC chunk: %w", err)
+		}
 	}
 
 	return EncodeRemainEncodedChunk(&b.Chunk, e, bankOpt)
 }
 
-func EncodeEncodedDATA(c *ChunkComponent, e *uio.EncoderCtx) (err error) {
- 	chunk, in := c.Encoded[ChunkNameDATA]
+func EncodeEncodedChunk(c *ChunkComponent, tag Tag, e *uio.EncoderCtx) (err error) {
+ 	chunk, in := c.Encoded[tag]
  	if !in {
- 		slog.Warn("Encoded DATA chunk is missing")
+ 		slog.Warn(fmt.Sprintf("Encoded %s chunk is missing", tag))
  	} else {
  		chunkHeader := ChunkHeader{
- 			[4]byte([]byte(ChunkNameDATA)), 
+ 			[4]byte([]byte(tag)), 
  			u32(len(chunk)),
  		}
  		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
- 			return fmt.Errorf("Failed to write DATA chunk header: %w", err)
+ 			return fmt.Errorf("Failed to write %s chunk header: %w", tag, err)
  		}
 
  		if err = uio.EncodeBytes(e, chunk); err != nil {
- 			return fmt.Errorf("Failed to write encoded DATA chunk: %w", err)
+ 			return fmt.Errorf("Failed to write encoded %s chunk: %w", tag, err)
  		}
- 		slog.Info("Encoded DATA")
+ 		slog.Info(fmt.Sprintf("Encoded %s", tag))
  	}
  	return nil
-}
-
-func EncodeEncodedINIT(c *ChunkComponent, e *uio.EncoderCtx) (err error) {
-	chunk, in := c.Encoded[ChunkNameINIT]
-	if in {
-		chunkHeader := ChunkHeader{
-			[4]byte([]byte(ChunkNameINIT)), 
-			u32(len(chunk)),
-		}
-		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
-			return fmt.Errorf("Failed to write INIT chunk header: %w", err)
-		}
-
-		if err = uio.EncodeBytes(e, chunk); err != nil {
-			return fmt.Errorf("Failed to write encoded INIT chunk: %w", err)
-		}
-		slog.Info("Encoded INIT")
-	}
-	return nil
-}
-
-func EncodeEncodedSTMG(c *ChunkComponent, e *uio.EncoderCtx) (err error) {
-	chunk, in := c.Encoded[ChunkNameSTMG]
-	if in {
-		chunkHeader := ChunkHeader{
-			[4]byte([]byte(ChunkNameSTMG)), 
-			u32(len(chunk)),
-		}
-		if err = uio.EncodeStruct(e, chunkHeader, SizeOfChunkHeader); err != nil {
-			return fmt.Errorf("Failed to write STMG chunk header: %w", err)
-		}
-
-		if err = uio.EncodeBytes(e, chunk); err != nil {
-			return fmt.Errorf("Failed to write encoded STMG chunk: %w", err)
-		}
-		slog.Info("Encoded STMG")
-	}
-	return nil
 }
 
 func EncodeRemainEncodedChunk(
@@ -187,12 +133,12 @@ func EncodeRemainEncodedChunk(
 		}
 
 		switch chunkName {
-		case ChunkNameBKHD:
-		case ChunkNameDIDX:
-		case ChunkNameDATA:
-		case ChunkNameINIT:
-		case ChunkNameSTMG:
-		case ChunkNameHIRC:
+		case TagBKHD:
+		case TagDIDX:
+		case TagDATA:
+		case TagINIT:
+		case TagSTMG:
+		case TagHIRC:
 		default:
 			i, found := sort.Find(len(chunkPositions), func(i int) int {
 				if v < chunkPositions[i].Position {

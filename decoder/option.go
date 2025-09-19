@@ -2,7 +2,7 @@ package decoder
 
 type BankDecodeOption struct {
 	option              u8
-	DecodedChunkRoutine u8
+	NumDecoder u8
 	DecoderBufferSize   u32
 }
 

@@ -29,6 +29,7 @@ func TestDecodeComplex(t *testing.T) {
 	slog.SetDefault(TestLogger)
 
 	bankDecodeOpt := decoder.BankDecodeOption{}
+	bankDecodeOpt.NumDecoder = 4
 	bankDecodeOpt.ExcludeDATA()
 	hircDecodeOpt := decoder.HircDecodeOption{}
 
@@ -104,6 +105,7 @@ func TestDecodeAll(t *testing.T) {
 
 	bankDecodeOpt := decoder.BankDecodeOption{}
 	bankDecodeOpt.ExcludeDATA()
+	bankDecodeOpt.NumDecoder = 4
 	hircDecodeOpt := decoder.HircDecodeOption{}
 
 	bankEncodeOption := wwise.EncodeBankOpt{}
@@ -177,10 +179,11 @@ func TestDecodeFault(t *testing.T) {
 	SoundBanksDir = "/mnt/d/wwise-teller/storage/soundbanks/vanilla/latest"
 
 	bankDecodeOpt := decoder.BankDecodeOption{}
+	bankDecodeOpt.NumDecoder = 4
 	bankDecodeOpt.ExcludeDATA()
 	hircDecodeOpt := decoder.HircDecodeOption{}
 
-	const bankName = "content_audio_obj_gen_horde_defend.st_bnk"
+	const bankName = "content_audio_music_mission_tutorial.st_bnk"
 	inputBank := filepath.Join(SoundBanksDir, bankName)
 	bnk, err := decoder.AllocDecode(
 		t.Context(),
@@ -245,6 +248,7 @@ func TestDecodeInit(t *testing.T) {
 	slog.SetDefault(TestLogger)
 
 	bankDecodeOpt := decoder.BankDecodeOption{}
+	bankDecodeOpt.NumDecoder = 4
 	bankDecodeOpt.ExcludeDATA()
 	hircDecodeOpt := decoder.HircDecodeOption{}
 

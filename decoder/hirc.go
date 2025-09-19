@@ -21,6 +21,7 @@ type HircDecodeOption struct {
 func AllocDecodeHIRC(
 	ctx       context.Context, 
 	opt      *HircDecodeOption,
+	spec     *wwise.HIRCSpaceSpec,
 	inReader  io.Reader, 
 	o         order,
 	size      u32, 
@@ -28,6 +29,9 @@ func AllocDecodeHIRC(
 ) (h *wwise.HIRC, err error) {
 	if opt == nil {
 		return nil, fmt.Errorf("Must provide HIRC decoder option")
+	}
+	if spec == nil {
+		return nil, fmt.Errorf("Must provide hierarchy space allocation specification")
 	}
 
 	r := io.LimitReader(inReader, int64(size))
@@ -37,7 +41,7 @@ func AllocDecodeHIRC(
 		return nil, fmt.Errorf("Failed to decode # of hierarchies: %w", err)
 	}
 
-	h = wwise.AllocHIRC(numHirc)
+	h = wwise.AllocHIRC(spec)
 
 	dispatch := uint32(0)
 
@@ -131,4 +135,105 @@ func AllocDecodeHIRC(
 	}
 
 	return h, nil
+}
+
+func PrefetchHIRCMetadata(
+	ctx       context.Context, 
+	inReader  io.ReadSeeker, 
+	opt      *HircDecodeOption,
+	out      *wwise.HierarchyStat,
+	o         order,
+	size      u32, 
+	version   u32, 
+) error {
+	if opt == nil {
+		return fmt.Errorf("Must provide HIRC decoder option")
+	}
+	if out == nil {
+		return fmt.Errorf("Must provide hierarchy statistic")
+	}
+
+	r := io.LimitReader(inReader, int64(size))
+
+	numHirc, err := uio.U32(r, o)
+	if err != nil {
+		return fmt.Errorf("Failed to decode # of hierarchies: %w", err)
+	}
+
+	eof := false
+	dispatch := uint32(0)
+
+	for dispatch < numHirc && !eof {
+		select {
+		case <- ctx.Done():
+			return fmt.Errorf("Hierarchy space estimation process cancel: %w", ctx.Err())
+		default:
+		}
+		t, err := uio.U8(r, o)
+		if err != nil {
+			if err == io.EOF {
+				eof = true
+				break
+			}
+			return fmt.Errorf("Failed to decode hierarchy type: %w", err)
+		}
+		size, err := uio.U32(r, o)
+		if err != nil {
+			if err == io.EOF {
+				eof = true
+				break
+			}
+			return fmt.Errorf("Failed to decode hierarchy data size: %w", err)
+		}
+		switch t {
+			case wwise.HircTypeState:
+				out.State++
+			case wwise.HircTypeSound:
+				out.Sound++
+			case wwise.HircTypeAction:
+				out.Action++
+			case wwise.HircTypeEvent:
+				out.Event++
+			case wwise.HircTypeRanSeqCntr:
+				out.RanSeqCntr++
+			case wwise.HircTypeSwitchCntr:
+				out.SwitchCntr++
+			case wwise.HircTypeActorMixer:
+				out.ActorMixer++
+			case wwise.HircTypeBus:
+				out.Bus++
+			case wwise.HircTypeLayerCntr:
+				out.LayerCntr++
+			case wwise.HircTypeMusicSegment:
+				out.MusicSegment++
+			case wwise.HircTypeMusicTrack:
+				out.MusicTrack++
+			case wwise.HircTypeMusicSwitchCntr:
+				out.MusicSwitchCntr++
+			case wwise.HircTypeMusicRanSeqCntr:
+				out.MusicRanSeqCntr++
+			case wwise.HircTypeAttenuation:
+				out.Attenuation++
+			case wwise.HircTypeDialogueEvent:
+				out.DialogueEvent++
+			case wwise.HircTypeFxShareSet:
+				out.FxShareSet++
+			case wwise.HircTypeFxCustom:
+				out.FxCustom++
+			case wwise.HircTypeAuxBus:
+				out.AuxBus++
+			case wwise.HircTypeLFOModulator:
+				out.LFOModulator++
+			case wwise.HircTypeEnvelopeModulator:
+				out.EnvelopeModulator++
+			case wwise.HircTypeAudioDevice:
+				out.AudioDevice++
+			case wwise.HircTypeTimeModulator:
+				out.TimeModulator++
+		}
+		if _, err := r.(io.ReadSeeker).Seek(int64(size), io.SeekCurrent); err != nil {
+			return fmt.Errorf("Failed to skip %d bytes ahead to the next hierarchy: %w", size, err)
+		}
+	}
+	return nil
 }
