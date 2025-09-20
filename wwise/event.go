@@ -9,7 +9,7 @@ import (
 
 type Event struct {
 	Id         u32
-	EventData *EventData
+	EventData  EventData
 }
 
 type EventData struct {
@@ -18,7 +18,7 @@ type EventData struct {
 }
 
 type EventComponent struct {
-	EventData map[u32]*EventData
+	EventData map[u32]EventData
 }
 
 // --- allocation / freeing --- //
@@ -26,17 +26,17 @@ type EventComponent struct {
 func AllocEventComponent(numEvent u32) *EventComponent {
 	if numEvent <= 0 {
 		return &EventComponent{
-			EventData: make(map[u32]*EventData),
+			EventData: make(map[u32]EventData),
 		}
 	}
 	return &EventComponent{
-		EventData: make(map[u32]*EventData, numEvent),
+		EventData: make(map[u32]EventData, numEvent),
 	}
 }
 
-func AllocEventData(numActionIds *uio.V128) (data *EventData) {
+func AllocEventData(numActionIds uio.V128) (data *EventData) {
 	return &EventData{
-		NumActionIds: *numActionIds,
+		NumActionIds: numActionIds,
 		ActionIds: make([]uint32, numActionIds.V, numActionIds.V),
 	}
 }
@@ -44,7 +44,7 @@ func AllocEventData(numActionIds *uio.V128) (data *EventData) {
 // --- assertion --- //
 
 // Has no side effect
-func AssertEvent(e *Event) error {
+func AssertEvent(e Event) error {
 	eventData := e.EventData
 	if eventData.NumActionIds.V != u64(len(eventData.ActionIds)) {
 		return fmt.Errorf("# of action ids does not equal to actual # of stored action ids")
@@ -55,7 +55,7 @@ func AssertEvent(e *Event) error {
 // --- sizing --- //
 
 // Has no side effect
-func SizeOfEvent(e *Event) (size u32) {
+func SizeOfEvent(e Event) (size u32) {
 	size = SizeOfHierarchyId
 	eventData := e.EventData
 	b, v := eventData.NumActionIds.B, eventData.NumActionIds.V
@@ -69,7 +69,7 @@ func SizeOfEvent(e *Event) (size u32) {
 // Has no side effect
 func EncodeEvent(
 	eCtx  *HircEncoderCtx,
-	event *Event,
+	event Event,
 ) error {
 	var err error
 	id := event.Id
@@ -105,7 +105,7 @@ func (e *EventComponent) HasEventData(internalId u32) (in bool) {
 }
 
 // Has no side effect
-func (e *EventComponent) GetEventData(internalId u32) (data *EventData) {
+func (e *EventComponent) GetEventData(internalId u32) (data EventData) {
 	data, in := e.EventData[internalId]
 	if !in {
 		panic("Failed to locate event data")
@@ -114,10 +114,7 @@ func (e *EventComponent) GetEventData(internalId u32) (data *EventData) {
 }
 
 // Has side effect
-func (e *EventComponent) AddEventData(internalId u32, data *EventData) {
-	if data == nil {
-		panic("Event data is nil")
-	}
+func (e *EventComponent) AddEventData(internalId u32, data EventData) {
 	if _, in := e.EventData[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -126,8 +123,7 @@ func (e *EventComponent) AddEventData(internalId u32, data *EventData) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) Event(internalId u32) *Event {
-	node := h.Hierarchy.GetHierarchyNode(internalId)
-	data := h.EventComponet.GetEventData(internalId)
-	return &Event{ node.Id, data }
+func (h *HIRC) Event(internalId u32, inOut *Event) {
+	inOut.Id = h.Hierarchy.GetHierarchyNode(internalId).Id
+	inOut.EventData = h.EventComponet.GetEventData(internalId)
 }

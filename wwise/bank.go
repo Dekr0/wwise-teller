@@ -46,12 +46,13 @@ func (c *ChunkComponent) AddChunkPosition(name string, pos u8) {
 // Has side effect
 func (c *ChunkComponent) PopEncodedChunk(name string) (in bool, chunk []byte) {
 	chunk, in = c.Encoded[name]
+	if chunk == nil {
+		panic("Encode chunk byte array is nil")
+	}
 	if !in {
 		return in, nil
 	}
-
 	delete(c.Encoded, name)
-
 	return in, chunk 
 }
 
@@ -60,13 +61,10 @@ func (bnk *Bank) RegBKHD(bkhd *BKHD) {
 	if bkhd == nil {
 		panic("bkhd is nil")
 	}
-
 	if bnk.Chunk.HasChunk(TagBKHD) {
 		panic(fmt.Sprintf("Duplicated BKHD chunk"))
 	}
-
 	bnk.Chunk.AddChunkPosition(TagBKHD, 0)
-
 	bnk.BKHD = bkhd
 }
 
@@ -75,13 +73,10 @@ func (bnk *Bank) RegDIDXDATA(audioStore *AudioStore, pos u8) {
 	if audioStore == nil {
 		panic("didxdata is nil")
 	}
-
 	if bnk.Chunk.HasChunk(TagDIDX) {
 		panic(fmt.Sprintf("Duplicated DIDX chunk"))
 	}
-
 	bnk.Chunk.AddChunkPosition(TagDIDX, pos)
-
 	bnk.AudioStore = audioStore
 }
 
@@ -90,13 +85,10 @@ func (bnk *Bank) RegHIRC(hirc *HIRC, pos u8) {
 	if hirc == nil {
 		panic("hirc is nil")
 	}
-
 	if bnk.Chunk.HasChunk(TagHIRC) {
 		panic(fmt.Sprintf("Duplicated HIRC chunk"))
 	}
-
 	bnk.Chunk.AddChunkPosition(TagHIRC, pos)
-
 	bnk.HIRC = hirc
 }
 

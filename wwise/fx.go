@@ -18,7 +18,7 @@ type FX struct {
 }
 
 type FXsComponent struct {
-	FXs map[u32]*FXs
+	FXs map[u32]FXs
 }
 
 type FxMetadatas struct {
@@ -40,7 +40,7 @@ type FxMetadataE struct {
 }
 
 type FxMetadatasComponent struct {
-	FxMetadatas map[u32]*FxMetadatas
+	FxMetadatas map[u32]FxMetadatas
 }
 
 // --- struct allocation --- //
@@ -48,9 +48,9 @@ type FxMetadatasComponent struct {
 func AllocFXsComponent(numActorMixer u32) (c *FXsComponent) {
 	c = &FXsComponent{}
 	if numActorMixer <= 0 {
-		c.FXs = make(map[u32]*FXs)
+		c.FXs = make(map[u32]FXs)
 	} else {
-		c.FXs = make(map[u32]*FXs, numActorMixer)
+		c.FXs = make(map[u32]FXs, numActorMixer)
 	}
 	return c
 }
@@ -58,9 +58,9 @@ func AllocFXsComponent(numActorMixer u32) (c *FXsComponent) {
 func AllocFxMetadataComponent(numActorMixer u32) (c *FxMetadatasComponent) {
 	c = &FxMetadatasComponent{}
 	if numActorMixer <= 0 {
-		c.FxMetadatas = make(map[u32]*FxMetadatas)
+		c.FxMetadatas = make(map[u32]FxMetadatas)
 	} else {
-		c.FxMetadatas = make(map[u32]*FxMetadatas, numActorMixer)
+		c.FxMetadatas = make(map[u32]FxMetadatas, numActorMixer)
 	}
 	return c
 }
@@ -81,14 +81,14 @@ func AllocFxMetadatas(numFxMetadatas u8) *FxMetadatas {
 
 // --- assertion --- //
 
-func AssertFXs(f *FXs) error {
+func AssertFXs(f FXs) error {
 	if len(f.FXs) > 255 {
 		return fmt.Errorf("# of FXs are greater than 255")
 	}
 	return nil
 }
 
-func AssertFxMetadatas(f *FxMetadatas) error {
+func AssertFxMetadatas(f FxMetadatas) error {
 	if len(f.Idx) > 255 {
 		return fmt.Errorf("# of FX Metadata indices are greateer than 255")
 	}
@@ -109,7 +109,7 @@ func AssertFxMetadatas(f *FxMetadatas) error {
 
 // --- sizing --- //
 
-func SizeOfFXs(f *FXs, version u32) (size u32) {
+func SizeOfFXs(f FXs, version u32) (size u32) {
 	size = 1
 	if len(f.FXs) <= 0 {
 		return size
@@ -122,13 +122,13 @@ func SizeOfFXs(f *FXs, version u32) (size u32) {
 	return size
 }
 
-func SizeOfFxMetadatas(f *FxMetadatas) u32 {
+func SizeOfFxMetadatas(f FxMetadatas) u32 {
 	return 1 + u32(len(f.Idx)) * Size8 + u32(len(f.Id)) * Size32 + u32(len(f.IsShareSet)) * Size8
 }
 
 // --- encoding --- //
 
-func EncodeFXs(e *HircEncoderCtx, f *FXs) (err error) {
+func EncodeFXs(e *HircEncoderCtx, f FXs) (err error) {
 	curr := e.Encoder.Count
 	size := SizeOfFXs(f, e.Version)
 	if err := e.Primitive(u8(len(f.FXs))); err != nil {
@@ -169,7 +169,7 @@ func EncodeFXs(e *HircEncoderCtx, f *FXs) (err error) {
 	return e.Expect(curr, size)
 }
 
-func EncodeFxMetadatas(e *HircEncoderCtx, f *FxMetadatas) error {
+func EncodeFxMetadatas(e *HircEncoderCtx, f FxMetadatas) error {
 	curr := e.Encoder.Count
 	size := SizeOfFxMetadatas(f)
 	if err := e.Primitive(u8(len(f.Id))); err != nil {
@@ -236,7 +236,7 @@ func (c *FxMetadatasComponent) HasFxMetadatas(internalId u32) (in bool) {
 	return in
 }
 
-func (c *FXsComponent) GetFXs(internalId u32) (f *FXs) {
+func (c *FXsComponent) GetFXs(internalId u32) (f FXs) {
 	f, in := c.FXs[internalId]
 	if !in {
 		panic("Failed to locate FXs")
@@ -244,7 +244,7 @@ func (c *FXsComponent) GetFXs(internalId u32) (f *FXs) {
 	return f 
 }
 
-func (c *FxMetadatasComponent) GetFxMetadatas(internalId u32) (f *FxMetadatas) {
+func (c *FxMetadatasComponent) GetFxMetadatas(internalId u32) (f FxMetadatas) {
 	f, in := c.FxMetadatas[internalId]
 	if !in {
 		panic("Failed to locate FxMetadatas")
@@ -252,20 +252,14 @@ func (c *FxMetadatasComponent) GetFxMetadatas(internalId u32) (f *FxMetadatas) {
 	return f 
 }
 
-func (c *FXsComponent) AddFXs(internalId u32, f *FXs) {
-	if f == nil {
-		panic("FXs is nil")
-	}
+func (c *FXsComponent) AddFXs(internalId u32, f FXs) {
 	if _, in := c.FXs[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
 	c.FXs[internalId] = f
 }
 
-func (c *FxMetadatasComponent) AddFxMetadatas(internalId u32, f *FxMetadatas) {
-	if f == nil {
-		panic("FxMetadatas is nil")
-	}
+func (c *FxMetadatasComponent) AddFxMetadatas(internalId u32, f FxMetadatas) {
 	if _, in := c.FxMetadatas[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -274,11 +268,11 @@ func (c *FxMetadatasComponent) AddFxMetadatas(internalId u32, f *FxMetadatas) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetFXs(internalId u32) *FXs {
+func (h *HIRC) GetFXs(internalId u32) FXs {
 	return h.FXsComponent.GetFXs(internalId)
 }
 
-func (h *HIRC) GetFxMetadatas(internalId u32) (f *FxMetadatas) {
+func (h *HIRC) GetFxMetadatas(internalId u32) (f FxMetadatas) {
 	return h.FxMetadatasComponent.GetFxMetadatas(internalId)
 }
 

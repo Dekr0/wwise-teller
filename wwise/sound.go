@@ -4,40 +4,23 @@ import "fmt"
 
 type Sound struct {
 	Id              u32
-	SourceData     *SourceData
-	PluginParam    *PluginParam
-	BaseParameter *BaseParameter
+	SourceData      SourceData
+	PluginParam     PluginParam
+	BaseParameter   BaseParameter
 }
 
-func (h *HIRC) Sound(internalId u32, version u32) (s *Sound) {
-	s = &Sound{}
-	s.Id = h.GetHierarchyNode(internalId).Id
-	s.SourceData = h.GetSourceData(internalId)
-	if SourceHasPluginParam(s.SourceData) {
-		s.PluginParam = h.GetPluginParam(internalId)
+func (h *HIRC) Sound(internalId u32, version u32, inOut *Sound) {
+	inOut.Id = h.GetHierarchyNode(internalId).Id
+	inOut.SourceData = h.GetSourceData(internalId)
+	if SourceHasPluginParam(inOut.SourceData) {
+		inOut.PluginParam = h.GetPluginParam(internalId)
 	}
-	s.BaseParameter = h.BaseParameter(internalId, version)
-	return s
+	inOut.BaseParameter = h.BaseParameter(internalId, version)
 }
 
-func (h *HIRC) EncodeSound(e *HircEncoderCtx, internalId u32) {
-	s := h.Sound(internalId, e.Version)
-	EncodeSound(e, s)
-}
-
-func AssertSound(sound *Sound, version u32) error {
+func AssertSound(sound Sound, version u32) error {
 	hasPlugin := SourceHasPluginParam(sound.SourceData)
-	{ // Assertion by correlating different component together
-		if !hasPlugin {
-			if sound.PluginParam != nil {
-				return fmt.Errorf("Source data indicate this source doesn't have plugin parameter but receive non nil plugin parameter")
-			}
-		}
-	}
 	if hasPlugin {
-		if sound.PluginParam == nil {
-			return fmt.Errorf("Source data indicate this source has plugin parameter but plugin parameter is nil")
-		}
 		if err := AssertPluginParm(sound.PluginParam); err != nil {
 			return fmt.Errorf("Source plugin parameter assertion failed: %w", err)
 		}
@@ -48,7 +31,7 @@ func AssertSound(sound *Sound, version u32) error {
 	return nil
 }
 
-func SizeOfSound(sound *Sound, version u32) (size u32) {
+func SizeOfSound(sound Sound, version u32) (size u32) {
 	size = SizeOfHierarchyId
 	size += SizeOfSourceData(version)
 	size += SizeOfBaseParameter(sound.BaseParameter, version)
@@ -58,7 +41,7 @@ func SizeOfSound(sound *Sound, version u32) (size u32) {
 	return size
 }
 
-func EncodeSound(e *HircEncoderCtx, sound *Sound) error {
+func EncodeSound(e *HircEncoderCtx, sound Sound) error {
 	size := SizeOfSound(sound, e.Version)
 	header := HierarchyHeader{ HircTypeSound, size }
 	if err := e.Struct(header, SizeOfHierarchyHeader); err != nil {

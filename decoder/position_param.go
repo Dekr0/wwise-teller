@@ -10,11 +10,11 @@ import (
 func AllocDecodePositionParam(r io.Reader, o order) (p *wwise.PositionParam) {
 	p = wwise.AllocPositionParam() 
 	p.SettingVector = uio.U8P(r, o)
-	if !wwise.PositionOverrideParentAndListenerRelativeRounting(p) {
+	if !wwise.PositionOverrideParentAndListenerRelativeRounting(*p) {
 		return p
 	}
 	p.SpatialSettingVector = uio.U8P(r, o)
-	if !wwise.PositionHas3D(p) {
+	if !wwise.PositionHas3D(*p) {
 		return p
 	}
 	p.PathMode = uio.U8P(r, o)

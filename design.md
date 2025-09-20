@@ -1,14 +1,38 @@
-# Design, Rule, and Convention
+# Convention
 
 ## Panic vs. Error Return
 
 - All hierarchy decoding and encoding will panic.
 - All data integrity and validation will panic.
 
-## Do one thing at a time and make sure that thing run very fast
+## Passing by pointer vs. Passing by value
 
-- Things that falls into this category:
-    - isolated decoding and encoding logic
+- Default to passing by value and returning by value to estabilish a performance 
+baseline.
+- Here are a few exception which passing by value and returning by value:
+    - If a newly created piece of data is returned from a function, and it's long 
+    lived, return using pointer.
+    - Escape analysis on transient data.
+    - shared synchronization primitive (Mutex, Channel, etc.), map, slice, ...
+- Passing by value and returning by value does not guarantee immutability if 
+a piece of data contains map, slice, or any other form of pointer type.
+- If a newly created piece of data is returned from a function, and it's 
+transient, or it's only alived for based on callers' scope, return using 
+value.
+
+## Pointer
+
+- Systems and stores that own all the data should directly manipulate with 
+pointer.
+- Outside of those systems and stores, use handle (such as internal id) instead. 
+- If outside world needs to get access to pointers, pointers are requested via 
+getters and setters of those systems and stores.
+- Pointers should be used within isolated scope instead of across multiple 
+function calls.
+
+# Performance Design and Convetion
+
+- Do one thing at a time and make sure that thing run very fast
 
 ## Concurrency
 
@@ -18,25 +42,31 @@
 isolate share access and ownership from thread instead of sharing memory model, or 
 solely using very low level primitives.
 - Regarless using message protocol or sharing memory model, think about using sane 
-pattern instead of patterns that are designed for worst case scneario, and hope for 
-the best. Example, don't soley rely on spanning mutex for every share data and hope 
-they can guard against everything (It doesnt' work because: 1. guarding racing 
-condition vs. guarding data integrity are completely two different things; 2. order 
-of locking and deadlock, especially # of locks increase as there are more share data 
-that need different level of thread safety; ...)
-- Message protocol has X amount cost and overhead in different context. It isn't silver 
-bullet. It's a treat off between performance and ease of implementing correct and safe 
-synchronization. It's easy to fall in the trap of defaulting message protocol for every 
-use case because of the lack of control and skill to make good use of mutex on share 
-memory mdodel, and good understanding of the targeted problem.
-- Message protocol and Share memory model are orthogonal but this doesn't mean they can't 
-be use in hybrid.
-- Favourite share memory model is trivial synchronization. Limit share memory model in 
-use case where scope is fairly well defined.
+pattern. 
+- Don't default to patterns that are designed for worst case scneario, and hope for 
+the best. 
+    - Example, don't soley rely on spanning mutex for every share data and hope 
+    they can guard against everything. It doesnt' work because: 
+        - 1. guarding racing condition vs. guarding data integrity are completely 
+        two different things.
+        - 2. order of locking and deadlock, especially # of locks increase as 
+        there are more share data that need different level of thread safety.
+        - ...
+- Message protocol has X amount cost and overhead in different context. It isn't 
+silver bullet. 
+- It's a treat off between performance and ease of implementing correct and safe 
+synchronization. 
+- It's easy to fall in the trap of defaulting message protocol for every use case 
+because of the lack of control and skill to make good use of mutex on share memory 
+mdodel, and good understanding of the targeted problem.
+- Message protocol and Share memory model are orthogonal but this doesn't mean 
+they can't be use in hybrid.
+- Favourite share memory model is trivial synchronization. Limit share memory 
+model in use case where scope is fairly well defined.
 
 ### Mutex
 
-- Mutex should have a clear intend, a clear usage of scope, a clear scope of data 
+- Mutex should have a clear intend, a clear usage of scope, a clear range of data 
 it needs to protect instead of using one single mutex to cover all things.
 
 ## Memory Management
@@ -48,11 +78,13 @@ be hidden to the caller, and capture by the system.
 into the heap.
 - If an object is long lived, heap allocate in the first place and make the 
 allocation extremely obvious to locate and identify.
-- Typical cache line size is 64 bytes
+- Typical cache line size is 64 bytes.
 
 ### Possible ways to make allocation to be visible for callers
         
 - ...
+
+# Overall Design
 
 ## Coupling between `struct` and data stored in `struct`
 

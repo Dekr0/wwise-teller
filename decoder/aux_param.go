@@ -10,7 +10,7 @@ import (
 func AllocDecodeAuxParam(r io.Reader, o order) (a *wwise.AuxParam) {
 	a = wwise.AllocAuxParam()
 	a.SettingVector = uio.U8P(r, o)
-	if wwise.HasAux(a) {
+	if wwise.HasAux(*a) {
 		for i := range a.AuxIds {
 			a.AuxIds[i] = uio.U32P(r, o)
 		}

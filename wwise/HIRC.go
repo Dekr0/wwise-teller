@@ -115,19 +115,13 @@ func AllocHIRC(s *HIRCSpaceSpec) *HIRC {
 }
 
 // Has side effect
-func (h *HIRC) AddState(id u32, data *StateHierarchyProp) {
-	if data == nil {
-		panic("State property is nil")
-	}
-	internalId := h.Hierarchy.AddHierarchyNode(id, HircTypeState)
-	h.StateComponent.AddStateData(internalId, data)
+func (h *HIRC) AddState(s State) {
+	internalId := h.Hierarchy.AddHierarchyNode(s.Id, HircTypeState)
+	h.StateComponent.AddStateData(internalId, s.StateProps)
 }
 
 // Has side effect
-func (h *HIRC) AddSound(data *Sound, version u32) {
-	if data == nil {
-		panic("Sound data is nil")
-	}
+func (h *HIRC) AddSound(data Sound, version u32) {
 	internalId := h.Hierarchy.AddHierarchyNode(data.Id, HircTypeSound)
 	h.SourceDataComponent.AddSourceData(internalId, data.SourceData)
 	if SourceHasPluginParam(data.SourceData) {
@@ -137,19 +131,13 @@ func (h *HIRC) AddSound(data *Sound, version u32) {
 }
 
 // Has side effect
-func (h *HIRC) AddEvent(id u32, data *EventData) {
-	if data == nil {
-		panic("Event data is nil")
-	}
-	internalId := h.Hierarchy.AddHierarchyNode(id, HircTypeEvent)
-	h.EventComponet.AddEventData(internalId, data)
+func (h *HIRC) AddEvent(data Event) {
+	internalId := h.Hierarchy.AddHierarchyNode(data.Id, HircTypeEvent)
+	h.EventComponet.AddEventData(internalId, data.EventData)
 }
 
 // Has side effect
-func (h *HIRC) AddActorMixer(data *ActorMixer, version u32) {
-	if data == nil {
-		panic("Actor mixer is nil")
-	}
+func (h *HIRC) AddActorMixer(data ActorMixer, version u32) {
 	internalId := h.Hierarchy.AddHierarchyNode(data.Id, HircTypeActorMixer)
 	h.AddBaseParameter(internalId, data.BaseParameter, version)
 	h.AddContainer(internalId, data.Container)

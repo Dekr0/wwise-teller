@@ -9,26 +9,16 @@ import (
 
 // Expect r to be SectionReader, LimitReader, bytes.Reader, or bytes.Buffer 
 // since these type of reader will do automatic bound checking.
-func AllocDecodeSound(r io.Reader, o order, version u32, size u32) any {
-	id := uio.U32P(r, o)
+func AllocDecodeSound(r io.Reader, o order, version u32, size u32, out any) {
+	s := out.(*wwise.Sound)
 
-	sourceData := AllocDecodeSourceData(r, o, version)
+	s.Id = uio.U32P(r, o)
 
-	var pluginParam *wwise.PluginParam
-	if wwise.SourceHasParam(sourceData) && wwise.SourceHasPluginID(sourceData) {
-		pluginParam = AllocDecodePluginParam(r, o, version)
+	s.SourceData = *AllocDecodeSourceData(r, o, version)
+
+	if wwise.SourceHasParam(s.SourceData) && wwise.SourceHasPluginID(s.SourceData) {
+		s.PluginParam = *AllocDecodePluginParam(r, o, version)
 	}
 
-	b := wwise.BaseParameter{}
-
-	AllocDecodeBaseParameter(r, o, version, &b)
-
-	sound := &wwise.Sound{
-		Id: id,
-		SourceData: sourceData,
-		PluginParam: pluginParam,
-		BaseParameter: &b,
-	}
-
-	return sound
+	AllocDecodeBaseParameter(r, o, version, &s.BaseParameter)
 }

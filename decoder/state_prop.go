@@ -9,7 +9,7 @@ import (
 
 func AllocDecodeStateProp(r io.Reader, o order) (s *wwise.StateProp) {
 	numStateProp := uio.VV128P(r, o)
-	s = wwise.AllocStateProp(numStateProp)
+	s = wwise.AllocStateProp(*numStateProp)
 	for i := range s.PropId {
 		s.PropId[i] = *uio.VV128P(r, o)
 		s.AccumType[i] = uio.U8P(r, o)

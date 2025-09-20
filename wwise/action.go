@@ -96,22 +96,22 @@ type ActionSpecificParamSetGameParameter struct {
 
 type ActionComponent struct {
 	// Components that are shared across all actions
-	ActionBasicData map[u32]*ActionBasicData
-	Properties      map[u32]*Prop
-	RProperties     map[u32]*Prop
+	ActionBasicData map[u32]ActionBasicData
+	Properties      map[u32]Prop
+	RProperties     map[u32]Prop
 
 	// Components that are shared across among some actions but not all of them
-	ExceptionParams map[u32]*ExceptionParam
+	ExceptionParams map[u32]ExceptionParam
 
 	// Action Parameter
-	ActionActiveParam   map[u32]*ActionParamActive
-	ActionPlayParam     map[u32]*ActionParamPlay
-	ActionSetValueParam map[u32]*ActionParamSetValue
+	ActionActiveParam   map[u32]ActionParamActive
+	ActionPlayParam     map[u32]ActionParamPlay
+	ActionSetValueParam map[u32]ActionParamSetValue
 
 	// Action Specific Parameter
-	ActionSpecificParamStop             map[u32]*ActionSpecificParamStop
-	ActionSpecificParamPause            map[u32]*ActionSpecificParamPause
-	ActionSpecificParamResume           map[u32]*ActionSpecificParamResume
-	ActionSpecificParamSetProp          map[u32]*ActionSpecificParamSetProp
-	ActionSpecificParamSetGameParameter map[u32]*ActionSpecificParamSetGameParameter
+	ActionSpecificParamStop             map[u32]ActionSpecificParamStop
+	ActionSpecificParamPause            map[u32]ActionSpecificParamPause
+	ActionSpecificParamResume           map[u32]ActionSpecificParamResume
+	ActionSpecificParamSetProp          map[u32]ActionSpecificParamSetProp
+	ActionSpecificParamSetGameParameter map[u32]ActionSpecificParamSetGameParameter
 }

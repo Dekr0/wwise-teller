@@ -29,7 +29,7 @@ type StateGroupStateProp struct {
 }
 
 type StateGroupComponent struct {
-	StateGroup map[u32]*StateGroup
+	StateGroup map[u32]StateGroup
 }
 
 // --- allocating and freeing --- //
@@ -37,18 +37,18 @@ type StateGroupComponent struct {
 func AllocStateGroupComponent(size u32) *StateGroupComponent {
 	if size <= 0 {
 		return &StateGroupComponent{
-			StateGroup: make(map[u32]*StateGroup),
+			StateGroup: make(map[u32]StateGroup),
 		}
 	}
 	return &StateGroupComponent{
-		StateGroup: make(map[u32]*StateGroup, size),
+		StateGroup: make(map[u32]StateGroup, size),
 	}
 }
 
-func AllocStateGroup(size *uio.V128, version u32) *StateGroup {
+func AllocStateGroup(size uio.V128, version u32) *StateGroup {
 	if version <= 145 {
 		return &StateGroup{
-			NumStateGroups: *size,
+			NumStateGroups: size,
 			StateGroupId: make([]u32, size.V, size.V),
 			StateSyncType: make([]StateSyncType, size.V, size.V),
 			NumStates: make([]uio.V128, size.V, size.V),
@@ -56,7 +56,7 @@ func AllocStateGroup(size *uio.V128, version u32) *StateGroup {
 		}
 	} else {
 		return &StateGroup{
-			NumStateGroups: *size,
+			NumStateGroups: size,
 			StateGroupId: make([]u32, size.V, size.V),
 			StateSyncType: make([]StateSyncType, size.V, size.V),
 			NumStates: make([]uio.V128, size.V, size.V),
@@ -68,7 +68,7 @@ func AllocStateGroup(size *uio.V128, version u32) *StateGroup {
 
 // --- assertion --- //
 
-func AssertStateGroup(s *StateGroup, version u32) error {
+func AssertStateGroup(s StateGroup, version u32) error {
 	if s.NumStateGroups.V != u64(len(s.StateGroupId)) {
 		return fmt.Errorf("State group counter (%d) does not equal to of # of items in state group (%d)",
 			s.NumStateGroups.V, u64(len(s.StateGroupId)),
@@ -132,7 +132,7 @@ func AssertStateGroup(s *StateGroup, version u32) error {
 
 // --- sizing --- //
 
-func SizeOfStateGroup(s *StateGroup, version u32) (size u32) {
+func SizeOfStateGroup(s StateGroup, version u32) (size u32) {
 	size = u32(len(s.NumStateGroups.B))
 	size += (Size8 + Size32) * u32(s.NumStateGroups.V)
 	for i, numState := range s.NumStates {
@@ -151,13 +151,13 @@ func SizeOfStateGroup(s *StateGroup, version u32) (size u32) {
 
 // --- encoding --- //
 
-func EncodeStateGroup(e *HircEncoderCtx, s *StateGroup) error {
+func EncodeStateGroup(e *HircEncoderCtx, s StateGroup) error {
 	curr := e.Encoder.Count
 	size := SizeOfStateGroup(s, e.Version)
 	if err := e.Bytes(s.NumStateGroups.B); err != nil {
 		return fmt.Errorf("Failed to encode state group count %d: %w",
 			s.NumStateGroups.V, err,
-			)
+		)
 	}
 	for i, stateGroupId := range s.StateGroupId {
 		if err := e.Primitive(stateGroupId); err != nil {
@@ -246,7 +246,7 @@ func (c *StateGroupComponent) HasStateGroup(internalId u32) (in bool) {
 	return in
 }
 
-func (c *StateGroupComponent) GetStateGroup(internalId u32) (p *StateGroup) {
+func (c *StateGroupComponent) GetStateGroup(internalId u32) (p StateGroup) {
 	p, in := c.StateGroup[internalId]
 	if !in {
 		panic(fmt.Errorf("Failed to locate state group."))
@@ -254,10 +254,7 @@ func (c *StateGroupComponent) GetStateGroup(internalId u32) (p *StateGroup) {
 	return p
 }
 
-func (c *StateGroupComponent) AddStateGroup(internalId u32, s *StateGroup) {
-	if s == nil {
-		panic("State group is nil")
-	}
+func (c *StateGroupComponent) AddStateGroup(internalId u32, s StateGroup) {
 	if _, in := c.StateGroup[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -266,7 +263,7 @@ func (c *StateGroupComponent) AddStateGroup(internalId u32, s *StateGroup) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetStateGroup(internalId u32) *StateGroup {
+func (h *HIRC) GetStateGroup(internalId u32) StateGroup {
 	return h.StateGroupComponent.GetStateGroup(internalId)
 }
 

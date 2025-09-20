@@ -28,25 +28,29 @@ func SizeOfHIRC(h *HIRC, version u32) (size u32) {
 		tName := GetHircTypeName(t)
 		switch t {
 		case HircTypeState:
-			s := h.State(id)
+			s := State{}
+			h.State(id, &s)
 			if err := AssertState(s); err != nil {
 				panic(fmt.Errorf("(%s %d): %w", tName, hid, err))
 			}
 			size += SizeOfState(s)
 		case HircTypeSound:
-			s := h.Sound(id, version)
+			s := Sound{}
+			h.Sound(id, version, &s)
 			if err := AssertSound(s, version); err != nil {
 				panic(fmt.Errorf("(%s %d): %w", tName, hid, err))
 			}
 			size += SizeOfSound(s, version)
 		case HircTypeEvent:
-			e := h.Event(id)
+			e := Event{}
+			h.Event(id, &e)
 			if err := AssertEvent(e); err != nil {
 				panic(fmt.Errorf("(%s %d): %w", tName, id, err))
 			}
 			size += SizeOfEvent(e)
 		case HircTypeActorMixer:
-			a := h.ActorMixer(id, version)
+			a := ActorMixer{}
+			h.ActorMixer(id, version, &a)
 			if err := AssertActorMixer(a, version); err != nil {
 				panic(fmt.Errorf("(%s %d): %w", tName, hid, err))
 			}
@@ -114,7 +118,8 @@ func EncodeHirc(
 				Version: e.Version,
 			}
 
-			state := h.State(internalId)
+			state := State{}
+			h.State(internalId, &state)
 			if err = EncodeState(&be, state); err != nil {
 				panic(fmt.Errorf(errMsg, name, hid, err))
 			}
@@ -139,7 +144,8 @@ func EncodeHirc(
 				Version: e.Version,
 			}
 
-			sound := h.Sound(internalId, e.Version)
+			sound := Sound{}
+			h.Sound(internalId, e.Version, &sound)
 			if err := EncodeSound(&be, sound); err != nil {
 				panic(fmt.Errorf(errMsg, name, hid, err))
 			}
@@ -164,7 +170,8 @@ func EncodeHirc(
 				Version: e.Version,
 			}
 
-			event := h.Event(internalId)
+			event := Event{}
+			h.Event(internalId, &event)
 			if err := EncodeEvent(&be, event); err != nil {
 				panic(fmt.Errorf(errMsg, name, hid, err))
 			}
@@ -178,30 +185,31 @@ func EncodeHirc(
 			bufWriter.Reset()
 			pool.Put(bufWriter)
 		case HircTypeActorMixer:
-			bufWriter := pool.Get().(*bytes.Buffer)
+		   	bufWriter := pool.Get().(*bytes.Buffer)
 
-			be := HircEncoderCtx{
-				Encoder: &uio.EncoderCtx{
-					Writer: bufWriter,
-					Order: e.Encoder.Order,
-					Count: 0,
-				},
-				Version: e.Version,
-			}
+		   	be := HircEncoderCtx{
+		   		Encoder: &uio.EncoderCtx{
+		   			Writer: bufWriter,
+		   			Order: e.Encoder.Order,
+		   			Count: 0,
+		   		},
+		   		Version: e.Version,
+		   	}
 
-			a := h.ActorMixer(internalId, e.Version)
-			if err := EncodeActorMixer(&be, a); err != nil {
-				panic(fmt.Errorf(errMsg, name, hid, err))
-			}
+			a := ActorMixer{}
+		   	h.ActorMixer(internalId, e.Version, &a)
+		   	if err := EncodeActorMixer(&be, a); err != nil {
+		   		panic(fmt.Errorf(errMsg, name, hid, err))
+		   	}
 
-			encoded := bufWriter.Bytes()
+		   	encoded := bufWriter.Bytes()
 
-			if err = e.Bytes(encoded); err != nil {
-				return fmt.Errorf(errMsg, name, hid, err)
-			}
+		   	if err = e.Bytes(encoded); err != nil {
+		   		return fmt.Errorf(errMsg, name, hid, err)
+		   	}
 
-			bufWriter.Reset()
-			pool.Put(bufWriter)
+		   	bufWriter.Reset()
+		   	pool.Put(bufWriter)
 		default:
 			if err = h.EncodeEncodedHierarchy(e, t, internalId); err != nil {
 				return fmt.Errorf(errMsg, name, hid, err)

@@ -8,7 +8,7 @@ import (
 )
 
 func AllocDecodeStateGroup(r io.Reader, o order, version u32) (s *wwise.StateGroup) {
-	s = wwise.AllocStateGroup(uio.VV128P(r, o), version)
+	s = wwise.AllocStateGroup(*uio.VV128P(r, o), version)
 	for i := range s.StateGroupId {
 		s.StateGroupId[i] = uio.U32P(r, o)
 		s.StateSyncType[i] = uio.U8P(r, o)

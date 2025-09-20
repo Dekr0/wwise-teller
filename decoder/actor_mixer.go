@@ -7,16 +7,12 @@ import (
 	uio "github.com/Dekr0/unwise/io"
 )
 
-func AllocDecodeActorMixer(r io.Reader, o order, version u32, size u32) any {
-	id := uio.U32P(r, o)
+func AllocDecodeActorMixer(r io.Reader, o order, version u32, size u32, inOut any) {
+	a := inOut.(*wwise.ActorMixer)
 
-	b := &wwise.BaseParameter{}
+	a.Id = uio.U32P(r, o)
 
-	AllocDecodeBaseParameter(r, o, version, b)
+	AllocDecodeBaseParameter(r, o, version, &a.BaseParameter)
 
-	c := AllocDecodeContainer(r, o)
-
-	return &wwise.ActorMixer{
-		Id: id, BaseParameter: b, Container: c,
-	}
+	a.Container = *AllocDecodeContainer(r, o)
 }

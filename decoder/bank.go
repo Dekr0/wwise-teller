@@ -109,53 +109,98 @@ func AllocDecode(
 		}
 
 		tagCopy := tag
-		size := header.Size
-		idx := header.Idx
-
-		sr := io.NewSectionReader(f, int64(header.Pos), int64(header.Size))
-		var bReader *bufio.Reader
-		if bankOpt.DecoderBufferSize > size {
-			bReader = bufio.NewReaderSize(sr, int(size) * 2)
-		} else {
-			bReader = bufio.NewReaderSize(sr, int(bankOpt.DecoderBufferSize))
-		}
+		headerCopy := header
 
 		switch tag {
 		case wwise.TagDIDX:
 			decoder := func() error {
 				defer f.Close()
-				audioStore, err := AllocDecodeDIDX(bReader, size, o)
+				sr := io.NewSectionReader(f, int64(headerCopy.Pos), int64(headerCopy.Size))
+				var bReader *bufio.Reader
+				if bankOpt.DecoderBufferSize > headerCopy.Size {
+					bReader = bufio.NewReaderSize(sr, int(headerCopy.Size) * 2)
+				} else {
+					bReader = bufio.NewReaderSize(sr, int(bankOpt.DecoderBufferSize))
+				}
+
+				audioStore, err := AllocDecodeDIDX(bReader, headerCopy.Size, o)
 				if err != nil {
 					return fmt.Errorf("Failed to decode DIDX chunk: %w", err)
 				}
 				mu.Lock()
-				b.RegDIDXDATA(audioStore, idx)
+				b.RegDIDXDATA(audioStore, headerCopy.Idx)
 				mu.Unlock()
-				slog.Info("Parsed DIDX", "position", idx, "size", size)
+				slog.Info("Decoded DIDX", "position", headerCopy.Idx, "size", headerCopy.Size)
+				return nil
+			}
+			decoderC <- decoder
+		case wwise.TagHIRC:
+			decoder := func() error {
+				defer f.Close()
+
+				stat := wwise.HierarchyStat{}
+				if _, err := f.Seek(headerCopy.Pos, io.SeekStart); err != nil {
+					return fmt.Errorf("Failed to seek to HIRC data chunk before prefetching HIRC metadata for space allocation: %w", err)
+				}
+				if err := PrefetchHIRCMetadata(ctx, f, &stat, o, headerCopy.Size); err != nil {
+					return fmt.Errorf("Failed to prefetch HIRC metadata for space allocation: %w", err)
+				}
+				if _, err := f.Seek(0, io.SeekStart); err != nil {
+					return fmt.Errorf("Failed to seek file descriptor back origin after prefetching HIRC metadata for space allocation: %w", err)
+				}
+
+				spec := wwise.HIRCSpaceSpec{}
+				wwise.EstimateHIRCSpace(&stat, &spec)
+
+				sr := io.NewSectionReader(f, int64(headerCopy.Pos), int64(headerCopy.Size))
+				var bReader *bufio.Reader
+				if bankOpt.DecoderBufferSize > headerCopy.Size {
+					bReader = bufio.NewReaderSize(sr, int(headerCopy.Size) * 2)
+				} else {
+					bReader = bufio.NewReaderSize(sr, int(bankOpt.DecoderBufferSize))
+				}
+
+				h, err := AllocDecodeHIRC(ctx, hircOpt, &spec, bReader, o, header.Size, b.BKHD.Version)
+				if err != nil {
+					return fmt.Errorf("Failed to decode HIRC chunk: %w", err)
+				}
+
+				mu.Lock()
+				b.RegHIRC(h, header.Idx)
+				slog.Info("Decoded HIRC chunk")
+				mu.Unlock()
 				return nil
 			}
 			decoderC <- decoder
 		default:
 			decoder := func() error {
 				defer f.Close()
-				encoded := make([]byte, size, size)
+				sr := io.NewSectionReader(f, int64(headerCopy.Pos), int64(headerCopy.Size))
+				var bReader *bufio.Reader
+				if bankOpt.DecoderBufferSize > headerCopy.Size {
+					bReader = bufio.NewReaderSize(sr, int(headerCopy.Size) * 2)
+				} else {
+					bReader = bufio.NewReaderSize(sr, int(bankOpt.DecoderBufferSize))
+				}
+
+				encoded := make([]byte, headerCopy.Size, headerCopy.Size)
 				if _, err := io.ReadFull(bReader, encoded); err != nil {
 					return fmt.Errorf("Failed to read %d bytes of data for %s chunk at position %d: %w",
-						size, tagCopy, idx, err,
+						headerCopy.Size, tagCopy, headerCopy.Idx, err,
 					)
 				}
 				mu.Lock()
-				b.Chunk.AddEncodedChunk(tagCopy, idx, encoded)
+				b.Chunk.AddEncodedChunk(tagCopy, headerCopy.Idx, encoded)
 				mu.Unlock()
 				if tagCopy == "DATA" {
 					slog.Info("Stored encoded DATA chunk. Decoding of DATA is delayed at the end.",
-						"position", idx,
-						"size", size,
+						"position", headerCopy.Idx,
+						"size", headerCopy.Size,
 					)
 				} else {
 					slog.Info(fmt.Sprintf("%s chunk wasn't decoded, and it was stored as raw encoded data", tag),
-						"position", idx,
-						"size", size,
+						"position", headerCopy.Idx,
+						"size", headerCopy.Size,
 					)
 				}
 				return nil

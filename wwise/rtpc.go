@@ -20,7 +20,7 @@ type RTPCS struct {
 	Id       u32
 	Type     RTPCType
 	Accum    RTPCAccum
-	ParamId *uio.V128
+	ParamId  uio.V128
 	CurveId  u32
 	Scaling  Scaling
 }
@@ -39,9 +39,9 @@ type RTPCGraphFrame struct {
 
 // 1 RPTC -> 1 RTPC Graph
 type RTPCComponent struct {
-	BaseRTPC         map[u32]*RTPC
-	LayerInitialRTPC map[u32]*RTPC
-	LayerRTPC        map[u32]*RTPC
+	BaseRTPC         map[u32]RTPC
+	LayerInitialRTPC map[u32]RTPC
+	LayerRTPC        map[u32]RTPC
 }
 
 // --- allocating and freeing --- //
@@ -49,16 +49,16 @@ type RTPCComponent struct {
 func AllocateRTPCComponent(baseSize u32, numLayer u32) (r *RTPCComponent) {
 	r = &RTPCComponent{}
 	if baseSize <= 0 {
-		r.BaseRTPC = make(map[u32]*RTPC)
+		r.BaseRTPC = make(map[u32]RTPC)
 	} else {
-		r.BaseRTPC = make(map[u32]*RTPC, baseSize)
+		r.BaseRTPC = make(map[u32]RTPC, baseSize)
 	}
 	if numLayer <= 0 {
-		r.LayerInitialRTPC = make(map[u32]*RTPC)
-		r.LayerRTPC = make(map[u32]*RTPC)
+		r.LayerInitialRTPC = make(map[u32]RTPC)
+		r.LayerRTPC = make(map[u32]RTPC)
 	} else {
-		r.LayerInitialRTPC = make(map[u32]*RTPC, numLayer)
-		r.LayerRTPC = make(map[u32]*RTPC, numLayer)
+		r.LayerInitialRTPC = make(map[u32]RTPC, numLayer)
+		r.LayerRTPC = make(map[u32]RTPC, numLayer)
 	}
 	return r
 }
@@ -85,7 +85,7 @@ func AllocateRTPCGraph(size u32) *RTPCGraph {
 
 // --- assertion --- //
 
-func AssertRTPC(r *RTPC) error {
+func AssertRTPC(r RTPC) error {
 	if len(r.Id) != len(r.Type) {
 		return fmt.Errorf("# of RTPC id (%d) does not equal to # of RTPC type (%d)",
 			len(r.Id), len(r.Type),
@@ -121,14 +121,14 @@ func AssertRTPC(r *RTPC) error {
 
 func AssertRTPCGraphs(rs []RTPCGraph) error {
 	for _, r := range rs {
-		if err := AssertRTPCGraph(&r); err != nil {
+		if err := AssertRTPCGraph(r); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func AssertRTPCGraph(r *RTPCGraph) error {
+func AssertRTPCGraph(r RTPCGraph) error {
 	if len(r.PointX) != len(r.PointY) {
 		return fmt.Errorf("# of X values (%d) does not equal to # of Y values (%d) in RTPC graph",
 			len(r.PointX), len(r.PointY),
@@ -144,25 +144,25 @@ func AssertRTPCGraph(r *RTPCGraph) error {
 
 // --- sizing --- //
 
-func SizeOfRTPC(r *RTPC) (size u32) {	
+func SizeOfRTPC(r RTPC) (size u32) {	
 	size = Size16 + SizeOfRTPCCurvePrimitive * u32(len(r.Id))
 	for i, paramId := range r.ParamId {
-		size += u32(len(paramId.B)) + SizeOfRTPCGraph(&r.Graph[i])
+		size += u32(len(paramId.B)) + SizeOfRTPCGraph(r.Graph[i])
 	}
 	return size
 }
 
-func SizeOfRTPCCurve(paramId *uio.V128) u32 {
+func SizeOfRTPCCurve(paramId uio.V128) u32 {
 	return SizeOfRTPCCurvePrimitive + u32(len(paramId.B))
 }
 
-func SizeOfRTPCGraph(r *RTPCGraph) u32 {
+func SizeOfRTPCGraph(r RTPCGraph) u32 {
 	return SizeOfRTPCGraphFrame * u32(len(r.PointX))
 }
 
 // --- encoding --- //
 
-func EncodeRTPC(e *HircEncoderCtx, r *RTPC) error {
+func EncodeRTPC(e *HircEncoderCtx, r RTPC) error {
 	curr := e.Count()
 	size := SizeOfRTPC(r)
 	if err := e.Primitive(u16(len(r.Id))); err != nil {
@@ -170,15 +170,15 @@ func EncodeRTPC(e *HircEncoderCtx, r *RTPC) error {
 	}
 	for i, id := range r.Id {
 		if err := EncodeRTPCCurve(e, 
-			&RTPCS{
+			RTPCS{
 				id,
 				r.Type[i],
 				r.Accum[i],
-				&r.ParamId[i],
+				r.ParamId[i],
 				r.CurveId[i],
 				r.Scaling[i],
 			},
-			&r.Graph[i],
+			r.Graph[i],
 		); err != nil {
 			return fmt.Errorf("Failed encode %d-th RTPC curve: %w", i, err)
 		}
@@ -186,7 +186,7 @@ func EncodeRTPC(e *HircEncoderCtx, r *RTPC) error {
 	return e.Expect(curr, size)
 }
 
-func EncodeRTPCCurve(e *HircEncoderCtx, r *RTPCS, g *RTPCGraph) error {
+func EncodeRTPCCurve(e *HircEncoderCtx, r RTPCS, g RTPCGraph) error {
 	curr := e.Count()
 	size := SizeOfRTPCCurve(r.ParamId) + SizeOfRTPCGraph(g)
 	if err := e.Struct(
@@ -214,7 +214,7 @@ func EncodeRTPCCurve(e *HircEncoderCtx, r *RTPCS, g *RTPCGraph) error {
 	return e.Expect(curr, size)
 }
 
-func EncodeRTPCGraph(e *HircEncoderCtx, g *RTPCGraph) error {
+func EncodeRTPCGraph(e *HircEncoderCtx, g RTPCGraph) error {
 	curr := e.Count()
 	size := SizeOfRTPCGraph(g)
 	for i, x := range g.PointX {
@@ -237,7 +237,7 @@ func (c *RTPCComponent) HasBaseRTPC(internalId u32) (in bool) {
 	return in
 }
 
-func (c *RTPCComponent) GetBaseRTPC(internalId u32) (r *RTPC) {
+func (c *RTPCComponent) GetBaseRTPC(internalId u32) (r RTPC) {
 	r, in := c.BaseRTPC[internalId]
 	if !in {
 		panic("Failed to locate base RTPC")
@@ -245,10 +245,7 @@ func (c *RTPCComponent) GetBaseRTPC(internalId u32) (r *RTPC) {
 	return r
 }
 
-func (c *RTPCComponent) AddBaseRTPC(internalId u32, r *RTPC) {
-	if r == nil {
-		panic("Base parameter RTPC is nil")
-	}
+func (c *RTPCComponent) AddBaseRTPC(internalId u32, r RTPC) {
 	if _, in := c.BaseRTPC[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -257,7 +254,7 @@ func (c *RTPCComponent) AddBaseRTPC(internalId u32, r *RTPC) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetBaseRTPC(internalId u32) (r *RTPC) {
+func (h *HIRC) GetBaseRTPC(internalId u32) (r RTPC) {
 	return h.RTPCComponent.GetBaseRTPC(internalId)
 }
 

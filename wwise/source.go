@@ -14,15 +14,15 @@ type SourceData struct {
 }
 
 type SourceDataComponent struct {
-	SourceData map[u32]*SourceData
+	SourceData map[u32]SourceData
 }
 
 func AllocSourceDataComponent(size u32) (s *SourceDataComponent) {
 	s = &SourceDataComponent{}
 	if size <= 0 {
-		s.SourceData = make(map[u32]*SourceData)
+		s.SourceData = make(map[u32]SourceData)
 	} else {
-		s.SourceData = make(map[u32]*SourceData, size)
+		s.SourceData = make(map[u32]SourceData, size)
 	}
 	return s
 }
@@ -44,7 +44,7 @@ func SizeOfSourceData(version u32) (size u32) {
 
 // --- encoding --- //
 
-func EncodeSourceData(e *HircEncoderCtx, s *SourceData) error {
+func EncodeSourceData(e *HircEncoderCtx, s SourceData) error {
 	size := SizeOfSourceData(e.Version)
 	curr := e.Encoder.Count
 	if err := e.Primitive(s.PluginID); err != nil {
@@ -79,7 +79,7 @@ func (c *SourceDataComponent) HasSourceData(internalId u32) (in bool) {
 }
 
 // Has no side effect
-func (c *SourceDataComponent) GetSourceData(internalId u32) (s *SourceData) {
+func (c *SourceDataComponent) GetSourceData(internalId u32) (s SourceData) {
 	s, in := c.SourceData[internalId]
 	if !in {
 		panic("Failed to locate source data")
@@ -88,10 +88,7 @@ func (c *SourceDataComponent) GetSourceData(internalId u32) (s *SourceData) {
 }
 
 // Has side effect
-func (c *SourceDataComponent) AddSourceData(internalId u32, s *SourceData) {
-	if s == nil {
-		panic("Source data is nil")
-	}
+func (c *SourceDataComponent) AddSourceData(internalId u32, s SourceData) {
 	if _, in := c.SourceData[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -100,23 +97,23 @@ func (c *SourceDataComponent) AddSourceData(internalId u32, s *SourceData) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetSourceData(internalId u32) *SourceData {
+func (h *HIRC) GetSourceData(internalId u32) SourceData {
 	return h.SourceDataComponent.GetSourceData(internalId)
 }
 
 // --- core procedure --- //
 
 // Has no side effect
-func SourceHasParam(s *SourceData) bool {
+func SourceHasParam(s SourceData) bool {
 	return s.PluginID & PluginIDMask == 2
 }
 
 // Has no side effect
-func SourceHasPluginID(s *SourceData) bool {
+func SourceHasPluginID(s SourceData) bool {
 	return s.PluginID > 0
 }
 
-func SourceHasPluginParam(s *SourceData) bool {
+func SourceHasPluginParam(s SourceData) bool {
 	return SourceHasParam(s) && SourceHasPluginID(s)
 }
 

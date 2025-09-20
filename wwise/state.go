@@ -10,7 +10,7 @@ const SizeOfStateBaseData = SizeOfHierarchyId + Size16
 
 type State struct {
 	Id          u32
-	StateProps *StateHierarchyProp
+	StateProps  StateHierarchyProp
 }
 
 type StateHierarchyProp struct {
@@ -25,7 +25,7 @@ type StatePropS struct {
 }
 
 type StateComponent struct {
-	StateProps map[u32]*StateHierarchyProp
+	StateProps map[u32]StateHierarchyProp
 }
 
 // --- allocation / freeing --- //
@@ -33,11 +33,11 @@ type StateComponent struct {
 func AllocStateComponent(numState u32) *StateComponent {
 	if numState <= 0 {
 		return &StateComponent{
-			StateProps: make(map[u32]*StateHierarchyProp),
+			StateProps: make(map[u32]StateHierarchyProp),
 		}
 	}
 	return &StateComponent{
-		StateProps: make(map[u32]*StateHierarchyProp, numState),
+		StateProps: make(map[u32]StateHierarchyProp, numState),
 	}
 }
 
@@ -51,7 +51,7 @@ func AllocStateProps(numStateProps u16) *StateHierarchyProp {
 // --- assertion --- //
 
 // Has no side effect
-func AssertState(s *State) error {
+func AssertState(s State) error {
 	stateProp := s.StateProps
 	if len(stateProp.Ids) != len(stateProp.Vals) {
 		return fmt.Errorf("# of state property ids does not equal # of state values")
@@ -62,7 +62,7 @@ func AssertState(s *State) error {
 // --- sizing --- //
 
 // Has no side effect
-func SizeOfState(s *State) (size u32) {
+func SizeOfState(s State) (size u32) {
 	stateProp := s.StateProps
 	size = SizeOfStateBaseData
 	size += u32(len(stateProp.Ids)) * Size16 + u32(len(stateProp.Vals)) * Size32
@@ -73,8 +73,8 @@ func SizeOfState(s *State) (size u32) {
 
 // Has no side effect
 func EncodeState(
-	e    *HircEncoderCtx,
-	s    *State,
+	e *HircEncoderCtx,
+	s State,
 ) error {
 	var err error
 	id := s.Id
@@ -111,7 +111,7 @@ func (s *StateComponent) HasStateProps(internalId u32) (in bool) {
 }
 
 // Has no side effect
-func (s *StateComponent) GetStateProps(internalId u32) (p *StateHierarchyProp) {
+func (s *StateComponent) GetStateProps(internalId u32) (p StateHierarchyProp) {
 	p, in := s.StateProps[internalId]
 	if !in {
 		panic(fmt.Errorf("Failed to locate state property"))
@@ -120,10 +120,7 @@ func (s *StateComponent) GetStateProps(internalId u32) (p *StateHierarchyProp) {
 }
 
 // Has side effect
-func (s *StateComponent) AddStateData(internalId u32, data *StateHierarchyProp) {
-	if data == nil {
-		panic("State property is nil")
-	}
+func (s *StateComponent) AddStateData(internalId u32, data StateHierarchyProp) {
 	if _, in := s.StateProps[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -133,8 +130,7 @@ func (s *StateComponent) AddStateData(internalId u32, data *StateHierarchyProp) 
 // --- HIRC component wrapper --- //
 
 // Has no side effect
-func (h *HIRC) State(internalId u32) *State {
-	node := h.Hierarchy.GetHierarchyNode(internalId)
-	p := h.StateComponent.GetStateProps(internalId)
-	return &State{ node.Id, p }
+func (h *HIRC) State(internalId u32, inOut *State) {
+	inOut.Id = h.Hierarchy.GetHierarchyNode(internalId).Id
+	inOut.StateProps = h.StateComponent.GetStateProps(internalId)
 }

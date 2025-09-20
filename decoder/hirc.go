@@ -12,7 +12,7 @@ import (
 	"github.com/Dekr0/unwise/wwise"
 )
 
-type HierarchyDecoder func(io.Reader, order, u32, u32) any
+type HierarchyDecoder func(io.Reader, order, u32, u32, any)
 
 type HircDecodeOption struct {
 	Exclude    []u8
@@ -87,14 +87,19 @@ func AllocDecodeHIRC(
 		slog.Debug(fmt.Sprintf("Decoding a %s", wwise.GetHircTypeName(t)), "dispath", dispatch, "size", size)
 
 		var decoder HierarchyDecoder
+		var res any
 		switch t {
 		case wwise.HircTypeState:
+			res = &wwise.State{}
 			decoder = AllocDecodeState
 		case wwise.HircTypeSound:
+			res = &wwise.Sound{}
 			decoder = AllocDecodeSound
 		case wwise.HircTypeEvent:
+			res = &wwise.Event{}
 			decoder = AllocDecodeEvent
 		case wwise.HircTypeActorMixer:
+			res = &wwise.ActorMixer{}
 			decoder = AllocDecodeActorMixer
 		}
 
@@ -113,16 +118,16 @@ func AllocDecodeHIRC(
 		}
 
 		reader := bytes.NewReader(buffer)
-		res := decoder(reader, o, version, size)
+		decoder(reader, o, version, size, res)
 		switch t := res.(type) {
 		case *wwise.State:
-			h.AddState(t.Id, t.StateProps)
+			h.AddState(*t)
 		case *wwise.Sound:
-			h.AddSound(t, version)
+			h.AddSound(*t, version)
 		case *wwise.Event:
-			h.AddEvent(t.Id, t.EventData)
+			h.AddEvent(*t)
 		case *wwise.ActorMixer:
-			h.AddActorMixer(t, version)
+		 	h.AddActorMixer(*t, version)
 		}
 		dispatch++
 	}
@@ -139,21 +144,14 @@ func AllocDecodeHIRC(
 
 func PrefetchHIRCMetadata(
 	ctx       context.Context, 
-	inReader  io.ReadSeeker, 
-	opt      *HircDecodeOption,
+	r         io.ReadSeeker, 
 	out      *wwise.HierarchyStat,
 	o         order,
 	size      u32, 
-	version   u32, 
 ) error {
-	if opt == nil {
-		return fmt.Errorf("Must provide HIRC decoder option")
-	}
 	if out == nil {
 		return fmt.Errorf("Must provide hierarchy statistic")
 	}
-
-	r := io.LimitReader(inReader, int64(size))
 
 	numHirc, err := uio.U32(r, o)
 	if err != nil {
@@ -231,7 +229,7 @@ func PrefetchHIRCMetadata(
 			case wwise.HircTypeTimeModulator:
 				out.TimeModulator++
 		}
-		if _, err := r.(io.ReadSeeker).Seek(int64(size), io.SeekCurrent); err != nil {
+		if _, err := r.Seek(int64(size), io.SeekCurrent); err != nil {
 			return fmt.Errorf("Failed to skip %d bytes ahead to the next hierarchy: %w", size, err)
 		}
 	}

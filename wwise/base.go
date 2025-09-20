@@ -6,29 +6,29 @@ import "fmt"
 
 // This is only used for read. How data is stored is completely different
 type BaseParameter struct {
-	OverrideParentFx         u8
-	OverrideFxMetadata       u8
-	OverrideAttachmentParam  u8 // <= 145
-	SettingVector            u8
-	AdvanceSettingVector     u8
-	VirtualQueueBehavior     VirtualQueueBehavior
-	BelowThresholdBehavior   BelowThresholdBehavior
-	HDRSettingVector         u8
-	MaxNumInstance           u16
-	OverideBusId             u32
-	DirectParentId           u32
-	FXs                     *FXs
-	FxMetadatas             *FxMetadatas
-	Prop                    *Prop
-	RProp                   *RProp
-	PositionParam           *PositionParam
-	AuxParam                *AuxParam
-	StateProp               *StateProp
-	StateGroup              *StateGroup
-	RTPC                    *RTPC
+	OverrideParentFx        u8
+	OverrideFxMetadata      u8
+	OverrideAttachmentParam u8 // <= 145
+	SettingVector           u8
+	AdvanceSettingVector    u8
+	VirtualQueueBehavior    VirtualQueueBehavior
+	BelowThresholdBehavior  BelowThresholdBehavior
+	HDRSettingVector        u8
+	MaxNumInstance          u16
+	OverideBusId            u32
+	DirectParentId          u32
+	FXs                     FXs
+	FxMetadatas             FxMetadatas
+	Prop                    Prop
+	RProp                   RProp
+	PositionParam           PositionParam
+	AuxParam                AuxParam
+	StateProp               StateProp
+	StateGroup              StateGroup
+	RTPC                    RTPC
 }
 
-func (h *HIRC) AddBaseParameter(internalId u32, b *BaseParameter, version u32) {
+func (h *HIRC) AddBaseParameter(internalId u32, b BaseParameter, version u32) {
 	h.OverrideComponent.AddOverrideParentFx(internalId, b.OverrideParentFx)
 	h.FXsComponent.AddFXs(internalId, b.FXs)
 	h.OverrideComponent.AddOverrideFxMetadata(internalId, b.OverrideFxMetadata)
@@ -53,8 +53,8 @@ func (h *HIRC) AddBaseParameter(internalId u32, b *BaseParameter, version u32) {
 	h.RTPCComponent.AddBaseRTPC(internalId, b.RTPC)
 }
 
-func (h *HIRC) BaseParameter(internalId u32, version u32) (b *BaseParameter) {
-	b = &BaseParameter{}
+func (h *HIRC) BaseParameter(internalId u32, version u32) (b BaseParameter) {
+	b = BaseParameter{}
 	b.OverrideParentFx = h.GetOverrideParentFx(internalId)
 	b.OverrideFxMetadata = h.GetOverrideFxMetadata(internalId)
 	if version <= 145 {
@@ -81,7 +81,7 @@ func (h *HIRC) BaseParameter(internalId u32, version u32) (b *BaseParameter) {
 	return b
 }
 
-func AssertBaseParameter(b *BaseParameter, version u32) error {
+func AssertBaseParameter(b BaseParameter, version u32) error {
 	{ // Assertion for each data struct
 		if err := AssertFXs(b.FXs); err != nil {
 			return fmt.Errorf("FXs assertion failed: %w", err)
@@ -118,7 +118,7 @@ func AssertBaseParameter(b *BaseParameter, version u32) error {
 	return nil
 }
 
-func SizeOfBaseParameter(b *BaseParameter, version u32) (size u32) {
+func SizeOfBaseParameter(b BaseParameter, version u32) (size u32) {
 	if version <= 145 {
 		size = 18
 	} else {
@@ -136,7 +136,7 @@ func SizeOfBaseParameter(b *BaseParameter, version u32) (size u32) {
 	return size
 }
 
-func EncodeBaseParameter(e *HircEncoderCtx, b *BaseParameter) error {
+func EncodeBaseParameter(e *HircEncoderCtx, b BaseParameter) error {
 	curr := e.Encoder.Count
 	size := SizeOfBaseParameter(b, e.Version)
 	if err := e.Primitive(b.OverrideParentFx); err != nil {

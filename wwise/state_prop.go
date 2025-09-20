@@ -16,14 +16,14 @@ type StateProp struct {
 }
 
 type StatePropComponent struct {
-	StateProp map[u32]*StateProp
+	StateProp map[u32]StateProp
 }
 
 // --- allocating & freeing --- //
 
-func AllocStateProp(numStateProp *uio.V128) *StateProp {
+func AllocStateProp(numStateProp uio.V128) *StateProp {
 	return &StateProp{
-		NumStateProp: *numStateProp,
+		NumStateProp: numStateProp,
 		PropId: make([]uio.V128, numStateProp.V, numStateProp.V),
 		AccumType: make([]AccumType, numStateProp.V, numStateProp.V),
 		InDb: make([]u8, numStateProp.V, numStateProp.V),
@@ -33,17 +33,17 @@ func AllocStateProp(numStateProp *uio.V128) *StateProp {
 func AllocStatePropComponent(size u32) *StatePropComponent {
 	if size <= 0 {
 		return &StatePropComponent{
-			StateProp: make(map[u32]*StateProp),
+			StateProp: make(map[u32]StateProp),
 		}
 	}
 	return &StatePropComponent{
-		StateProp: make(map[u32]*StateProp, size),
+		StateProp: make(map[u32]StateProp, size),
 	}
 }
 
 // --- assertion --- //
 
-func AssertStateProp(s *StateProp) error {
+func AssertStateProp(s StateProp) error {
 	if s.NumStateProp.V != u64(len(s.PropId)) {
 		return fmt.Errorf(
 			"State property counter (%d) does not equal to # of state property ids (%d)",
@@ -67,7 +67,7 @@ func AssertStateProp(s *StateProp) error {
 
 // --- sizing --- //
 
-func SizeOfStateProp(s *StateProp) (size u32) {
+func SizeOfStateProp(s StateProp) (size u32) {
 	size = u32(len(s.NumStateProp.B))
 	size += Size8 * 2 * u32(len(s.PropId))
 	for _, propId := range s.PropId {
@@ -78,7 +78,7 @@ func SizeOfStateProp(s *StateProp) (size u32) {
 
 // --- encoding --- //
 
-func EncodeStateProp(e *HircEncoderCtx, s *StateProp) error {
+func EncodeStateProp(e *HircEncoderCtx, s StateProp) error {
 	curr := e.Encoder.Count
 	size := SizeOfStateProp(s)
 	if err := e.Bytes(s.NumStateProp.B); err != nil {
@@ -131,7 +131,7 @@ func (c *StatePropComponent) HasStateProp(internalId u32) (in bool) {
 	return in
 }
 
-func (c *StatePropComponent) GetStateProp(internalId u32) (p *StateProp) {
+func (c *StatePropComponent) GetStateProp(internalId u32) (p StateProp) {
 	p, in := c.StateProp[internalId]
 	if !in {
 		panic(fmt.Errorf("Failed to locate state prop."))
@@ -139,10 +139,7 @@ func (c *StatePropComponent) GetStateProp(internalId u32) (p *StateProp) {
 	return p
 }
 
-func (c *StatePropComponent) AddStateProp(internalId u32, s *StateProp) {
-	if s == nil {
-		panic("State property is nil")
-	}
+func (c *StatePropComponent) AddStateProp(internalId u32, s StateProp) {
 	if _, in := c.StateProp[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -151,6 +148,6 @@ func (c *StatePropComponent) AddStateProp(internalId u32, s *StateProp) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetStateProp(internalId u32) *StateProp {
+func (h *HIRC) GetStateProp(internalId u32) StateProp {
 	return h.StatePropComponent.GetStateProp(internalId)
 }

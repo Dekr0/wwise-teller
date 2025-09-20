@@ -16,7 +16,7 @@ type PluginParam struct {
 }
 
 type PluginParamComponent struct {
-	PluginParam  map[u32]*PluginParam
+	PluginParam  map[u32]PluginParam
 }
 
 // --- allocation / freeing --- //
@@ -24,9 +24,9 @@ type PluginParamComponent struct {
 func AllocPluginParamComponent(size u32) (c *PluginParamComponent) {
 	c = &PluginParamComponent{}
 	if size <= 0 {
-		c.PluginParam = make(map[u32]*PluginParam)
+		c.PluginParam = make(map[u32]PluginParam)
 	} else {
-		c.PluginParam = make(map[u32]*PluginParam, size)
+		c.PluginParam = make(map[u32]PluginParam, size)
 	}
 	return c
 }
@@ -41,7 +41,7 @@ func AllocPluginParam(size u32) *PluginParam {
 // --- assertion --- //
 
 // No side effect
-func AssertPluginParm(p *PluginParam) error {
+func AssertPluginParm(p PluginParam) error {
 	if p.Size != u32(len(p.Data)) {
 		return fmt.Errorf("Plugin parameter size counter (%d) does not equal to size of actual data size (%d)", p.Size, len(p.Data))
 	}
@@ -51,13 +51,13 @@ func AssertPluginParm(p *PluginParam) error {
 // --- sizing --- //
 
 // No side effect
-func SizeOfPluginParam(p *PluginParam) u32 {
+func SizeOfPluginParam(p PluginParam) u32 {
 	return Size32 + u32(len(p.Data))
 }
 
 // --- encoding --- //
 
-func EncodePluginParam(e *HircEncoderCtx, p *PluginParam) (err error) {
+func EncodePluginParam(e *HircEncoderCtx, p PluginParam) (err error) {
 	size := SizeOfPluginParam(p)
 
 	curr := e.Encoder.Count
@@ -104,7 +104,7 @@ func (c *PluginParamComponent) HasPluginParam(internalId u32) (in bool) {
 }
 
 // No side effect
-func (c *PluginParamComponent) GetPluginParam(internalId u32) (p *PluginParam) {
+func (c *PluginParamComponent) GetPluginParam(internalId u32) (p PluginParam) {
 	p, in := c.PluginParam[internalId]
 	if !in {
 		panic("Failed to locate plugin param")
@@ -113,10 +113,7 @@ func (c *PluginParamComponent) GetPluginParam(internalId u32) (p *PluginParam) {
 }
 
 // Has side effect
-func (c *PluginParamComponent) AddPluginParam(internalId u32, p *PluginParam) {
-	if p == nil {
-		panic("Plugin parameter is nil")
-	}
+func (c *PluginParamComponent) AddPluginParam(internalId u32, p PluginParam) {
 	if _, in := c.PluginParam[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -125,6 +122,6 @@ func (c *PluginParamComponent) AddPluginParam(internalId u32, p *PluginParam) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetPluginParam(internalId u32) *PluginParam {
+func (h *HIRC) GetPluginParam(internalId u32) PluginParam {
 	return h.PluginParamComponent.GetPluginParam(internalId)
 }

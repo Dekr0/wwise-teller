@@ -18,7 +18,7 @@ type AuxParam struct {
 }
 
 type AuxParamComponent struct {
-	AuxParam map[u32]*AuxParam
+	AuxParam map[u32]AuxParam
 }
 
 // --- allocating --- //
@@ -34,15 +34,15 @@ func AllocAuxParam() (a *AuxParam) {
 func AllocAuxParamComponent(size u32) *AuxParamComponent {
 	if size <= 0 {
 		return &AuxParamComponent{
-			make(map[u32]*AuxParam),
+			make(map[u32]AuxParam),
 		}
 	}
-	return &AuxParamComponent{make(map[u32]*AuxParam, size)}
+	return &AuxParamComponent{make(map[u32]AuxParam, size)}
 }
 
 // --- assertion --- //
 
-func AssertAuxParam(a *AuxParam) error {
+func AssertAuxParam(a AuxParam) error {
 	if HasAux(a) {
 		numVoidAux := 0
 		for _, a := range a.AuxIds {
@@ -68,7 +68,7 @@ func AssertAuxParam(a *AuxParam) error {
 
 // --- size --- //
 
-func SizeOfAuxParam(a *AuxParam) (size u32) {
+func SizeOfAuxParam(a AuxParam) (size u32) {
 	size = Size8 + Size32
 	if HasAux(a) {
 		numVoidAux := 0
@@ -86,7 +86,7 @@ func SizeOfAuxParam(a *AuxParam) (size u32) {
 
 // --- encoding --- //
 
-func EncodeAuxParam(e *HircEncoderCtx, a *AuxParam) error {
+func EncodeAuxParam(e *HircEncoderCtx, a AuxParam) error {
 	curr := e.Encoder.Count
 	size := SizeOfAuxParam(a)
 	if err := e.Primitive(a.SettingVector); err != nil {
@@ -142,7 +142,7 @@ func (c *AuxParamComponent) HasAuxParam(internalId u32) (in bool) {
 	return in
 }
 
-func (c *AuxParamComponent) GetAuxParam(internalId u32) (a *AuxParam) {
+func (c *AuxParamComponent) GetAuxParam(internalId u32) (a AuxParam) {
 	a, in := c.AuxParam[internalId]
 	if !in {
 		panic(fmt.Errorf("Failed to locate auxiliary parameter."))
@@ -150,10 +150,7 @@ func (c *AuxParamComponent) GetAuxParam(internalId u32) (a *AuxParam) {
 	return a
 }
 
-func (c *AuxParamComponent) AddAuxParam(internalId u32, a *AuxParam) {
-	if a == nil {
-		panic("Auxiliary parameter is nil")
-	}
+func (c *AuxParamComponent) AddAuxParam(internalId u32, a AuxParam) {
 	if _, in := c.AuxParam[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -162,20 +159,21 @@ func (c *AuxParamComponent) AddAuxParam(internalId u32, a *AuxParam) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetAuxParam(internalId u32) (a *AuxParam) {
+func (h *HIRC) GetAuxParam(internalId u32) (a AuxParam) {
 	return h.AuxParamComponent.GetAuxParam(internalId)
 }
 
 // --- core procedure --- //
 
-func HasAux(a *AuxParam) bool {
+func HasAux(a AuxParam) bool {
 	return uio.Bit(a.SettingVector, 3)
 }
 
-func OverrideReflectionAux(a *AuxParam) bool {
+func OverrideReflectionAux(a AuxParam) bool {
 	return uio.Bit(a.SettingVector, 4)
 }
 
-func SetAux(a *AuxParam, set bool) {
+func SetAux(a AuxParam, set bool) AuxParam {
 	a.SettingVector = uio.SetBit(a.SettingVector, 3, set)
+	return a
 }

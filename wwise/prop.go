@@ -17,7 +17,7 @@ type PropS struct {
 }
 
 type PropComponent struct {
-	Prop map[u32]*Prop
+	Prop map[u32]Prop
 }
 
 type RProp struct {
@@ -37,7 +37,7 @@ type RPropRange struct {
 }
 
 type RPropComponent struct {
-	RProp map[u32]*RProp
+	RProp map[u32]RProp
 }
 
 // --- allocation / freeing --- //
@@ -59,28 +59,28 @@ func AllocRProp(numRProp u8) *RProp {
 
 func AllocPropComponent(size u32) *PropComponent {
 	if size <= 0 {
-		return &PropComponent{make(map[u32]*Prop)}
+		return &PropComponent{make(map[u32]Prop)}
 	}
-	return &PropComponent{make(map[u32]*Prop, size)}
+	return &PropComponent{make(map[u32]Prop, size)}
 }
 
 func AllocRPropComponent(size u32) *RPropComponent {
 	if size <= 0 {
-		return &RPropComponent{make(map[u32]*RProp)}
+		return &RPropComponent{make(map[u32]RProp)}
 	}
-	return &RPropComponent{make(map[u32]*RProp, size)}
+	return &RPropComponent{make(map[u32]RProp, size)}
 }
 
 // --- assertion --- //
 
-func AssertProp(p *Prop) error {
+func AssertProp(p Prop) error {
 	if len(p.Ids) != len(p.Vals) {
 		return fmt.Errorf("# of property ids (%d) does not equal to # of property value (%d)", len(p.Ids), len(p.Vals))
 	}
 	return nil
 }
 
-func AssertRProp(p *RProp) error {
+func AssertRProp(p RProp) error {
 	if len(p.Ids) != len(p.Mins) {
 		return fmt.Errorf("# of property ids (%d) does not equal to # of min property value (%d)", len(p.Ids), len(p.Mins))
 	}
@@ -92,18 +92,18 @@ func AssertRProp(p *RProp) error {
 
 // --- sizing --- //
 
-func SizeOfProp(p *Prop) u32 {
+func SizeOfProp(p Prop) u32 {
 	return SizeOfPropCounter + (SizeOfPropId + SizeOfPropValue) * u32(len(p.Ids))
 }
 
-func SizeOfRProp(p *RProp) u32 {
+func SizeOfRProp(p RProp) u32 {
 	return SizeOfPropCounter + (SizeOfPropId + SizeOfRPropValue) * u32(len(p.Ids))
 }
 
 // --- encoding --- //
 
 // No side effect 
-func EncodeProp(e *HircEncoderCtx, p *Prop) error {
+func EncodeProp(e *HircEncoderCtx, p Prop) error {
 	size := SizeOfProp(p)
 	curr := e.Encoder.Count
 	if err := e.Primitive(u8(len(p.Ids))); err != nil {
@@ -119,7 +119,7 @@ func EncodeProp(e *HircEncoderCtx, p *Prop) error {
 }
 
 // No side effect
-func EncodeRProp(e *HircEncoderCtx, p *RProp) error {
+func EncodeRProp(e *HircEncoderCtx, p RProp) error {
 	size := SizeOfRProp(p)
 	curr := e.Encoder.Count
 	if err := e.Primitive(u8(len(p.Ids))); err != nil {
@@ -193,7 +193,7 @@ func (c *RPropComponent) HasRProp(internalId u32) (in bool) {
 }
 
 // Has no side effect
-func (c *PropComponent) GetProp(internalId u32) (p *Prop) {
+func (c *PropComponent) GetProp(internalId u32) (p Prop) {
 	p, in := c.Prop[internalId]
 	if !in {
 		panic("Failed to locate Prop")
@@ -202,7 +202,7 @@ func (c *PropComponent) GetProp(internalId u32) (p *Prop) {
 }
 
 // Has no side effect
-func (c *RPropComponent) GetRProp(internalId u32) (r *RProp) {
+func (c *RPropComponent) GetRProp(internalId u32) (r RProp) {
 	r, in := c.RProp[internalId]
 	if !in {
 		panic("Failed to locate RProp")
@@ -211,10 +211,7 @@ func (c *RPropComponent) GetRProp(internalId u32) (r *RProp) {
 }
 
 // Has side effect
-func (c *PropComponent) AddProp(internalId u32, p *Prop) {
-	if p == nil {
-		panic("Propery is nil")
-	}
+func (c *PropComponent) AddProp(internalId u32, p Prop) {
 	if _, in := c.Prop[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -222,10 +219,7 @@ func (c *PropComponent) AddProp(internalId u32, p *Prop) {
 }
 
 // Has side effect
-func (c *RPropComponent) AddRProp(internalId u32, r *RProp) {
-	if r == nil {
-		panic("Range-based property is nil")
-	}
+func (c *RPropComponent) AddRProp(internalId u32, r RProp) {
 	if _, in := c.RProp[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -235,11 +229,11 @@ func (c *RPropComponent) AddRProp(internalId u32, r *RProp) {
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetProp(internalId u32) (p *Prop) {
+func (h *HIRC) GetProp(internalId u32) (p Prop) {
 	return h.PropComponent.GetProp(internalId)
 }
 
-func (h *HIRC) GetRProp(internalId u32) (p *RProp) {
+func (h *HIRC) GetRProp(internalId u32) (p RProp) {
 	return h.RPropComponent.GetRProp(internalId)
 }
 

@@ -68,7 +68,7 @@ type SpatialAutomationS struct {
 }
 
 type PositionParamComponent struct {
-	PositionParam map[u32]*PositionParam
+	PositionParam map[u32]PositionParam
 }
 
 // --- allocation and freeing --- //
@@ -95,14 +95,14 @@ func AllocPositionParam() *PositionParam {
 
 func AllocPositionParamComponent(size u32) *PositionParamComponent {
 	if size <= 0 {
-		return &PositionParamComponent{make(map[u32]*PositionParam)}
+		return &PositionParamComponent{make(map[u32]PositionParam)}
 	}
-	return &PositionParamComponent{make(map[u32]*PositionParam, size)}
+	return &PositionParamComponent{make(map[u32]PositionParam, size)}
 }
 
 // --- assertion --- //
 
-func AssertPositionParam(p *PositionParam, isRoot bool) error {
+func AssertPositionParam(p PositionParam, isRoot bool) error {
 	if isRoot {
 		if !PositionOverrideParent(p) {
 			return fmt.Errorf("Position override parent is not set for a root level hierarchy")
@@ -252,7 +252,7 @@ func AssertPositionParam(p *PositionParam, isRoot bool) error {
 
 // --- sizing --- //
 
-func SizeOfPositionParam(p *PositionParam) (size u32) {
+func SizeOfPositionParam(p PositionParam) (size u32) {
 	size = Size8
 	if !PositionOverrideParentAndListenerRelativeRounting(p) {
 		return size
@@ -269,7 +269,7 @@ func SizeOfPositionParam(p *PositionParam) (size u32) {
 
 // --- encoding --- //
 
-func EncodePositionParam(e *HircEncoderCtx, p *PositionParam) error {
+func EncodePositionParam(e *HircEncoderCtx, p PositionParam) error {
 	curr := e.Encoder.Count
 	size := SizeOfPositionParam(p)
 	if err := e.Primitive(p.SettingVector); err != nil {
@@ -366,7 +366,7 @@ func (c *PositionParamComponent) HasPositionParam(internalId u32) (in bool) {
 	return in
 }
 
-func (c *PositionParamComponent) GetPositionParam(internalId u32) (p *PositionParam) {
+func (c *PositionParamComponent) GetPositionParam(internalId u32) (p PositionParam) {
 	p, in := c.PositionParam[internalId]
 	if !in {
 		panic(fmt.Errorf("Failed to locate position parameter."))
@@ -375,10 +375,7 @@ func (c *PositionParamComponent) GetPositionParam(internalId u32) (p *PositionPa
 }
 
 // Has side effect
-func (c *PositionParamComponent) AddPositionParam(internalId u32, p *PositionParam) {
-	if p == nil {
-		panic("Position parameter is nil")
-	}
+func (c *PositionParamComponent) AddPositionParam(internalId u32, p PositionParam) {
 	if _, in := c.PositionParam[internalId]; in {
 		panic(MonotonicIdCollision)
 	}
@@ -387,30 +384,30 @@ func (c *PositionParamComponent) AddPositionParam(internalId u32, p *PositionPar
 
 // --- HIRC component wrapper --- //
 
-func (h *HIRC) GetPositionParam(internalId u32) *PositionParam {
+func (h *HIRC) GetPositionParam(internalId u32) PositionParam {
 	return h.PositionParamComponent.GetPositionParam(internalId)
 }
 
 // --- core procedure --- //
 
 // Has no side effect
-func PositionOverrideParent(p *PositionParam) bool {
+func PositionOverrideParent(p PositionParam) bool {
 	return uio.Bit(p.SettingVector, 0)
 }
 
 // Has no side effect
-func PositionListenerRelativeRouting(p *PositionParam) bool {
+func PositionListenerRelativeRouting(p PositionParam) bool {
 	if !PositionOverrideParent(p) {
 		return false
 	}
 	return uio.Bit(p.SettingVector, 1)
 }
 
-func PositionOverrideParentAndListenerRelativeRounting(p *PositionParam) bool {
+func PositionOverrideParentAndListenerRelativeRounting(p PositionParam) bool {
 	return PositionOverrideParent(p) && PositionListenerRelativeRouting(p)
 }
 
-func Position3DPositionType(p *PositionParam) u8 {
+func Position3DPositionType(p PositionParam) u8 {
 	if !PositionOverrideParentAndListenerRelativeRounting(p) {
 		panic("Attempt to obtain 3D position type when position override parent and listener relative routing is not enable.")
 	}
@@ -418,7 +415,7 @@ func Position3DPositionType(p *PositionParam) u8 {
 }
 
 // Has no side effect
-func PositionHas3D(p *PositionParam) bool {
+func PositionHas3D(p PositionParam) bool {
 	if !PositionOverrideParentAndListenerRelativeRounting(p) {
 		return false
 	}

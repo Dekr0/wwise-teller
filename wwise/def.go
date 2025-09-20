@@ -61,7 +61,7 @@ var HircTypeName [HircTypeTimeModulator]string = [HircTypeTimeModulator]string{
 	"Action",
 	"Event",
 	"Random / Sequence Container",
-	"Swithc Container",
+	"Switch Container",
 	"Actor Mixer",
 	"Bus",
 	"Layer Container",

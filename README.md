@@ -48,3 +48,10 @@ chunk size.
     - Buffer size 32k: 11.77 ms +/- 1%
     - Delta: 5.369 ms +/- 0%
 - Milestone 5: Concurrent parsing (parse DIDX)
+    - Buffer size 32k, 4 chunk decoder: 10.34 +/- 1%
+        - If buffer size is greater than chunk size, use chunk size * 2
+    - Delta: 3.939 ms +/- 0%
+- Milestone 5: Milestone 5 + parse DATA
+    - Buffer size 32k, 4 chunk decoder: 10.74 +/- 0%
+        - If buffer size is greater than chunk size, use chunk size * 2
+    - Delta: 4.339 ms +/- 1%
