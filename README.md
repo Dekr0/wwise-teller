@@ -1,5 +1,14 @@
 # Wwise Teller
 
+## Status Update
+
+- Currently, I'm reworking the entire infrastructure of Wwise Teller (renamed to
+ unwise) under branch `rewrite`. The reworking have been slowed down. This is
+because AH has been failed to keep the correct development direction for Helldivers
+2 as well as offer what players truly want over the recently months. Thus, I have
+  been taking a break from audio modding and exploring Wwise sound engine, and
+  going back to working on other things. 
+
 ## Credit
 
 - Wwise Teller cannot be made without the helps of `wwiser`.
